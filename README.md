@@ -45,6 +45,12 @@ sheldon init --shell zsh
 brew install fzf
 ```
 
+### ripgrep (fast search)
+
+```bash
+brew install ripgrep
+```
+
 ### Font
 
 ```bash
