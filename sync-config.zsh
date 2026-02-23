@@ -33,8 +33,8 @@ fi
 for src in "${synced[@]}"; do
   case "$src" in
     */sheldon/plugins.toml)
-      echo "Running: sheldon lock"
-      sheldon lock
+      echo "Running: sheldon lock --update"
+      sheldon lock --update
       ;;
     */zshrc)
       echo "Run 'source ~/.zshrc' to apply changes."
