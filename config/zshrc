@@ -1,0 +1,48 @@
+# Homebrew
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# Completion
+autoload -Uz compinit && compinit
+zstyle ':completion:*' menu select
+
+# History
+HISTFILE=~/.zsh_history
+HISTSIZE=100000
+SAVEHIST=100000
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt SHARE_HISTORY
+
+# Sheldon (plugin manager)
+eval "$(sheldon source)"
+
+# fnm (Node.js version manager)
+eval "$(fnm env --use-on-cd --shell zsh)"
+
+# uv (Python)
+export PATH="$HOME/.local/bin:$PATH"
+
+# pnpm
+export PNPM_HOME="$HOME/Library/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+
+# Warn and block pip in favor of uv
+pip() {
+  echo "⚠ Use uv instead of pip"
+  echo "  pip install <pkg>  → uv add <pkg>"
+  echo "  pip install -g     → uv tool install <pkg>"
+  echo "  pip install -r     → uv pip install -r requirements.txt"
+  return 1
+}
+
+pip3() {
+  echo "⚠ Use uv instead of pip3"
+  echo "  pip3 install <pkg> → uv add <pkg>"
+  return 1
+}
+
+alias python="$(uv python find)"
+alias python3="$(uv python find)"
+
+# Starship (must be last)
+eval "$(starship init zsh)"
