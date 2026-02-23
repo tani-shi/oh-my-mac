@@ -109,3 +109,19 @@ Sync config files (only copies files with differences):
 ```bash
 curl -fsSL https://claude.ai/install.sh | bash
 ```
+
+### Skills
+
+Open Claude Code and run:
+
+```
+# Add skill marketplaces
+/plugin marketplace add anthropics/skills
+/plugin marketplace add git@github.com:tani-shi/skills.git
+
+# Install official skills (pdf, pptx, docx, xlsx, frontend-design, etc.)
+/plugin install example-skills@anthropic-agent-skills
+
+# Install Google Workspace integration (Gmail, Calendar, Drive, etc.)
+/plugin install gogcli@tani-shi-skills
+```
