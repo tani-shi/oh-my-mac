@@ -105,6 +105,7 @@ git config --global alias.st status\ --short
 | `config/zshrc` | `~/.zshrc` |
 | `config/git/ignore` | `~/.config/git/ignore` |
 | `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
+| `config/claude/settings.json` | `~/.claude/settings.json` |
 
 Check differences between this repo and local config:
 

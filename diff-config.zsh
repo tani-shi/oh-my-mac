@@ -9,6 +9,7 @@ configs=(
   "config/zshrc:$HOME/.zshrc"
   "config/git/ignore:$HOME/.config/git/ignore"
   "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md"
+  "config/claude/settings.json:$HOME/.claude/settings.json"
 )
 
 diffs=0
@@ -17,7 +18,7 @@ for entry in "${configs[@]}"; do
   dst="${entry##*:}"
   if ! diff -q "$src" "$dst" &>/dev/null; then
     git diff --no-index "$dst" "$src" || true
-    ((diffs++))
+    diffs=$((diffs + 1))
   fi
 done
 

@@ -9,6 +9,7 @@ configs=(
   "config/zshrc:$HOME/.zshrc"
   "config/git/ignore:$HOME/.config/git/ignore"
   "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md"
+  "config/claude/settings.json:$HOME/.claude/settings.json"
 )
 
 synced=()
