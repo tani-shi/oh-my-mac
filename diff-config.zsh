@@ -7,6 +7,7 @@ configs=(
   "config/starship.toml:$HOME/.config/starship.toml"
   "config/sheldon/plugins.toml:$HOME/.config/sheldon/plugins.toml"
   "config/zshrc:$HOME/.zshrc"
+  "config/git/ignore:$HOME/.config/git/ignore"
 )
 
 diffs=0

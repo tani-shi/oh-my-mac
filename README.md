@@ -98,6 +98,13 @@ git config --global alias.st status\ --short
 
 ## Config Files
 
+| Source | Destination |
+| --- | --- |
+| `config/starship.toml` | `~/.config/starship.toml` |
+| `config/sheldon/plugins.toml` | `~/.config/sheldon/plugins.toml` |
+| `config/zshrc` | `~/.zshrc` |
+| `config/git/ignore` | `~/.config/git/ignore` |
+
 Check differences between this repo and local config:
 
 ```bash
