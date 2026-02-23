@@ -104,6 +104,7 @@ git config --global alias.st status\ --short
 | `config/sheldon/plugins.toml` | `~/.config/sheldon/plugins.toml` |
 | `config/zshrc` | `~/.zshrc` |
 | `config/git/ignore` | `~/.config/git/ignore` |
+| `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 
 Check differences between this repo and local config:
 

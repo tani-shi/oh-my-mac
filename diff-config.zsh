@@ -8,6 +8,7 @@ configs=(
   "config/sheldon/plugins.toml:$HOME/.config/sheldon/plugins.toml"
   "config/zshrc:$HOME/.zshrc"
   "config/git/ignore:$HOME/.config/git/ignore"
+  "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md"
 )
 
 diffs=0
