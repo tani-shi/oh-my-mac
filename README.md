@@ -110,6 +110,22 @@ Sync config files (only copies files with differences):
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
+### gogcli (Google Workspace CLI)
+
+```bash
+brew install steipete/tap/gogcli
+```
+
+Setup OAuth and authorize your account:
+
+```bash
+# Store OAuth2 credentials (download from Google Cloud Console)
+gog auth credentials ~/Downloads/client_secret_*.json
+
+# Authorize your account
+gog auth add you@gmail.com
+```
+
 ### Skills
 
 Open Claude Code and run:
