@@ -30,6 +30,7 @@
       "mcp__claude_ai_Slack__slack_read_user_profile"
     ],
     "deny": [
+      "Bash(git -C:*)",
       "Bash(rm -rf:*)",
       "Bash(sudo:*)",
       "Read(./.env)",
