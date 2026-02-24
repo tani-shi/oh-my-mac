@@ -12,15 +12,8 @@ $line_break\
 $python\
 $character"""
 
-right_format = "$time"
-
 [username]
 show_always = true
-
-[time]
-disabled = false
-format = "[$time](dimmed white)"
-time_format = "%H:%M"
 
 [directory]
 style = "blue"
