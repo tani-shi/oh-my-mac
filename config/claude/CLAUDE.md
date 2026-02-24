@@ -14,3 +14,11 @@
 ## Shell
 
 - Use `trash` instead of `rm -rf` for file deletion.
+
+## Node.js
+
+- Use `pnpm` / `pnpx` instead of `npm` / `npx`.
+
+## Python
+
+- Use `uv` instead of `pip` / `pip3` / `python` / `python3`.
