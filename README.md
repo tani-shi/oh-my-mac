@@ -51,6 +51,12 @@ brew install fzf
 brew install ripgrep
 ```
 
+### shellcheck / shfmt (shell linter & formatter)
+
+```bash
+brew install shellcheck shfmt
+```
+
 ### Font
 
 ```bash
