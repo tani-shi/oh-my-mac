@@ -29,6 +29,7 @@
       "Bash(npm test:*)",
       "Bash(npm exec:*)",
       "Bash(npx:*)",
+      "Bash(pnpx:*)",
       "Bash(tsc:*)",
       "Bash(eslint:*)",
       "Bash(prettier:*)",
