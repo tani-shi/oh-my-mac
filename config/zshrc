@@ -44,5 +44,13 @@ pip3() {
 alias python="$(uv python find)"
 alias python3="$(uv python find)"
 
+ipinfo() {
+  if [[ -z "$1" ]]; then
+    curl -s "https://ipinfo.io"
+  else
+    curl -s "https://ipinfo.io/$1"
+  fi
+}
+
 # Starship (must be last)
 eval "$(starship init zsh)"
