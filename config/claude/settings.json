@@ -1,4 +1,5 @@
 {
+  "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
       "Read",
@@ -208,7 +209,9 @@
       "Bash(gog classroom invitations get:*)",
       "Bash(gog classroom guardians get:*)",
       "Bash(gog classroom guardian-invitations get:*)",
-      "Bash(gog classroom profile:*)"
+      "Bash(gog classroom profile:*)",
+      "Bash(* --help)",
+      "Bash(* --help *)"
     ],
     "deny": [
       "Bash(git -C:*)",
@@ -221,9 +224,18 @@
     ],
     "defaultMode": "default"
   },
-  "includeCoAuthoredBy": false,
   "enabledPlugins": {
     "example-skills@anthropic-agent-skills": true,
-    "gogcli@tani-shi-skills": true
+    "lua-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true,
+    "xai@tani-shi-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "tani-shi-skills": {
+      "source": {
+        "source": "git",
+        "url": "git@github.com:tani-shi/skills.git"
+      }
+    }
   }
 }
