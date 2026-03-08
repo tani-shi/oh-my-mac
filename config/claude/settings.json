@@ -230,6 +230,28 @@
     "swift-lsp@claude-plugins-official": true,
     "xai@tani-shi-skills": true
   },
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"Claude is waiting for your input\" with title \"Claude Code\" sound name \"Ping\"'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"Task completed\" with title \"Claude Code\" sound name \"Glass\"'"
+          }
+        ]
+      }
+    ]
+  },
   "extraKnownMarketplaces": {
     "tani-shi-skills": {
       "source": {
