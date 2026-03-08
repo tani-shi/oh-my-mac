@@ -112,6 +112,7 @@ git config --global alias.st status\ --short
 | `config/git/ignore` | `~/.config/git/ignore` |
 | `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | `config/claude/settings.json` | `~/.claude/settings.json` |
+| `config/summarize/config.json` | `~/.summarize/config.json` |
 
 Check differences between this repo and local config:
 
@@ -145,6 +146,12 @@ gog auth credentials ~/Downloads/client_secret_*.json
 
 # Authorize your account
 gog auth add you@gmail.com
+```
+
+### summarize (AI-powered code summarization)
+
+```bash
+brew install steipete/tap/summarize
 ```
 
 ### Skills

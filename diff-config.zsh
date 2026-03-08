@@ -9,6 +9,7 @@ configs=(
   "config/zshrc:$HOME/.zshrc"
   "config/git/ignore:$HOME/.config/git/ignore"
   "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md"
+  "config/summarize/config.json:$HOME/.summarize/config.json"
 )
 
 diffs=0
