@@ -53,7 +53,8 @@ jq -s '
   .permissions.allow = ((.permissions.allow // []) + ($repo.permissions.allow // []) | unique) |
   .permissions.deny = ((.permissions.deny // []) + ($repo.permissions.deny // []) | unique) |
   .hooks.Notification = (.hooks.Notification // $repo.hooks.Notification) |
-  .hooks.Stop = (.hooks.Stop // $repo.hooks.Stop)
+  .hooks.Stop = (.hooks.Stop // $repo.hooks.Stop) |
+  .preferences.defaultMode = ($repo.preferences.defaultMode // .preferences.defaultMode)
 ' "$CLAUDE_SETTINGS" "$REPO_SETTINGS" > "${CLAUDE_SETTINGS}.tmp" && mv "${CLAUDE_SETTINGS}.tmp" "$CLAUDE_SETTINGS"
 echo "Merged Claude Code settings into $CLAUDE_SETTINGS"
 
