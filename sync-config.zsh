@@ -9,7 +9,6 @@ configs=(
   "config/zshrc:$HOME/.zshrc"
   "config/git/ignore:$HOME/.config/git/ignore"
   "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md"
-  "config/claude/settings.json:$HOME/.claude/settings.json"
 )
 
 synced=()
@@ -26,18 +25,41 @@ done
 
 if [[ ${#synced[@]} -eq 0 ]]; then
   echo "Already up to date."
-  exit 0
+else
+  # Post-sync hooks
+  for src in "${synced[@]}"; do
+    case "$src" in
+      */sheldon/plugins.toml)
+        echo "Running: sheldon lock --update"
+        sheldon lock --update
+        ;;
+      */zshrc)
+        echo "Run 'source ~/.zshrc' to apply changes."
+        ;;
+    esac
+  done
 fi
 
-# Post-sync hooks
-for src in "${synced[@]}"; do
-  case "$src" in
-    */sheldon/plugins.toml)
-      echo "Running: sheldon lock --update"
-      sheldon lock --update
-      ;;
-    */zshrc)
-      echo "Run 'source ~/.zshrc' to apply changes."
-      ;;
-  esac
-done
+# Merge Claude Code settings.json (idempotent)
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+REPO_SETTINGS="$SCRIPT_DIR/config/claude/settings.json"
+mkdir -p "$(dirname "$CLAUDE_SETTINGS")"
+[[ -f "$CLAUDE_SETTINGS" ]] || echo '{}' > "$CLAUDE_SETTINGS"
+
+jq -s '
+  .[0] as $user | .[1] as $repo |
+  $user |
+  .permissions.allow = ((.permissions.allow // []) + ($repo.permissions.allow // []) | unique) |
+  .permissions.deny = ((.permissions.deny // []) + ($repo.permissions.deny // []) | unique) |
+  .hooks.Notification = (.hooks.Notification // $repo.hooks.Notification) |
+  .hooks.Stop = (.hooks.Stop // $repo.hooks.Stop)
+' "$CLAUDE_SETTINGS" "$REPO_SETTINGS" > "${CLAUDE_SETTINGS}.tmp" && mv "${CLAUDE_SETTINGS}.tmp" "$CLAUDE_SETTINGS"
+echo "Merged Claude Code settings into $CLAUDE_SETTINGS"
+
+# Install bash-guard
+if command -v bash-guard &>/dev/null; then
+  bash-guard install
+  echo "bash-guard installed."
+else
+  echo "Warning: bash-guard not found. Skipping bash-guard install."
+fi

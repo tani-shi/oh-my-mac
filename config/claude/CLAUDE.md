@@ -9,7 +9,6 @@
 
 - Use conventional commit style (e.g., `feat:`, `fix:`, `docs:`, `refactor:`).
 - Use `--force-with-lease` instead of `--force` when force pushing.
-- Never use `git -C <path>`. Use simple commands like `git diff path/file` instead.
 
 ## Shell
 
