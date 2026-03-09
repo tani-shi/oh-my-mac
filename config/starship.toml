@@ -16,7 +16,7 @@ $character"""
 show_always = true
 
 [directory]
-style = "blue"
+style = "cyan"
 
 [character]
 success_symbol = "[❯](purple)"
