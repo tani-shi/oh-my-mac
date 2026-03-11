@@ -37,8 +37,8 @@ if [[ -f "$settings" ]]; then
     $user |
     .permissions.allow = ((.permissions.allow // []) + ($repo.permissions.allow // []) | unique) |
     .permissions.deny = ((.permissions.deny // []) + ($repo.permissions.deny // []) | unique) |
-    .hooks.Notification = (.hooks.Notification // $repo.hooks.Notification) |
-    .hooks.Stop = (.hooks.Stop // $repo.hooks.Stop) |
+    .hooks.Notification = ($repo.hooks.Notification // .hooks.Notification) |
+    .hooks.Stop = ($repo.hooks.Stop // .hooks.Stop) |
     .preferences.defaultMode = ($repo.preferences.defaultMode // .preferences.defaultMode)
   ' "$settings" "$repo_settings" > "$tmpdir/settings.json"
   if ! diff -q "$settings" "$tmpdir/settings.json" &>/dev/null; then
