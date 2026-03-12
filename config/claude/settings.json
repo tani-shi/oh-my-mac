@@ -43,5 +43,13 @@
   },
   "preferences": {
     "defaultMode": "plan"
+  },
+  "extraKnownMarketplaces": {
+    "tani-shi-skills": {
+      "source": {
+        "source": "git",
+        "url": "git@github.com:tani-shi/skills.git"
+      }
+    }
   }
 }

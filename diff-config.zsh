@@ -41,10 +41,35 @@ if [[ -f "$settings" ]]; then
     .hooks.Stop = ($repo.hooks.Stop // .hooks.Stop) |
     .preferences.defaultMode = ($repo.preferences.defaultMode // .preferences.defaultMode)
   ' "$settings" "$repo_settings" > "$tmpdir/settings.json"
+  # Merge extraKnownMarketplaces
+  if jq -e '.extraKnownMarketplaces' "$repo_settings" &>/dev/null; then
+    jq -s '.[0].extraKnownMarketplaces = ((.[0].extraKnownMarketplaces // {}) * (.[1].extraKnownMarketplaces // {})) | .[0]' \
+      "$tmpdir/settings.json" "$repo_settings" > "$tmpdir/settings2.json" && mv "$tmpdir/settings2.json" "$tmpdir/settings.json"
+  fi
   if ! diff -q "$settings" "$tmpdir/settings.json" &>/dev/null; then
     echo ""
     echo "Claude Code settings.json:"
     git diff --no-index "$settings" "$tmpdir/settings.json" || true
+    diffs=$((diffs + 1))
+  fi
+fi
+
+# Show plugins to be installed
+plugin_list="$SCRIPT_DIR/config/claude/plugins.txt"
+if [[ -f "$plugin_list" ]] && [[ -f "$settings" ]]; then
+  missing=()
+  while IFS= read -r plugin || [[ -n "$plugin" ]]; do
+    [[ -z "$plugin" || "$plugin" == \#* ]] && continue
+    if ! jq -e --arg p "$plugin" '.enabledPlugins[$p]' "$settings" &>/dev/null; then
+      missing+=("$plugin")
+    fi
+  done < "$plugin_list"
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo ""
+    echo "Claude Code plugins to install:"
+    for p in "${missing[@]}"; do
+      echo "  + $p"
+    done
     diffs=$((diffs + 1))
   fi
 fi

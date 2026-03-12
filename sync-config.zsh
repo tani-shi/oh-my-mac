@@ -58,6 +58,25 @@ jq -s '
 ' "$CLAUDE_SETTINGS" "$REPO_SETTINGS" > "${CLAUDE_SETTINGS}.tmp" && mv "${CLAUDE_SETTINGS}.tmp" "$CLAUDE_SETTINGS"
 echo "Merged Claude Code settings into $CLAUDE_SETTINGS"
 
+# Install Claude Code plugins
+PLUGIN_LIST="$SCRIPT_DIR/config/claude/plugins.txt"
+if [[ -f "$PLUGIN_LIST" ]] && command -v claude &>/dev/null; then
+  # Merge extraKnownMarketplaces from repo settings
+  if jq -e '.extraKnownMarketplaces' "$REPO_SETTINGS" &>/dev/null; then
+    jq -s '.[0].extraKnownMarketplaces = ((.[0].extraKnownMarketplaces // {}) * (.[1].extraKnownMarketplaces // {})) | .[0]' \
+      "$CLAUDE_SETTINGS" "$REPO_SETTINGS" > "${CLAUDE_SETTINGS}.tmp" && mv "${CLAUDE_SETTINGS}.tmp" "$CLAUDE_SETTINGS"
+  fi
+
+  while IFS= read -r plugin || [[ -n "$plugin" ]]; do
+    [[ -z "$plugin" || "$plugin" == \#* ]] && continue
+    if ! jq -e --arg p "$plugin" '.enabledPlugins[$p]' "$CLAUDE_SETTINGS" &>/dev/null; then
+      echo "Installing plugin: $plugin"
+      claude plugin install "$plugin" 2>/dev/null || echo "Warning: Failed to install $plugin"
+    fi
+  done < "$PLUGIN_LIST"
+  echo "Claude Code plugins synced."
+fi
+
 # Install bash-guard
 if command -v bash-guard &>/dev/null; then
   bash-guard install
