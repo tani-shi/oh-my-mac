@@ -39,7 +39,8 @@ if [[ -f "$settings" ]]; then
     .permissions.deny = ((.permissions.deny // []) + ($repo.permissions.deny // []) | unique) |
     .hooks.Notification = ($repo.hooks.Notification // .hooks.Notification) |
     .hooks.Stop = ($repo.hooks.Stop // .hooks.Stop) |
-    .preferences.defaultMode = ($repo.preferences.defaultMode // .preferences.defaultMode)
+    .preferences.defaultMode = ($repo.preferences.defaultMode // .preferences.defaultMode) |
+    .includeCoAuthoredBy = ($repo.includeCoAuthoredBy // .includeCoAuthoredBy)
   ' "$settings" "$repo_settings" > "$tmpdir/settings.json"
   # Merge extraKnownMarketplaces
   if jq -e '.extraKnownMarketplaces' "$repo_settings" &>/dev/null; then

@@ -41,6 +41,7 @@
       }
     ]
   },
+  "includeCoAuthoredBy": false,
   "preferences": {
     "defaultMode": "plan"
   },
