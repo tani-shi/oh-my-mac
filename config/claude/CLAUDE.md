@@ -20,7 +20,5 @@
 
 ## Skills
 
-- When a task involves X (Twitter), tweets, or social media search, use the `xai` skill.
-- When web scraping fails or a site has anti-bot protection, use the `scrapling` skill.
 - When writing code that uses external libraries/frameworks, always look up the latest documentation using context7 MCP tools (`resolve-library-id` then `query-docs`) before writing implementation code.
 - When multiple skills could apply, prefer process skills (brainstorming, debugging) before implementation skills.
