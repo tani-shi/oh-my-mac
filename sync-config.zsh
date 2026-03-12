@@ -55,7 +55,7 @@ jq -s '
   .hooks.Notification = ($repo.hooks.Notification // .hooks.Notification) |
   .hooks.Stop = ($repo.hooks.Stop // .hooks.Stop) |
   .preferences.defaultMode = ($repo.preferences.defaultMode // .preferences.defaultMode) |
-  .includeCoAuthoredBy = ($repo.includeCoAuthoredBy // .includeCoAuthoredBy)
+  .includeCoAuthoredBy = (if $repo | has("includeCoAuthoredBy") then $repo.includeCoAuthoredBy else .includeCoAuthoredBy end)
 ' "$CLAUDE_SETTINGS" "$REPO_SETTINGS" > "${CLAUDE_SETTINGS}.tmp" && mv "${CLAUDE_SETTINGS}.tmp" "$CLAUDE_SETTINGS"
 echo "Merged Claude Code settings into $CLAUDE_SETTINGS"
 

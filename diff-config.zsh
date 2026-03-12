@@ -40,7 +40,7 @@ if [[ -f "$settings" ]]; then
     .hooks.Notification = ($repo.hooks.Notification // .hooks.Notification) |
     .hooks.Stop = ($repo.hooks.Stop // .hooks.Stop) |
     .preferences.defaultMode = ($repo.preferences.defaultMode // .preferences.defaultMode) |
-    .includeCoAuthoredBy = ($repo.includeCoAuthoredBy // .includeCoAuthoredBy)
+    .includeCoAuthoredBy = (if $repo | has("includeCoAuthoredBy") then $repo.includeCoAuthoredBy else .includeCoAuthoredBy end)
   ' "$settings" "$repo_settings" > "$tmpdir/settings.json"
   # Merge extraKnownMarketplaces
   if jq -e '.extraKnownMarketplaces' "$repo_settings" &>/dev/null; then
