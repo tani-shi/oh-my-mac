@@ -58,6 +58,7 @@ _set_iterm_tab_title() {
   echo -ne "\e]1;${PWD##*/}\a"
 }
 add-zsh-hook precmd _set_iterm_tab_title
+add-zsh-hook preexec _set_iterm_tab_title
 
 # Starship (must be last)
 eval "$(starship init zsh)"

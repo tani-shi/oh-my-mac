@@ -140,16 +140,17 @@ git config --global alias.st status\ --short
 | `config/git/ignore` | `~/.config/git/ignore` |
 | `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | `config/claude/settings.json` | `~/.claude/settings.json` |
+| `config/claude/plugins.txt` | installed via `claude plugin install` |
 | `config/summarize/config.json` | `~/.summarize/config.json` |
 
 Check differences between this repo and local config:
 
 ```bash
-./diff-config.zsh
+make diff-config
 ```
 
 Sync config files (only copies files with differences):
 
 ```bash
-./sync-config.zsh
+make sync-config
 ```
