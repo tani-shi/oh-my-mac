@@ -27,7 +27,6 @@ JQ_MERGE_EXPR='
 
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 REPO_SETTINGS="$SCRIPT_DIR/config/claude/settings.json"
-PLUGIN_LIST="$SCRIPT_DIR/config/claude/plugins.txt"
 ITERM_PLIST="$HOME/Library/Preferences/com.googlecode.iterm2.plist"
 ITERM_KEY=":New Bookmarks:0:Title Components"
 ITERM_EXPECTED="1"
@@ -95,35 +94,6 @@ if ! diff -q "$CLAUDE_SETTINGS" "$tmpdir/settings.json" &>/dev/null; then
   fi
 fi
 
-# === Claude Code plugins ===
-if [[ -f "$PLUGIN_LIST" ]] && [[ -f "$CLAUDE_SETTINGS" ]]; then
-  missing=()
-  while IFS= read -r plugin || [[ -n "$plugin" ]]; do
-    [[ -z "$plugin" || "$plugin" == \#* ]] && continue
-    if ! jq -e --arg p "$plugin" '.enabledPlugins[$p]' "$CLAUDE_SETTINGS" &>/dev/null; then
-      missing+=("$plugin")
-    fi
-  done < "$PLUGIN_LIST"
-
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    if [[ "$MODE" == "diff" ]]; then
-      echo ""
-      echo "Claude Code plugins to install:"
-      for p in "${missing[@]}"; do
-        echo "  + $p"
-      done
-      diffs=$((diffs + 1))
-    elif command -v claude &>/dev/null; then
-      for plugin in "${missing[@]}"; do
-        echo "Installing plugin: $plugin"
-        claude plugin install "$plugin" 2>/dev/null || echo "Warning: Failed to install $plugin"
-      done
-      echo "Claude Code plugins synced."
-    fi
-  elif [[ "$MODE" == "sync" ]] && command -v claude &>/dev/null; then
-    echo "Claude Code plugins synced."
-  fi
-fi
 
 # === iTerm2 plist ===
 if [[ -f "$ITERM_PLIST" ]]; then

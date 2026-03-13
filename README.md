@@ -1,136 +1,43 @@
 # oh-my-mac
 
-My Mac setup guide.
+My Mac setup, managed declaratively.
 
 ## Prerequisites
 
-### iTerm2
-
-Download from [https://iterm2.com](https://iterm2.com) or:
-
-```bash
-brew install --cask iterm2
-```
-
-## Homebrew
+### Homebrew
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-Add the following to `~/.zshrc`:
+Add to `~/.zshrc`:
 
 ```bash
 eval "$(/opt/homebrew/bin/brew shellenv)"
 ```
 
-## Shell
-
-### Starship (prompt)
+## Quick Start
 
 ```bash
-brew install starship
+git clone git@github.com:tani-shi/oh-my-mac.git ~/dev/oh-my-mac
+cd ~/dev/oh-my-mac
+make install
 ```
 
-### Sheldon (plugin manager)
+## What's Included
 
-```bash
-brew install sheldon
-sheldon init --shell zsh
-```
+### Homebrew Packages (`Brewfile`)
 
-### fzf (fuzzy finder)
+| Category | Packages |
+| --- | --- |
+| Shell | starship, sheldon, fzf, ripgrep, shellcheck, shfmt |
+| Font | font-jetbrains-mono-nerd-font |
+| Development | fnm, pnpm, uv |
+| Git / GitHub | gh |
+| Google Workspace | gogcli |
+| AI | summarize |
 
-```bash
-brew install fzf
-```
-
-### ripgrep (fast search)
-
-```bash
-brew install ripgrep
-```
-
-### shellcheck / shfmt (shell linter & formatter)
-
-```bash
-brew install shellcheck shfmt
-```
-
-### Font
-
-```bash
-brew install font-jetbrains-mono-nerd-font
-```
-
-Set in iTerm2: Settings > Profiles > Text > Font: **JetBrainsMono Nerd Font Mono**
-
-## Development Tools
-
-### Node.js (fnm + pnpm)
-
-```bash
-brew install fnm
-brew install pnpm
-```
-
-### Python (uv)
-
-```bash
-brew install uv
-uv python install 3.12
-uv python pin 3.12
-```
-
-### Claude Code
-
-```bash
-curl -fsSL https://claude.ai/install.sh | bash
-```
-
-### gogcli (Google Workspace CLI)
-
-```bash
-brew install steipete/tap/gogcli
-```
-
-Setup OAuth and authorize your account:
-
-```bash
-# Store OAuth2 credentials (download from Google Cloud Console)
-gog auth credentials ~/Downloads/client_secret_*.json
-
-# Authorize your account
-gog auth add you@gmail.com
-```
-
-### summarize (AI-powered code summarization)
-
-```bash
-brew install steipete/tap/summarize
-```
-
-## Git / GitHub
-
-```bash
-brew install gh
-```
-
-### SSH key setup and GitHub auth
-
-```bash
-ssh-keygen
-gh auth login
-# Protocol: SSH / Key: id_ed25519
-```
-
-### Git alias
-
-```bash
-git config --global alias.st status\ --short
-```
-
-## Config Files
+### Config Files
 
 | Source | Destination |
 | --- | --- |
@@ -140,17 +47,58 @@ git config --global alias.st status\ --short
 | `config/git/ignore` | `~/.config/git/ignore` |
 | `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | `config/claude/settings.json` | `~/.claude/settings.json` |
-| `config/claude/plugins.txt` | installed via `claude plugin install` |
 | `config/summarize/config.json` | `~/.summarize/config.json` |
 
-Check differences between this repo and local config:
+### Claude Code Plugins (`config/claude/plugins.txt`)
+
+| Plugin | Registry |
+| --- | --- |
+| example-skills | anthropic-agent-skills |
+| tani-shi-skills | tani-shi-skills |
+| claude-md-management | claude-plugins-official |
+| code-review | claude-plugins-official |
+| code-simplifier | claude-plugins-official |
+| context7 | claude-plugins-official |
+| feature-dev | claude-plugins-official |
+| frontend-design | claude-plugins-official |
+| playground | claude-plugins-official |
+| playwright | claude-plugins-official |
+| superpowers | claude-plugins-official |
+
+## Usage
+
+| Command | Description |
+| --- | --- |
+| `make install` | Install packages + sync config + install plugins |
+| `make update` | `brew update/upgrade/cleanup` + `brew bundle` + sync config |
+| `make diff-config` | Show differences between repo and local config |
+| `make sync-config` | Sync config files only |
+
+## Post-install Setup
+
+These require interactive authentication and cannot be automated:
+
+### SSH key + GitHub auth
 
 ```bash
-make diff-config
+ssh-keygen
+gh auth login
+# Protocol: SSH / Key: id_ed25519
 ```
 
-Sync config files (only copies files with differences):
+### gogcli (Google Workspace)
 
 ```bash
-make sync-config
+gog auth credentials ~/Downloads/client_secret_*.json
+gog auth add you@gmail.com
 ```
+
+### Claude Code
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+### iTerm2 font
+
+Set in iTerm2: Settings > Profiles > Text > Font: **JetBrainsMono Nerd Font Mono**
