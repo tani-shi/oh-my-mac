@@ -30,6 +30,8 @@ install-claude-plugins:
 
 update-claude-plugins:
 	@if command -v claude >/dev/null 2>&1 && [ -f config/claude/plugins.txt ]; then \
+		echo "Updating plugin marketplaces..."; \
+		claude plugin marketplace update 2>/dev/null || echo "Warning: Failed to update marketplaces"; \
 		while IFS= read -r plugin || [ -n "$$plugin" ]; do \
 			[ -z "$$plugin" ] && continue; \
 			echo "Updating plugin: $$plugin"; \
