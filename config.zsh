@@ -20,9 +20,9 @@ JQ_MERGE_EXPR='
   .hooks.Notification = ($repo.hooks.Notification // .hooks.Notification) |
   .hooks.Stop = ($repo.hooks.Stop // .hooks.Stop) |
   .hooks.PermissionRequest = ($repo.hooks.PermissionRequest // .hooks.PermissionRequest) |
-  .preferences.defaultMode = ($repo.preferences.defaultMode // .preferences.defaultMode) |
   .includeCoAuthoredBy = (if $repo | has("includeCoAuthoredBy") then $repo.includeCoAuthoredBy else .includeCoAuthoredBy end) |
-  .permissions = ($repo.permissions // .permissions)
+  .permissions = ($repo.permissions // .permissions) |
+  del(.preferences)
 '
 
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"

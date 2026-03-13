@@ -34,9 +34,6 @@
   },
   "includeCoAuthoredBy": false,
   "permissions": {
-    "defaultMode": "default"
-  },
-  "preferences": {
     "defaultMode": "plan"
   },
   "extraKnownMarketplaces": {
