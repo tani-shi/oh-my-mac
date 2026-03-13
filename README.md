@@ -49,6 +49,12 @@ make install
 | `config/claude/settings.json` | `~/.claude/settings.json` |
 | `config/summarize/config.json` | `~/.summarize/config.json` |
 
+### uv Tools (`config/uv/tools.txt`)
+
+| Tool | Source |
+| --- | --- |
+| claude-sentinel | [tani-shi/claude-sentinel](https://github.com/tani-shi/claude-sentinel) |
+
 ### Claude Code Plugins (`config/claude/plugins.txt`)
 
 | Plugin | Registry |

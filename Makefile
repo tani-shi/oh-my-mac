@@ -1,4 +1,4 @@
-.PHONY: diff-config sync-config install update install-claude-plugins update-claude-plugins
+.PHONY: diff-config sync-config install update install-claude-plugins update-claude-plugins install-uv-tools update-uv-tools
 
 diff-config:
 	@./config.zsh diff
@@ -6,10 +6,10 @@ diff-config:
 sync-config:
 	@./config.zsh sync
 
-install: sync-config install-claude-plugins
+install: sync-config install-claude-plugins install-uv-tools
 	brew bundle --no-upgrade --file=Brewfile
 
-update: sync-config update-claude-plugins
+update: sync-config update-claude-plugins update-uv-tools
 	brew bundle --file=Brewfile
 	brew cleanup
 
@@ -31,4 +31,26 @@ install-claude-plugins:
 update-claude-plugins:
 	@if command -v claude >/dev/null 2>&1; then \
 		claude plugins update 2>/dev/null || echo "Warning: Failed to update Claude Code plugins"; \
+	fi
+
+install-uv-tools:
+	@if command -v uv >/dev/null 2>&1 && [ -f config/uv/tools.txt ]; then \
+		while IFS= read -r tool || [ -n "$$tool" ]; do \
+			[ -z "$$tool" ] && continue; \
+			echo "Installing uv tool: $$tool"; \
+			uv tool install "$$tool" 2>&1 || echo "Warning: Failed to install $$tool"; \
+		done < config/uv/tools.txt; \
+	else \
+		echo "Skipping uv tools (uv not found or tools.txt missing)"; \
+	fi
+
+update-uv-tools:
+	@if command -v uv >/dev/null 2>&1 && [ -f config/uv/tools.txt ]; then \
+		while IFS= read -r tool || [ -n "$$tool" ]; do \
+			[ -z "$$tool" ] && continue; \
+			echo "Updating uv tool: $$tool"; \
+			uv tool install --force "$$tool" 2>&1 || echo "Warning: Failed to update $$tool"; \
+		done < config/uv/tools.txt; \
+	else \
+		echo "Skipping uv tools (uv not found or tools.txt missing)"; \
 	fi
