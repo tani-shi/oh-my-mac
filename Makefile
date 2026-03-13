@@ -29,8 +29,14 @@ install-claude-plugins:
 	fi
 
 update-claude-plugins:
-	@if command -v claude >/dev/null 2>&1; then \
-		claude plugins update 2>/dev/null || echo "Warning: Failed to update Claude Code plugins"; \
+	@if command -v claude >/dev/null 2>&1 && [ -f config/claude/plugins.txt ]; then \
+		while IFS= read -r plugin || [ -n "$$plugin" ]; do \
+			[ -z "$$plugin" ] && continue; \
+			echo "Updating plugin: $$plugin"; \
+			claude plugin update "$$plugin" 2>/dev/null || echo "Warning: Failed to update $$plugin"; \
+		done < config/claude/plugins.txt; \
+	else \
+		echo "Skipping Claude Code plugins (claude not found or plugins.txt missing)"; \
 	fi
 
 install-uv-tools:
