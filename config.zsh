@@ -17,12 +17,12 @@ configs=(
 JQ_MERGE_EXPR='
   .[0] as $user | .[1] as $repo |
   $user |
-  .permissions.allow = ((.permissions.allow // []) + ($repo.permissions.allow // []) | unique) |
-  .permissions.deny = ((.permissions.deny // []) + ($repo.permissions.deny // []) | unique) |
   .hooks.Notification = ($repo.hooks.Notification // .hooks.Notification) |
   .hooks.Stop = ($repo.hooks.Stop // .hooks.Stop) |
+  .hooks.PermissionRequest = ($repo.hooks.PermissionRequest // .hooks.PermissionRequest) |
   .preferences.defaultMode = ($repo.preferences.defaultMode // .preferences.defaultMode) |
-  .includeCoAuthoredBy = (if $repo | has("includeCoAuthoredBy") then $repo.includeCoAuthoredBy else .includeCoAuthoredBy end)
+  .includeCoAuthoredBy = (if $repo | has("includeCoAuthoredBy") then $repo.includeCoAuthoredBy else .includeCoAuthoredBy end) |
+  .permissions = ($repo.permissions // .permissions)
 '
 
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
@@ -146,14 +146,4 @@ fi
 # === diff summary ===
 if [[ "$MODE" == "diff" && $diffs -eq 0 ]]; then
   echo "No differences found."
-fi
-
-# === bash-guard (sync only) ===
-if [[ "$MODE" == "sync" ]]; then
-  if command -v bash-guard &>/dev/null; then
-    bash-guard install
-    echo "bash-guard installed."
-  else
-    echo "Warning: bash-guard not found. Skipping bash-guard install."
-  fi
 fi
