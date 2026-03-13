@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash-guard"
+            "command": "claude-sentinel"
           }
         ]
       }
