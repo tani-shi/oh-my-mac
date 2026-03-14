@@ -37,8 +37,5 @@ github = "hlissner/zsh-autopair"
 [plugins.fzf-tab]
 github = "Aloxaf/fzf-tab"
 
-[plugins.zsh-z]
-github = "agkozak/zsh-z"
-
 [plugins.zsh-claude-code]
 github = "tani-shi/zsh-claude-code"

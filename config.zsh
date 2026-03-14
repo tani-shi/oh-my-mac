@@ -113,6 +113,46 @@ if [[ -f "$ITERM_PLIST" ]]; then
   fi
 fi
 
+# === git-delta pager config ===
+git_delta_keys=(
+  "core.pager:delta"
+  "interactive.diffFilter:delta --color-only"
+  "delta.navigate:true"
+  "delta.side-by-side:true"
+  "delta.line-numbers:true"
+  "delta.hunk-header-style:omit"
+  "delta.syntax-theme:TwoDark"
+  "delta.file-style:yellow bold"
+  "delta.file-decoration-style:yellow ul ol"
+  "delta.line-numbers-minus-style:red"
+  "delta.line-numbers-plus-style:green"
+  "delta.line-numbers-left-style:dim"
+  "delta.line-numbers-right-style:dim"
+  "delta.minus-style:syntax #3a1d1e"
+  "delta.minus-emph-style:syntax #6b2e2e"
+  "delta.plus-style:syntax #1a3a1a"
+  "delta.plus-emph-style:syntax #2e6b2e"
+  "merge.conflictstyle:diff3"
+)
+
+for entry in "${git_delta_keys[@]}"; do
+  key="${entry%%:*}"
+  expected="${entry#*:}"
+  current=$(git config --global "$key" 2>/dev/null || echo "")
+  if [[ "$current" != "$expected" ]]; then
+    if [[ "$MODE" == "diff" ]]; then
+      echo ""
+      echo "git config --global $key:"
+      echo "  current:  ${current:-<unset>}"
+      echo "  expected: $expected"
+      diffs=$((diffs + 1))
+    else
+      git config --global "$key" "$expected"
+      echo "Set git config: $key = $expected"
+    fi
+  fi
+done
+
 # === diff summary ===
 if [[ "$MODE" == "diff" && $diffs -eq 0 ]]; then
   echo "No differences found."
