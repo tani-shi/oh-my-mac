@@ -31,6 +31,10 @@ ITERM_PLIST="$HOME/Library/Preferences/com.googlecode.iterm2.plist"
 ITERM_KEY=":New Bookmarks:0:Title Components"
 ITERM_EXPECTED="1"
 
+# iTerm2 color preset — One Half Dark
+ITERM_PRESET_NAME="OneHalfDark"
+ITERM_PRESET_FILE="$SCRIPT_DIR/config/iterm2/OneHalfDark.itermcolors"
+
 # === File sync ===
 diffs=0
 synced=()
@@ -111,6 +115,21 @@ if [[ -f "$ITERM_PLIST" ]]; then
       echo "iTerm2: Tab title set to Session Name only."
     fi
   fi
+
+  # Color preset — One Half Dark
+  if ! /usr/libexec/PlistBuddy -c "Print ':Custom Color Presets:${ITERM_PRESET_NAME}'" "$ITERM_PLIST" &>/dev/null; then
+    if [[ "$MODE" == "diff" ]]; then
+      echo ""
+      echo "iTerm2 color preset:"
+      echo "  current:  <not installed>"
+      echo "  expected: $ITERM_PRESET_NAME"
+      diffs=$((diffs + 1))
+    else
+      open "$ITERM_PRESET_FILE"
+      echo "iTerm2: Installed color preset $ITERM_PRESET_NAME."
+      echo "  → Select it in Preferences > Profiles > Colors > Color Presets."
+    fi
+  fi
 fi
 
 # === git-delta pager config ===
@@ -121,17 +140,6 @@ git_delta_keys=(
   "delta.side-by-side:true"
   "delta.line-numbers:true"
   "delta.hunk-header-style:omit"
-  "delta.syntax-theme:TwoDark"
-  "delta.file-style:yellow bold"
-  "delta.file-decoration-style:yellow ul ol"
-  "delta.line-numbers-minus-style:red"
-  "delta.line-numbers-plus-style:green"
-  "delta.line-numbers-left-style:dim"
-  "delta.line-numbers-right-style:dim"
-  "delta.minus-style:syntax #3a1d1e"
-  "delta.minus-emph-style:syntax #6b2e2e"
-  "delta.plus-style:syntax #1a3a1a"
-  "delta.plus-emph-style:syntax #2e6b2e"
   "merge.conflictstyle:diff3"
 )
 

@@ -105,6 +105,7 @@ gog auth add you@gmail.com
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
-### iTerm2 font
+### iTerm2
 
-Set in iTerm2: Settings > Profiles > Text > Font: **JetBrainsMono Nerd Font Mono**
+- Font: Settings > Profiles > Text > Font: **JetBrainsMono Nerd Font Mono**
+- Color preset: Settings > Profiles > Colors > Color Presets: **OneHalfDark** (installed by `make sync-config`)
