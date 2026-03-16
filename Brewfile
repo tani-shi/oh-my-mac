@@ -17,6 +17,7 @@ brew "zoxide"     # smarter cd
 brew "jq"         # JSON processor
 brew "tree"       # directory tree
 brew "btop"       # resource monitor
+brew "duti"       # default app associations
 
 # Font
 cask "font-jetbrains-mono-nerd-font"
@@ -25,6 +26,7 @@ cask "font-jetbrains-mono-nerd-font"
 brew "fnm"
 brew "pnpm"
 brew "uv"
+cask "visual-studio-code"
 
 # Git / GitHub
 brew "gh"

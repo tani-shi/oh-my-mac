@@ -161,6 +161,30 @@ for entry in "${git_delta_keys[@]}"; do
   fi
 done
 
+# === duti file associations ===
+DUTI_FILE="$SCRIPT_DIR/config/duti/defaults.duti"
+if command -v duti &>/dev/null && [[ -f "$DUTI_FILE" ]]; then
+  while IFS=' ' read -r bundle ext role; do
+    [[ -z "$bundle" || "$bundle" == \#* ]] && continue
+    current=$(duti -x "${ext#.}" 2>/dev/null | head -1 || echo "")
+    if [[ "$current" != "Visual Studio Code" ]]; then
+      if [[ "$MODE" == "diff" ]]; then
+        echo ""
+        echo "duti ${ext}:"
+        echo "  current:  ${current:-<unset>}"
+        echo "  expected: Visual Studio Code ($bundle)"
+        diffs=$((diffs + 1))
+      else
+        if duti -s "$bundle" "$ext" "$role" 2>/dev/null; then
+          echo "Set default for ${ext} → Visual Studio Code"
+        else
+          echo "Warning: failed to set default for ${ext} (skipped)"
+        fi
+      fi
+    fi
+  done < "$DUTI_FILE"
+fi
+
 # === diff summary ===
 if [[ "$MODE" == "diff" && $diffs -eq 0 ]]; then
   echo "No differences found."
