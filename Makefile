@@ -1,4 +1,4 @@
-.PHONY: diff-config sync-config install update install-claude-plugins update-claude-plugins install-uv-tools update-uv-tools
+.PHONY: diff-config sync-config install update install-claude install-claude-plugins update-claude update-claude-plugins install-uv-tools update-uv-tools
 
 diff-config:
 	@./config.zsh diff
@@ -6,12 +6,28 @@ diff-config:
 sync-config:
 	@./config.zsh sync
 
-install: sync-config install-claude-plugins install-uv-tools
+install: sync-config install-claude install-claude-plugins install-uv-tools
 	brew bundle --no-upgrade --file=Brewfile
 
-update: sync-config update-claude-plugins update-uv-tools
+update: sync-config update-claude update-claude-plugins update-uv-tools
 	brew bundle --file=Brewfile
 	brew cleanup
+
+install-claude:
+	@if ! command -v claude >/dev/null 2>&1; then \
+		echo "Installing Claude Code..."; \
+		curl -fsSL https://claude.ai/install.sh | bash; \
+	else \
+		echo "Claude Code already installed"; \
+	fi
+
+update-claude:
+	@if command -v claude >/dev/null 2>&1; then \
+		echo "Updating Claude Code..."; \
+		claude update 2>&1 || echo "Warning: Failed to update Claude Code"; \
+	else \
+		echo "Skipping Claude Code update (claude not found)"; \
+	fi
 
 install-claude-plugins:
 	@if command -v claude >/dev/null 2>&1 && [ -f config/claude/plugins.txt ]; then \

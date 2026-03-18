@@ -97,12 +97,6 @@ gog auth credentials ~/Downloads/client_secret_*.json
 gog auth add you@gmail.com
 ```
 
-### Claude Code
-
-```bash
-curl -fsSL https://claude.ai/install.sh | bash
-```
-
 ### iTerm2
 
 - Managed via Dynamic Profile (`config/iterm2/profile.json`), synced by `make sync-config`
