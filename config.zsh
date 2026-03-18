@@ -10,9 +10,7 @@ configs=(
   "config/sheldon/plugins.toml:$HOME/.config/sheldon/plugins.toml"
   "config/zshrc:$HOME/.zshrc"
   "config/git/ignore:$HOME/.config/git/ignore"
-  "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md"
-  "config/summarize/config.json:$HOME/.summarize/config.json"
-)
+  "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md")
 
 JQ_MERGE_EXPR='
   .[0] as $user | .[1] as $repo |

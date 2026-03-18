@@ -35,7 +35,6 @@ make install
 | Development | fnm, pnpm, uv |
 | Git / GitHub | gh |
 | Google Workspace | gogcli |
-| AI | summarize |
 
 ### Config Files
 
@@ -47,7 +46,6 @@ make install
 | `config/git/ignore` | `~/.config/git/ignore` |
 | `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | `config/claude/settings.json` | `~/.claude/settings.json` |
-| `config/summarize/config.json` | `~/.summarize/config.json` |
 
 ### uv Tools (`config/uv/tools.txt`)
 

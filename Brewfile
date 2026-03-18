@@ -33,6 +33,3 @@ brew "gh"
 
 # Google Workspace
 brew "steipete/tap/gogcli"
-
-# AI
-brew "steipete/tap/summarize"
