@@ -27,13 +27,8 @@ JQ_MERGE_EXPR='
 
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 REPO_SETTINGS="$SCRIPT_DIR/config/claude/settings.json"
-ITERM_PLIST="$HOME/Library/Preferences/com.googlecode.iterm2.plist"
-ITERM_KEY=":New Bookmarks:0:Title Components"
-ITERM_EXPECTED="1"
-
-# iTerm2 color preset — One Half Dark
-ITERM_PRESET_NAME="OneHalfDark"
-ITERM_PRESET_FILE="$SCRIPT_DIR/config/iterm2/OneHalfDark.itermcolors"
+ITERM_PROFILE_SRC="$SCRIPT_DIR/config/iterm2/profile.json"
+ITERM_PROFILE_DST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/profile.json"
 
 # === File sync ===
 diffs=0
@@ -99,35 +94,23 @@ if ! diff -q "$CLAUDE_SETTINGS" "$tmpdir/settings.json" &>/dev/null; then
 fi
 
 
-# === iTerm2 plist ===
-if [[ -f "$ITERM_PLIST" ]]; then
-  current=$(/usr/libexec/PlistBuddy -c "Print '$ITERM_KEY'" "$ITERM_PLIST" 2>/dev/null || echo "")
-  if [[ "$current" != "$ITERM_EXPECTED" ]]; then
+# === iTerm2 Dynamic Profile ===
+if [[ -f "$ITERM_PROFILE_SRC" ]]; then
+  if ! diff -q "$ITERM_PROFILE_SRC" "$ITERM_PROFILE_DST" &>/dev/null; then
     if [[ "$MODE" == "diff" ]]; then
       echo ""
-      echo "iTerm2 Title Components:"
-      echo "  current: ${current:-<unset>}"
-      echo "  expected: $ITERM_EXPECTED (Session Name only)"
+      echo "iTerm2 Dynamic Profile:"
+      if [[ -f "$ITERM_PROFILE_DST" ]]; then
+        git diff --no-index "$ITERM_PROFILE_DST" "$ITERM_PROFILE_SRC" || true
+      else
+        echo "  current:  <not installed>"
+        echo "  expected: $ITERM_PROFILE_SRC"
+      fi
       diffs=$((diffs + 1))
     else
-      /usr/libexec/PlistBuddy -c "Set '$ITERM_KEY' $ITERM_EXPECTED" "$ITERM_PLIST" 2>/dev/null ||
-        /usr/libexec/PlistBuddy -c "Add '$ITERM_KEY' integer $ITERM_EXPECTED" "$ITERM_PLIST"
-      echo "iTerm2: Tab title set to Session Name only."
-    fi
-  fi
-
-  # Color preset — One Half Dark
-  if ! /usr/libexec/PlistBuddy -c "Print ':Custom Color Presets:${ITERM_PRESET_NAME}'" "$ITERM_PLIST" &>/dev/null; then
-    if [[ "$MODE" == "diff" ]]; then
-      echo ""
-      echo "iTerm2 color preset:"
-      echo "  current:  <not installed>"
-      echo "  expected: $ITERM_PRESET_NAME"
-      diffs=$((diffs + 1))
-    else
-      open "$ITERM_PRESET_FILE"
-      echo "iTerm2: Installed color preset $ITERM_PRESET_NAME."
-      echo "  → Select it in Preferences > Profiles > Colors > Color Presets."
+      mkdir -p "$(dirname "$ITERM_PROFILE_DST")"
+      cp "$ITERM_PROFILE_SRC" "$ITERM_PROFILE_DST"
+      echo "Synced iTerm2 Dynamic Profile."
     fi
   fi
 fi

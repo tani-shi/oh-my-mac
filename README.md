@@ -107,5 +107,4 @@ curl -fsSL https://claude.ai/install.sh | bash
 
 ### iTerm2
 
-- Font: Settings > Profiles > Text > Font: **JetBrainsMono Nerd Font Mono**
-- Color preset: Settings > Profiles > Colors > Color Presets: **OneHalfDark** (installed by `make sync-config`)
+- Managed via Dynamic Profile (`config/iterm2/profile.json`), synced by `make sync-config`
