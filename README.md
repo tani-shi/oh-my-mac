@@ -100,3 +100,4 @@ gog auth add you@gmail.com
 ### iTerm2
 
 - Managed via Dynamic Profile (`config/iterm2/profile.json`), synced by `make sync-config`
+- After first sync: **Profiles → oh-my-mac → Other Actions… → Set as Default** to apply
