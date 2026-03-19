@@ -101,3 +101,5 @@ gog auth add you@gmail.com
 
 - Managed via Dynamic Profile (`config/iterm2/profile.json`), synced by `make sync-config`
 - After first sync: **Profiles → oh-my-mac → Other Actions… → Set as Default** to apply
+
+  ![Set as Default](docs/iterm2-set-as-default.png)
