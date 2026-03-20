@@ -26,6 +26,7 @@ cask "font-jetbrains-mono-nerd-font"
 brew "fnm"
 brew "pnpm"
 brew "uv"
+brew "terraform"
 cask "visual-studio-code"
 
 # Git / GitHub

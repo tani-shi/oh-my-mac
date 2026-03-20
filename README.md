@@ -32,7 +32,7 @@ make install
 | --- | --- |
 | Shell | starship, sheldon, fzf, ripgrep, shellcheck, shfmt |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, pnpm, uv |
+| Development | fnm, pnpm, uv, terraform |
 | Git / GitHub | gh |
 | Google Workspace | gogcli |
 
