@@ -27,6 +27,7 @@ brew "fnm"
 brew "pnpm"
 brew "uv"
 brew "terraform"
+cask "gcloud-cli"
 cask "visual-studio-code"
 
 # Git / GitHub
