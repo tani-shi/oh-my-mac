@@ -17,3 +17,8 @@
 ## Python
 
 - Use `uv` instead of `pip` / `pip3` / `python` / `python3`.
+
+## Documentation
+
+- When your changes affect what a project does, how it's used, or how it's configured, update README.md and CLAUDE.md (if they exist) in the same changeset.
+- Focus on sections that describe the changed functionality (feature lists, configuration tables, usage examples, setup instructions).
