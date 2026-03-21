@@ -6,6 +6,13 @@ input=$(cat)
 session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null || true)
 transcript_path=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null || true)
 
+# Guard: exit early if expected fields are missing (stdin not received or malformed)
+[[ -z "$session_id" ]] && exit 0
+
+# Guard: skip if Claude is already continuing from a previous stop hook (prevents infinite loop)
+stop_hook_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null || echo "false")
+[[ "$stop_hook_active" == "true" ]] && exit 0
+
 # Only run in git repositories
 git rev-parse --is-inside-work-tree &>/dev/null || exit 0
 repo_root=$(git rev-parse --show-toplevel)
@@ -34,8 +41,11 @@ while IFS= read -r file; do
       [[ " ${checked[*]:-} " == *" $doc_path "* ]] && continue
       checked+=("$doc_path")
 
-      # Skip if doc doesn't exist
+      # Skip if doc doesn't exist on disk
       [[ -f "$repo_root/$doc_path" ]] || continue
+
+      # Skip if doc is not tracked by git (newly created files don't need "updating")
+      git -C "$repo_root" ls-files --error-unmatch "$doc_path" &>/dev/null || continue
 
       # Skip if doc was already changed
       echo "$all_changed" | grep -q "^${doc_path}$" && continue
@@ -53,18 +63,14 @@ done <<< "$source_changed"
 # Dedup: check if we already reminded in this session
 reminder_tag="[check-docs]"
 if [[ -n "$transcript_path" && -f "$transcript_path" ]]; then
-  last_rename_line=$(rg -n '"custom-title"' "$transcript_path" 2>/dev/null | tail -1 | cut -d: -f1 || true)
-  if [[ -n "$last_rename_line" ]]; then
-    # Only check lines after the last rename
-    tail -n "+${last_rename_line}" "$transcript_path" | rg -q "$reminder_tag" 2>/dev/null && exit 0
-  else
-    # No rename events: check entire transcript
-    rg -q "$reminder_tag" "$transcript_path" 2>/dev/null && exit 0
-  fi
+  rg -qF "$reminder_tag" "$transcript_path" 2>/dev/null && exit 0
 fi
 
-# Report with unique tag for transcript-based dedup
-echo "$reminder_tag Files were changed but documentation was not updated." >&2
-echo "Please verify these files are current:" >&2
-printf '  - %s\n' "${stale[@]}" | sort -u >&2
-exit 2
+# Report: output JSON decision to block stop and provide reason
+stale_list=$(printf '  - %s\n' "${stale[@]}" | sort -u)
+reason="$reminder_tag Files were changed but documentation was not updated.
+Please verify these files are current:
+${stale_list}"
+
+jq -n --arg reason "$reason" '{decision: "block", reason: $reason}'
+exit 0
