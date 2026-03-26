@@ -21,6 +21,7 @@ shell = "zsh"
 
 [plugins.zsh-completions]
 github = "zsh-users/zsh-completions"
+tag = "0.36.0"
 apply = ["fpath"]
 
 [plugins.compinit]
@@ -31,18 +32,24 @@ inline = 'ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#5c6370"'
 
 [plugins.fzf-tab]
 github = "Aloxaf/fzf-tab"
+tag = "v1.3.0"
 
 [plugins.zsh-autosuggestions]
 github = "zsh-users/zsh-autosuggestions"
+tag = "v0.7.1"
 
 [plugins.zsh-syntax-highlighting]
 github = "zsh-users/zsh-syntax-highlighting"
+tag = "0.8.0"
 
 [plugins.zsh-history-substring-search]
 github = "zsh-users/zsh-history-substring-search"
+tag = "v1.1.0"
 
 [plugins.zsh-autopair]
 github = "hlissner/zsh-autopair"
+tag = "v1.0"
 
 [plugins.zsh-claude-code]
 github = "tani-shi/zsh-claude-code"
+rev = "6ae3867"

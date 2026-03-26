@@ -75,7 +75,9 @@ make install
 | Command | Description |
 | --- | --- |
 | `make install` | Install packages + sync config + install plugins |
-| `make update` | `brew update/upgrade/cleanup` + `brew bundle` + sync config |
+| `make update` | Sync config + install missing packages (no upgrades) |
+| `make upgrade` | Launch Claude Code to investigate and apply dependency upgrades |
+| `make snapshot-versions` | Save installed versions to `versions.json` |
 | `make diff-config` | Show differences between repo and local config |
 | `make sync-config` | Sync config files only |
 
