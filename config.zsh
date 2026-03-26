@@ -26,6 +26,8 @@ JQ_MERGE_EXPR='
 
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 REPO_SETTINGS="$SCRIPT_DIR/config/claude/settings.json"
+CLAUDE_KEYBINDINGS="$HOME/.claude/keybindings.json"
+REPO_KEYBINDINGS="$SCRIPT_DIR/config/claude/keybindings.json"
 ITERM_PROFILE_SRC="$SCRIPT_DIR/config/iterm2/profile.json"
 ITERM_PROFILE_DST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/profile.json"
 
@@ -92,6 +94,36 @@ if ! diff -q "$CLAUDE_SETTINGS" "$tmpdir/settings.json" &>/dev/null; then
   fi
 fi
 
+# === Claude Code keybindings.json ===
+[[ -f "$CLAUDE_KEYBINDINGS" ]] || echo '{"bindings":[]}' > "$CLAUDE_KEYBINDINGS"
+
+JQ_KEYBINDINGS_MERGE='
+  .[0] as $user | .[1] as $repo |
+  $user | .bindings = [
+    .bindings[] | . as $ub |
+    ($repo.bindings | map(select(.context == $ub.context)) | first // null) as $rb |
+    if $rb then .bindings = ((.bindings * $rb.bindings) | with_entries(select(.value != null)))
+    else . end
+  ] + [
+    $repo.bindings[] | select(
+      .context as $c | $user.bindings | map(.context) | index($c) | not
+    )
+  ]
+'
+
+jq -s "$JQ_KEYBINDINGS_MERGE" "$CLAUDE_KEYBINDINGS" "$REPO_KEYBINDINGS" > "$tmpdir/keybindings.json"
+
+if ! diff -q "$CLAUDE_KEYBINDINGS" "$tmpdir/keybindings.json" &>/dev/null; then
+  if [[ "$MODE" == "diff" ]]; then
+    echo ""
+    echo "Claude Code keybindings.json:"
+    git diff --no-index "$CLAUDE_KEYBINDINGS" "$tmpdir/keybindings.json" || true
+    diffs=$((diffs + 1))
+  else
+    cp "$tmpdir/keybindings.json" "$CLAUDE_KEYBINDINGS"
+    echo "Merged Claude Code keybindings into $CLAUDE_KEYBINDINGS"
+  fi
+fi
 
 # === iTerm2 Dynamic Profile ===
 if [[ -f "$ITERM_PROFILE_SRC" ]]; then

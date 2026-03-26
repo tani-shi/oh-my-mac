@@ -46,6 +46,7 @@ make install
 | `config/git/ignore` | `~/.config/git/ignore` |
 | `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | `config/claude/settings.json` | `~/.claude/settings.json` |
+| `config/claude/keybindings.json` | `~/.claude/keybindings.json` |
 | `config/claude/scripts/check-docs.zsh` | `~/.claude/scripts/check-docs.zsh` |
 
 ### uv Tools (`config/uv/tools.txt`)

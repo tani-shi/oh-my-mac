@@ -1,0 +1,20 @@
+{
+  "$schema": "https://www.schemastore.org/claude-code-keybindings.json",
+  "$docs": "https://code.claude.com/docs/en/keybindings",
+  "bindings": [
+    {
+      "context": "Chat",
+      "bindings": {
+        "ctrl+f": null,
+        "ctrl+shift+f": "chat:killAgents"
+      }
+    },
+    {
+      "context": "Task",
+      "bindings": {
+        "ctrl+b": null,
+        "ctrl+shift+b": "task:background"
+      }
+    }
+  ]
+}

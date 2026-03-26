@@ -6,6 +6,7 @@
 - Always edit the source files under `config/claude/` in this repository instead.
   - `config/claude/CLAUDE.md` → synced to `~/.claude/CLAUDE.md`
   - `config/claude/settings.json` → merged into `~/.claude/settings.json`
+  - `config/claude/keybindings.json` → merged into `~/.claude/keybindings.json`
   - `config/claude/scripts/check-docs.zsh` → synced to `~/.claude/scripts/check-docs.zsh`
   - `config/claude/plugins.txt` → installed via `claude plugin install`
 - Run `make diff-config` to check differences, then `make sync-config` to apply.
