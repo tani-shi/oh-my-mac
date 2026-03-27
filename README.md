@@ -31,8 +31,11 @@ make install
 | Category | Packages |
 | --- | --- |
 | Shell | starship, sheldon, fzf, ripgrep, shellcheck, shfmt |
+| Modern CLI replacements | bat, eza, fd, delta, zoxide |
+| Terminal multiplexer | tmux |
+| Utilities | jq, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, pnpm, uv, terraform |
+| Development | fnm, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code |
 | Git / GitHub | gh |
 | Google Workspace | gogcli |
 

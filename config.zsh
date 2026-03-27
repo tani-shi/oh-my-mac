@@ -21,6 +21,8 @@ JQ_MERGE_EXPR='
   .hooks.PermissionRequest = ($repo.hooks.PermissionRequest // .hooks.PermissionRequest) |
   .includeCoAuthoredBy = (if $repo | has("includeCoAuthoredBy") then $repo.includeCoAuthoredBy else .includeCoAuthoredBy end) |
   .permissions = ($repo.permissions // .permissions) |
+  .env = ((.env // {}) * ($repo.env // {})) |
+  .teammateMode = (if $repo | has("teammateMode") then $repo.teammateMode else .teammateMode end) |
   del(.preferences)
 '
 

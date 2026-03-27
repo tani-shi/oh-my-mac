@@ -13,6 +13,9 @@ brew "fd"         # better find
 brew "delta"      # better git diff
 brew "zoxide"     # smarter cd
 
+# Terminal multiplexer
+brew "tmux"
+
 # Utilities
 brew "jq"         # JSON processor
 brew "tree"       # directory tree
