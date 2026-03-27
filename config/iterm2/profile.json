@@ -5,10 +5,8 @@
 
       "Normal Font": "JetBrainsMonoNFM-Regular 12",
 
-      "Rows": 52,
-      "Window Type": 2,
+      "Window Type": 1,
       "Screen": -2,
-      "Disable Window Resizing": true,
 
       "Has Hotkey": true,
       "HotKey Key Code": 49,
