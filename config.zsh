@@ -217,6 +217,36 @@ if command -v duti &>/dev/null && [[ -f "$DUTI_FILE" ]]; then
   done < "$DUTI_FILE"
 fi
 
+# === macOS defaults ===
+macos_defaults=(
+  "NSGlobalDomain:NSAutomaticWindowAnimationsEnabled:bool:false"
+)
+
+for entry in "${macos_defaults[@]}"; do
+  domain="${entry%%:*}"; rest="${entry#*:}"
+  key="${rest%%:*}"; rest="${rest#*:}"
+  type="${rest%%:*}"; expected="${rest#*:}"
+  current=$(defaults read "$domain" "$key" 2>/dev/null || echo "<unset>")
+  # bool: defaults read returns "0"/"1", normalize expected
+  if [[ "$type" == "bool" ]]; then
+    [[ "$expected" == "false" ]] && norm_expected="0" || norm_expected="1"
+  else
+    norm_expected="$expected"
+  fi
+  if [[ "$current" != "$norm_expected" ]]; then
+    if [[ "$MODE" == "diff" ]]; then
+      echo ""
+      echo "defaults $domain $key:"
+      echo "  current:  $current"
+      echo "  expected: $expected"
+      diffs=$((diffs + 1))
+    else
+      defaults write "$domain" "$key" "-$type" "$expected"
+      echo "Set defaults: $domain $key = $expected"
+    fi
+  fi
+done
+
 # === diff summary ===
 if [[ "$MODE" == "diff" && $diffs -eq 0 ]]; then
   echo "No differences found."

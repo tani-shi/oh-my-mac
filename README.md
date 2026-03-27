@@ -107,3 +107,10 @@ gog auth add you@gmail.com
 - After first sync: **Profiles → oh-my-mac → Other Actions… → Set as Default** to apply
 
   ![Set as Default](docs/iterm2-set-as-default.png)
+
+### macOS Performance
+
+- Managed via `defaults write` in `make sync-config`: window animations disabled
+- Manual steps required for accessibility settings:
+  - **System Settings → Accessibility → Display → Reduce Motion**: ON
+  - **System Settings → Accessibility → Display → Reduce Transparency**: ON

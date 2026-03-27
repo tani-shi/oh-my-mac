@@ -15,6 +15,7 @@
 
 - Every sync operation MUST include a diff check — only write when the current state differs from the desired state. Never blindly overwrite.
 - diff and sync modes share the same definitions (configs array, jq expressions, plist keys, etc.). When adding a new sync target, write both mode handlers in the same block.
+- macOS defaults are managed via the `macos_defaults` array using `defaults read`/`defaults write`. Add new entries as `"domain:key:type:value"` (supported types: `bool`, `int`, `float`, `string`).
 
 ## Version Pinning
 
