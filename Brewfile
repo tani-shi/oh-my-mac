@@ -29,10 +29,12 @@ cask "font-jetbrains-mono-nerd-font"
 brew "fnm"
 brew "pnpm"
 brew "uv"
+brew "ruff"
 brew "terraform"
 brew "awscli"
 cask "gcloud-cli"
 cask "visual-studio-code"
+cask "codex"
 
 # Git / GitHub
 brew "gh"
