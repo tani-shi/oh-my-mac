@@ -1,4 +1,4 @@
-.PHONY: diff-config sync-config install update upgrade snapshot-versions install-claude install-claude-plugins install-uv-tools
+.PHONY: diff-config sync-config install update upgrade snapshot-versions install-claude install-claude-plugins install-uv-tools install-vscode-extensions
 
 diff-config:
 	@./config.zsh diff
@@ -6,10 +6,10 @@ diff-config:
 sync-config:
 	@./config.zsh sync
 
-install: sync-config install-claude install-claude-plugins install-uv-tools
+install: sync-config install-claude install-claude-plugins install-uv-tools install-vscode-extensions
 	brew bundle --no-upgrade --file=Brewfile
 
-update: sync-config install-claude-plugins install-uv-tools
+update: sync-config install-claude-plugins install-uv-tools install-vscode-extensions
 	brew bundle --no-upgrade --file=Brewfile
 	brew cleanup
 
@@ -55,6 +55,21 @@ install-claude-plugins:
 		done < config/claude/plugins.txt; \
 	else \
 		echo "Skipping Claude Code plugins (claude not found or plugins.txt missing)"; \
+	fi
+
+install-vscode-extensions:
+	@if command -v code >/dev/null 2>&1 && [ -f config/vscode/extensions.txt ]; then \
+		installed=$$(code --list-extensions 2>/dev/null); \
+		while IFS= read -r ext || [ -n "$$ext" ]; do \
+			[ -z "$$ext" ] && continue; \
+			case "$$ext" in \#*) continue ;; esac; \
+			if ! echo "$$installed" | grep -qix "$$ext"; then \
+				echo "Installing VSCode extension: $$ext"; \
+				code --install-extension "$$ext" 2>/dev/null || echo "Warning: Failed to install $$ext"; \
+			fi; \
+		done < config/vscode/extensions.txt; \
+	else \
+		echo "Skipping VSCode extensions (code not found or extensions.txt missing)"; \
 	fi
 
 install-uv-tools:

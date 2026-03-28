@@ -1,0 +1,14 @@
+{
+  "chat.disableAIFeatures": true,
+  "security.workspace.trust.enabled": false,
+  "extensions.ignoreRecommendations": true,
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  "update.mode": "none",
+  "telemetry.telemetryLevel": "off",
+  "workbench.startupEditor": "none",
+  "git.enabled": false,
+  "workbench.colorTheme": "Dark Modern",
+  "zenMode.fullScreen": false,
+  "zenMode.hideLineNumbers": false
+}

@@ -32,6 +32,8 @@ CLAUDE_KEYBINDINGS="$HOME/.claude/keybindings.json"
 REPO_KEYBINDINGS="$SCRIPT_DIR/config/claude/keybindings.json"
 ITERM_PROFILE_SRC="$SCRIPT_DIR/config/iterm2/profile.json"
 ITERM_PROFILE_DST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/profile.json"
+VSCODE_SETTINGS="$HOME/Library/Application Support/Code/User/settings.json"
+REPO_VSCODE_SETTINGS="$SCRIPT_DIR/config/vscode/settings.json"
 
 # === File sync ===
 diffs=0
@@ -162,6 +164,55 @@ if [[ -f "$ITERM_PROFILE_SRC" ]]; then
         ' "$ITERM_PROFILE_SRC" > "$ITERM_PROFILE_DST"
       fi
       echo "Synced iTerm2 Dynamic Profile."
+    fi
+  fi
+fi
+
+# === VSCode settings.json ===
+if [[ -f "$REPO_VSCODE_SETTINGS" ]]; then
+  mkdir -p "$(dirname "$VSCODE_SETTINGS")"
+  [[ -f "$VSCODE_SETTINGS" ]] || echo '{}' > "$VSCODE_SETTINGS"
+
+  jq -s '.[0] * .[1]' "$VSCODE_SETTINGS" "$REPO_VSCODE_SETTINGS" > "$tmpdir/vscode-settings.json"
+
+  if ! diff -q "$VSCODE_SETTINGS" "$tmpdir/vscode-settings.json" &>/dev/null; then
+    if [[ "$MODE" == "diff" ]]; then
+      echo ""
+      echo "VSCode settings.json:"
+      git diff --no-index "$VSCODE_SETTINGS" "$tmpdir/vscode-settings.json" || true
+      diffs=$((diffs + 1))
+    else
+      cp "$tmpdir/vscode-settings.json" "$VSCODE_SETTINGS"
+      echo "Merged VSCode settings into $VSCODE_SETTINGS"
+    fi
+  fi
+fi
+
+# === VSCode extensions ===
+VSCODE_EXTENSIONS="$SCRIPT_DIR/config/vscode/extensions.txt"
+if command -v code &>/dev/null && [[ -f "$VSCODE_EXTENSIONS" ]]; then
+  installed=$(code --list-extensions 2>/dev/null)
+  missing=()
+  while IFS= read -r ext || [[ -n "$ext" ]]; do
+    [[ -z "$ext" || "$ext" == \#* ]] && continue
+    if ! echo "$installed" | grep -qix "$ext"; then
+      missing+=("$ext")
+    fi
+  done < "$VSCODE_EXTENSIONS"
+
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    if [[ "$MODE" == "diff" ]]; then
+      echo ""
+      echo "VSCode extensions (missing):"
+      for ext in "${missing[@]}"; do
+        echo "  + $ext"
+      done
+      diffs=$((diffs + 1))
+    else
+      for ext in "${missing[@]}"; do
+        echo "Installing VSCode extension: $ext"
+        code --install-extension "$ext" 2>/dev/null || echo "Warning: failed to install $ext"
+      done
     fi
   fi
 fi

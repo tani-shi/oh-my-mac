@@ -51,12 +51,17 @@ make install
 | `config/claude/settings.json` | `~/.claude/settings.json` |
 | `config/claude/keybindings.json` | `~/.claude/keybindings.json` |
 | `config/claude/scripts/check-docs.zsh` | `~/.claude/scripts/check-docs.zsh` |
+| `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
 
 ### uv Tools (`config/uv/tools.txt`)
 
 | Tool | Source |
 | --- | --- |
 | claude-sentinel | [tani-shi/claude-sentinel](https://github.com/tani-shi/claude-sentinel) |
+
+### VSCode Extensions (`config/vscode/extensions.txt`)
+
+None installed yet. Add extensions as `publisher.extension-name` per line.
 
 ### Claude Code Plugins (`config/claude/plugins.txt`)
 

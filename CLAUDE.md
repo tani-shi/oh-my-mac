@@ -11,6 +11,14 @@
   - `config/claude/plugins.txt` → installed via `claude plugin install`
 - Run `make diff-config` to check differences, then `make sync-config` to apply.
 
+## VSCode Settings
+
+- NEVER edit `~/Library/Application Support/Code/User/settings.json` directly.
+- Always edit the source files under `config/vscode/` in this repository instead.
+  - `config/vscode/settings.json` → merged into `~/Library/Application Support/Code/User/settings.json`
+  - `config/vscode/extensions.txt` → installed via `code --install-extension`
+- Run `make diff-config` to check differences, then `make sync-config` to apply.
+
 ## config.zsh
 
 - Every sync operation MUST include a diff check — only write when the current state differs from the desired state. Never blindly overwrite.
