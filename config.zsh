@@ -222,7 +222,7 @@ git_delta_keys=(
   "core.pager:delta"
   "interactive.diffFilter:delta --color-only"
   "delta.navigate:true"
-  "delta.side-by-side:true"
+  "delta.side-by-side:false"
   "delta.line-numbers:true"
   "delta.hunk-header-style:omit"
   "merge.conflictstyle:diff3"
