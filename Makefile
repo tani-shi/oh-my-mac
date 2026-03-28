@@ -14,14 +14,11 @@ update: sync-config install-claude-plugins install-uv-tools install-vscode-exten
 	brew cleanup
 
 upgrade:
-	claude "Investigate available upgrades for oh-my-mac dependencies.\
-	1. Run brew outdated to check for Homebrew package updates.\
-	2. Check GitHub for newer tags of each plugin in config/sheldon/plugins.toml.\
-	3. Check the latest Claude Code version and compare with config/claude/version.\
-	4. For each update, research changelogs, security advisories, and incident reports.\
-	5. Recommend security patches. Allow feature updates only if no incidents are reported.\
-	6. Apply only user-approved updates (brew upgrade, plugins.toml tags, config/claude/version).\
-	7. Run make snapshot-versions to update versions.json."
+	@uv run scripts/upgrade.py
+	brew upgrade
+	brew cleanup
+	$(MAKE) install-claude install-claude-plugins install-uv-tools
+	$(MAKE) snapshot-versions
 
 snapshot-versions:
 	@echo "Snapshotting installed versions..."

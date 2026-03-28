@@ -29,10 +29,10 @@
 
 All external dependencies are version-pinned to prevent supply chain attacks. `make update` intentionally does NOT upgrade packages — it only installs missing ones and syncs config.
 
-- **Homebrew**: `brew bundle --no-upgrade` prevents automatic upgrades. Use `make upgrade` to review and apply updates via Claude Code.
+- **Homebrew**: `brew bundle --no-upgrade` prevents automatic upgrades. Use `make upgrade` to review and apply updates.
 - **Claude Code**: Version is pinned in `config/claude/version`. `make install`/`make update` install only the pinned version.
 - **Sheldon plugins**: Every plugin in `config/sheldon/plugins.toml` MUST have a `tag` (or `rev` if no tags exist). Never add a plugin without version pinning.
 - **uv tools**: Tools in `config/uv/tools.txt` MUST use `@tag` or `@commit` suffix, except `claude-sentinel` (owned by the user, always uses HEAD).
 - **Claude Code plugins**: Updated only via `make upgrade`, not automatically.
 
-To upgrade dependencies, run `make upgrade` which launches Claude Code to investigate changelogs, security advisories, and incident reports before applying updates.
+To upgrade dependencies, run `make upgrade`. This runs `scripts/upgrade.py` (via `uv run`) which uses the Claude Agent SDK to non-interactively investigate changelogs, security advisories, and incident reports, then updates config files. The Makefile then applies the actual installations (`brew upgrade`, `install-claude`, etc.) and snapshots versions.

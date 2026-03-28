@@ -85,7 +85,7 @@ None installed yet. Add extensions as `publisher.extension-name` per line.
 | --- | --- |
 | `make install` | Install packages + sync config + install plugins |
 | `make update` | Sync config + install missing packages (no upgrades) |
-| `make upgrade` | Launch Claude Code to investigate and apply dependency upgrades |
+| `make upgrade` | Investigate upgrades via Claude Agent SDK, then apply them |
 | `make snapshot-versions` | Save installed versions to `versions.json` |
 | `make diff-config` | Show differences between repo and local config |
 | `make sync-config` | Sync config files only |
