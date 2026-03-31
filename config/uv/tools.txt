@@ -1,1 +1,2 @@
 git+https://github.com/tani-shi/claude-sentinel.git
+it2@0.2.3

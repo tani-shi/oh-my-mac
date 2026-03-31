@@ -58,6 +58,7 @@ make install
 | Tool | Source |
 | --- | --- |
 | claude-sentinel | [tani-shi/claude-sentinel](https://github.com/tani-shi/claude-sentinel) |
+| it2 | [iterm2/it2](https://pypi.org/project/it2/) |
 
 ### VSCode Extensions (`config/vscode/extensions.txt`)
 
