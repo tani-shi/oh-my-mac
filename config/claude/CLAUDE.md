@@ -9,6 +9,8 @@
 
 - Use conventional commit style (e.g., `feat:`, `fix:`, `docs:`, `refactor:`).
 - Use `--force-with-lease` instead of `--force` when force pushing.
+- Never commit automatically after completing work. Only commit when explicitly asked.
+- Bundle all related changes (code, config, generated files) into a single commit.
 
 ## Shell
 
