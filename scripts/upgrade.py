@@ -34,6 +34,14 @@ modifies installed software
 UPGRADE POLICY:
 - Apply security patches unconditionally
 - Allow feature updates only if no incidents are reported in changelogs/advisories
+- For Claude Code: check the latest version via \
+`npm view @anthropic-ai/claude-code version` and its publish date via \
+`npm view @anthropic-ai/claude-code time --json | jq -r '.["<version>"]'`. \
+ONLY upgrade if the version was published at least 3 days ago. If it is \
+newer than 3 days, keep the current version. Additionally, search GitHub \
+Issues at anthropics/claude-code for bug reports against that version. If \
+multiple users report crashes, hangs, data loss, or other critical \
+regressions, keep the current version and note the reason in the summary.
 - For sheldon plugins, always use tag pinning (or rev if no tags exist)
 - For uv tools, use @tag or @commit suffix (except claude-sentinel which uses HEAD)
 
@@ -47,8 +55,12 @@ Investigate available upgrades for oh-my-mac dependencies.
 2. For each plugin in config/sheldon/plugins.toml that has a GitHub source, \
 check for newer tags using `gh api repos/{owner}/{repo}/tags --jq '.[0].name'` \
 and compare with the current tag/rev.
-3. Check the latest Claude Code version (via web search or gh) and compare \
-with config/claude/version.
+3. Check the latest Claude Code version via \
+`npm view @anthropic-ai/claude-code version` and its publish date via \
+`npm view @anthropic-ai/claude-code time --json`. Only consider upgrading \
+if the version was published at least 3 days ago AND no critical issues \
+(hangs, crashes, data loss) are reported by multiple users on GitHub Issues \
+at anthropics/claude-code. Otherwise keep the current version.
 4. Check config/uv/tools.txt for any tools that can be updated.
 5. For each potential update, research changelogs, security advisories, and \
 incident reports via web search.
