@@ -1,13 +1,13 @@
 {
-  "_generated": "2026-03-28T22:44:05Z",
-  "claude": "2.1.86",
+  "_generated": "2026-04-01T01:36:27Z",
+  "claude": "2.1.89",
   "brew": {
     "aom": "3.13.2",
     "apr": "1.7.6",
     "apr-util": "1.6.3_1",
     "argon2": "20190702_1",
     "autoconf": "2.73",
-    "awscli": "2.34.19",
+    "awscli": "2.34.21",
     "bat": "0.26.1",
     "brotli": "1.2.0",
     "btop": "1.4.6",
@@ -27,7 +27,7 @@
     "ffmpeg": "8.1",
     "fnm": "1.39.0",
     "fontconfig": "2.17.1",
-    "freetds": "1.5.15",
+    "freetds": "1.5.16",
     "freetype": "2.14.3",
     "fribidi": "1.0.16",
     "fzf": "0.70.0",
@@ -45,14 +45,14 @@
     "gpgmepp": "2.0.0",
     "graphite2": "1.3.14",
     "harfbuzz": "13.2.1",
-    "hatch": "1.16.5",
+    "hatch": "1.16.5_1",
     "helm": "4.1.3",
     "highway": "1.3.0",
     "icu4c@76": "76.1_2",
     "icu4c@78": "78.3",
     "imath": "3.2.2",
     "jmeter": "5.6.3",
-    "jpeg-turbo": "3.1.4",
+    "jpeg-turbo": "3.1.4.1",
     "jpeg-xl": "0.11.2",
     "jq": "1.8.1",
     "krb5": "1.22.2",
@@ -72,7 +72,7 @@
     "libksba": "1.6.8",
     "libnghttp2": "1.68.1",
     "libnghttp3": "1.15.0",
-    "libngtcp2": "1.21.0",
+    "libngtcp2": "1.22.0",
     "libpng": "1.6.56",
     "libpq": "18.3",
     "libsodium": "1.0.21",
@@ -159,7 +159,7 @@
   },
   "cask": {
     "blackhole-2ch": "0.6.1",
-    "codex": "0.117.0",
+    "codex": "0.118.0",
     "font-jetbrains-mono-nerd-font": "3.4.0",
     "gcloud-cli": "559.0.0",
     "visual-studio-code": "1.111.0"
@@ -174,6 +174,7 @@
     "zsh-claude-code": "rev:6ae3867"
   },
   "uv": {
-    "git+https://github.com/tani-shi/claude-sentinel.git": "HEAD"
+    "git+https://github.com/tani-shi/claude-sentinel.git": "HEAD",
+    "it2": "0.2.3"
   }
 }
