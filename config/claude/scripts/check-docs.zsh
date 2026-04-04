@@ -25,7 +25,7 @@ all_changed=$( (git -C "$repo_root" diff --name-only HEAD 2>/dev/null; git -C "$
 [[ -z "$all_changed" ]] && exit 0
 
 # Filter out doc files to get "source" changes only
-source_changed=$(echo "$all_changed" | grep -vE '(^|/)README\.md$' | grep -vE '(^|/)CLAUDE\.md$' || true)
+source_changed=$(echo "$all_changed" | grep -vE '(^|/)README\.md$' || true)
 [[ -z "$source_changed" ]] && exit 0
 
 # For each changed source file, walk up directories to find nearest doc files
@@ -36,7 +36,7 @@ while IFS= read -r file; do
   dir=$(dirname "$file")
 
   while true; do
-    for doc in README.md CLAUDE.md; do
+    for doc in README.md; do
       doc_path="$doc"
       [[ "$dir" != "." ]] && doc_path="$dir/$doc"
 
