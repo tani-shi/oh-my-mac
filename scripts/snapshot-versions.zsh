@@ -31,6 +31,14 @@ uv_versions() {
   ' "$tools_txt" | jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add // {}'
 }
 
+pnpm_versions() {
+  local globals_txt="${1:-config/pnpm/globals.txt}"
+  awk -F@ '
+    NF == 0 { next }
+    NF >= 2 { print $1 "\t" $2 }
+  ' "$globals_txt" | jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add // {}'
+}
+
 claude_version() {
   claude --version 2>/dev/null | awk '{print $1}' || echo "unknown"
 }
@@ -39,6 +47,7 @@ jq -n \
   --argjson brew "$(brew_versions)" \
   --argjson cask "$(cask_versions)" \
   --argjson sheldon "$(sheldon_versions)" \
+  --argjson pnpm "$(pnpm_versions)" \
   --argjson uv "$(uv_versions)" \
   --arg claude "$(claude_version)" \
   '{
@@ -47,5 +56,6 @@ jq -n \
     brew: $brew,
     cask: $cask,
     sheldon: $sheldon,
+    pnpm: $pnpm,
     uv: $uv
   }'

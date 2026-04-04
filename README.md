@@ -53,6 +53,12 @@ make install
 | `config/claude/scripts/check-docs.zsh` | `~/.claude/scripts/check-docs.zsh` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
 
+### pnpm Global Packages (`config/pnpm/globals.txt`)
+
+| Package | Description |
+| --- | --- |
+| typescript | TypeScript compiler (`tsc`) |
+
 ### uv Tools (`config/uv/tools.txt`)
 
 | Tool | Source |

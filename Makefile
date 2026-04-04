@@ -1,4 +1,4 @@
-.PHONY: diff-config sync-config install update upgrade snapshot-versions install-claude install-claude-plugins install-uv-tools install-vscode-extensions
+.PHONY: diff-config sync-config install update upgrade snapshot-versions install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
 
 diff-config:
 	@./config.zsh diff
@@ -6,10 +6,10 @@ diff-config:
 sync-config:
 	@./config.zsh sync
 
-install: sync-config install-claude install-claude-plugins install-uv-tools install-vscode-extensions
+install: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
 	brew bundle --no-upgrade --file=Brewfile
 
-update: sync-config install-claude-plugins install-uv-tools install-vscode-extensions
+update: sync-config install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
 	brew bundle --no-upgrade --file=Brewfile
 	brew cleanup
 
@@ -17,7 +17,7 @@ upgrade:
 	@uv run scripts/upgrade.py
 	brew upgrade
 	brew cleanup
-	$(MAKE) install-claude install-claude-plugins install-uv-tools
+	$(MAKE) install-claude install-claude-plugins install-pnpm-globals install-uv-tools
 	$(MAKE) snapshot-versions
 
 snapshot-versions:
@@ -67,6 +67,22 @@ install-vscode-extensions:
 		done < config/vscode/extensions.txt; \
 	else \
 		echo "Skipping VSCode extensions (code not found or extensions.txt missing)"; \
+	fi
+
+install-pnpm-globals:
+	@if command -v pnpm >/dev/null 2>&1 && [ -f config/pnpm/globals.txt ]; then \
+		installed=$$(pnpm list -g --depth=0 2>/dev/null); \
+		while IFS= read -r pkg || [ -n "$$pkg" ]; do \
+			[ -z "$$pkg" ] && continue; \
+			name=$${pkg%%@*}; \
+			if echo "$$installed" | grep -q "$$name"; then \
+				continue; \
+			fi; \
+			echo "Installing pnpm global: $$pkg"; \
+			pnpm add -g "$$pkg" 2>&1 || echo "Warning: Failed to install $$pkg"; \
+		done < config/pnpm/globals.txt; \
+	else \
+		echo "Skipping pnpm globals (pnpm not found or globals.txt missing)"; \
 	fi
 
 install-uv-tools:
