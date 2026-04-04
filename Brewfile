@@ -18,6 +18,7 @@ brew "tmux"
 
 # Utilities
 brew "jq"         # JSON processor
+brew "sqlite"     # SQL database
 brew "tree"       # directory tree
 brew "btop"       # resource monitor
 brew "duti"       # default app associations

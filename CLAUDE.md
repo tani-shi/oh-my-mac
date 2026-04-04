@@ -36,4 +36,4 @@ All external dependencies are version-pinned to prevent supply chain attacks. `m
 - **uv tools**: Tools in `config/uv/tools.txt` MUST use `@tag` or `@commit` suffix, except `claude-sentinel` (owned by the user, always uses HEAD).
 - **Claude Code plugins**: Updated only via `make upgrade`, not automatically.
 
-To upgrade dependencies, run `make upgrade`. This runs `scripts/upgrade.py` (via `uv run`) which uses the Claude Agent SDK to non-interactively investigate changelogs, security advisories, and incident reports, then updates config files. The Makefile then applies the actual installations (`brew upgrade`, `install-claude`, etc.) and snapshots versions.
+To upgrade dependencies, run `make upgrade`. This runs `scripts/upgrade.py` (via `uv run`) which uses the Claude Agent SDK to non-interactively investigate changelogs, security advisories, and incident reports, then updates config files. The Makefile then applies the actual installations (`brew upgrade`, `install-claude`, etc.), snapshots versions, and auto-commits with a message listing upgraded packages (e.g., `chore: upgrade fzf, ruff, uv`).

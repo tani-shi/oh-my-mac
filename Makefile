@@ -19,6 +19,7 @@ upgrade:
 	brew cleanup
 	$(MAKE) install-claude install-claude-plugins install-pnpm-globals install-uv-tools
 	$(MAKE) snapshot-versions
+	@./scripts/commit-upgrade.zsh
 
 snapshot-versions:
 	@echo "Snapshotting installed versions..."
