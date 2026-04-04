@@ -123,6 +123,11 @@ gog auth add you@gmail.com
 
   ![Set as Default](docs/iterm2-set-as-default.png)
 
+- For SSH with native pane splits, use tmux Control Mode: `ssh host -t 'tmux -CC new -A -s main'`
+- Manual steps required for tmux integration (**Settings → General → tmux**):
+  - **Attaching**: "Tabs in the attaching window"
+  - **Automatically bury the tmux client session after connecting**: ON
+
 ### macOS Performance
 
 - Managed via `defaults write` in `make sync-config`: window animations disabled
