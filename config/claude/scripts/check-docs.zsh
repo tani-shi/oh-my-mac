@@ -1,6 +1,9 @@
 #!/bin/zsh
 set -eu
 
+# Skip doc check when SKIP_CHECK_DOCS=1
+[[ "${SKIP_CHECK_DOCS:-0}" == "1" ]] && exit 0
+
 # Read hook JSON from stdin (Claude Code passes session_id, transcript_path, etc.)
 input=$(cat)
 session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null || true)
