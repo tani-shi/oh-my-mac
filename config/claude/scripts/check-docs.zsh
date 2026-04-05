@@ -8,6 +8,10 @@ set -eu
 input=$(cat)
 session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null || true)
 transcript_path=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null || true)
+permission_mode=$(printf '%s' "$input" | jq -r '.permission_mode // empty' 2>/dev/null || true)
+
+# Only run in acceptEdits mode
+[[ "$permission_mode" != "acceptEdits" ]] && exit 0
 
 # Guard: exit early if expected fields are missing (stdin not received or malformed)
 [[ -z "$session_id" ]] && exit 0
