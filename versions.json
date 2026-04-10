@@ -1,5 +1,5 @@
 {
-  "_generated": "2026-04-09T23:25:12Z",
+  "_generated": "2026-04-10T22:48:30Z",
   "claude": "2.1.92",
   "brew": {
     "aom": "3.13.3",
@@ -7,7 +7,7 @@
     "apr-util": "1.6.3_1",
     "argon2": "20190702_1",
     "autoconf": "2.73",
-    "awscli": "2.34.27",
+    "awscli": "2.34.28",
     "bat": "0.26.1",
     "brotli": "1.2.0",
     "btop": "1.4.6",
@@ -73,9 +73,9 @@
     "libnghttp2": "1.68.1",
     "libnghttp3": "1.15.0",
     "libngtcp2": "1.22.0",
-    "libpng": "1.6.56",
+    "libpng": "1.6.57",
     "libpq": "18.3",
-    "libsodium": "1.0.21",
+    "libsodium": "1.0.22",
     "libssh2": "1.11.1_1",
     "libtasn1": "4.21.0",
     "libthai": "0.1.30",
