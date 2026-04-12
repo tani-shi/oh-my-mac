@@ -1,5 +1,5 @@
 {
-  "_generated": "2026-04-10T22:48:30Z",
+  "_generated": "2026-04-12T22:52:38Z",
   "claude": "2.1.92",
   "brew": {
     "aom": "3.13.3",
@@ -7,7 +7,7 @@
     "apr-util": "1.6.3_1",
     "argon2": "20190702_1",
     "autoconf": "2.73",
-    "awscli": "2.34.28",
+    "awscli": "2.34.29",
     "bat": "0.26.1",
     "brotli": "1.2.0",
     "btop": "1.4.6",
@@ -133,7 +133,7 @@
     "sheldon": "0.8.5",
     "shellcheck": "0.11.0",
     "shfmt": "3.13.1",
-    "sqlite": "3.52.0",
+    "sqlite": "3.53.0",
     "starship": "1.24.2",
     "summarize": "0.13.0",
     "svt-av1": "4.1.0",
@@ -159,7 +159,7 @@
   },
   "cask": {
     "blackhole-2ch": "0.6.1",
-    "codex": "0.118.0",
+    "codex": "0.120.0",
     "font-jetbrains-mono-nerd-font": "3.4.0",
     "gcloud-cli": "559.0.0",
     "visual-studio-code": "1.115.0"
