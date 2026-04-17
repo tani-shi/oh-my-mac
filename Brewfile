@@ -13,10 +13,8 @@ brew "fd"         # better find
 brew "delta"      # better git diff
 brew "zoxide"     # smarter cd
 
-# Terminal multiplexer
-brew "tmux"
-
 # Utilities
+brew "tmux"       # remote SSH sessions
 brew "jq"         # JSON processor
 brew "sqlite"     # SQL database
 brew "tree"       # directory tree

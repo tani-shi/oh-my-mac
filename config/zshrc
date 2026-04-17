@@ -69,17 +69,6 @@ alias top="btop"
 # zoxide (smarter cd)
 eval "$(zoxide init zsh)"
 
-# Prevent Claude Code from overriding terminal title
-export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
-
-# iTerm2 tab title (current directory name)
-autoload -Uz add-zsh-hook
-_set_iterm_tab_title() {
-  echo -ne "\e]1;${PWD##*/}\a"
-}
-add-zsh-hook precmd _set_iterm_tab_title
-add-zsh-hook preexec _set_iterm_tab_title
-
 # Starship (must be last)
 export STARSHIP_LOG=error
 eval "$(starship init zsh)"

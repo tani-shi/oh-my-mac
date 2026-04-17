@@ -178,7 +178,6 @@
     "typescript": "5.8.3"
   },
   "uv": {
-    "git+https://github.com/tani-shi/claude-sentinel.git": "HEAD",
-    "it2": "0.2.3"
+    "git+https://github.com/tani-shi/claude-sentinel.git": "HEAD"
   }
 }

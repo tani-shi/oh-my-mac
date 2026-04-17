@@ -32,8 +32,7 @@ make install
 | --- | --- |
 | Shell | starship, sheldon, fzf, ripgrep, shellcheck, shfmt |
 | Modern CLI replacements | bat, eza, fd, delta, zoxide |
-| Terminal multiplexer | tmux |
-| Utilities | jq, sqlite, tree, btop, duti |
+| Utilities | tmux, jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
 | Development | fnm, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code, codex, cmux |
 | Git / GitHub | gh |
@@ -65,7 +64,6 @@ make install
 | Tool | Source |
 | --- | --- |
 | claude-sentinel | [tani-shi/claude-sentinel](https://github.com/tani-shi/claude-sentinel) |
-| it2 | [iterm2/it2](https://pypi.org/project/it2/) |
 
 ### VSCode Extensions (`config/vscode/extensions.txt`)
 
@@ -123,18 +121,6 @@ gog auth add you@gmail.com
 - Browser pane restricted to localhost only (security default)
 - Telemetry disabled by default
 - For hard network restriction: configure Little Snitch to allow cmux only to `127.0.0.1` / `::1`
-
-### iTerm2
-
-- Managed via Dynamic Profile (`config/iterm2/profile.json`), synced by `make sync-config`
-- After first sync: **Profiles → oh-my-mac → Other Actions… → Set as Default** to apply
-
-  ![Set as Default](docs/iterm2-set-as-default.png)
-
-- For SSH with native pane splits, use tmux Control Mode: `ssh host -t 'tmux -CC new -A -s main'`
-- Manual steps required for tmux integration (**Settings → General → tmux**):
-  - **Attaching**: "Tabs in the attaching window"
-  - **Automatically bury the tmux client session after connecting**: ON
 
 ### macOS Performance
 
