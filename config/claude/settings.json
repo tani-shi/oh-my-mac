@@ -30,7 +30,7 @@
   },
   "teammateMode": "tmux",
   "permissions": {
-    "defaultMode": "default",
+    "defaultMode": "auto",
     "deny": [],
     "allow": [
       "Edit",
