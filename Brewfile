@@ -36,6 +36,7 @@ brew "awscli"
 cask "gcloud-cli"
 cask "visual-studio-code"
 cask "codex"
+cask "cmux"
 
 # Git / GitHub
 brew "gh"

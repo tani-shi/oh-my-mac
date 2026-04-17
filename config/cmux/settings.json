@@ -1,0 +1,19 @@
+{
+  "app": {
+    "sendAnonymousTelemetry": false
+  },
+  "browser": {
+    "hostsToOpenInEmbeddedBrowser": [
+      "localhost",
+      "127.0.0.1",
+      "::1",
+      "0.0.0.0"
+    ],
+    "showSearchSuggestions": false,
+    "openTerminalLinksInCmuxBrowser": false,
+    "interceptTerminalOpenCommandInCmuxBrowser": false
+  },
+  "sidebar": {
+    "openPullRequestLinksInCmuxBrowser": false
+  }
+}

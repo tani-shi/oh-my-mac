@@ -35,7 +35,7 @@ make install
 | Terminal multiplexer | tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code |
+| Development | fnm, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code, codex, cmux |
 | Git / GitHub | gh |
 | Google Workspace | gogcli |
 
@@ -52,6 +52,7 @@ make install
 | `config/claude/keybindings.json` | `~/.claude/keybindings.json` |
 | `config/claude/scripts/check-docs.zsh` | `~/.claude/scripts/check-docs.zsh` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
+| `config/cmux/settings.json` | `~/.config/cmux/settings.json` |
 
 ### pnpm Global Packages (`config/pnpm/globals.txt`)
 
@@ -115,6 +116,13 @@ gh auth login
 gog auth credentials ~/Downloads/client_secret_*.json
 gog auth add you@gmail.com
 ```
+
+### cmux
+
+- Settings synced via JSON merge (`config/cmux/settings.json`) by `make sync-config`
+- Browser pane restricted to localhost only (security default)
+- Telemetry disabled by default
+- For hard network restriction: configure Little Snitch to allow cmux only to `127.0.0.1` / `::1`
 
 ### iTerm2
 
