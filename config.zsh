@@ -11,7 +11,8 @@ configs=(
   "config/zshrc:$HOME/.zshrc"
   "config/git/ignore:$HOME/.config/git/ignore"
   "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md"
-  "config/claude/scripts/check-docs.zsh:$HOME/.claude/scripts/check-docs.zsh")
+  "config/claude/scripts/check-docs.zsh:$HOME/.claude/scripts/check-docs.zsh"
+  "config/cmux/cmux.json:$HOME/.config/cmux/cmux.json")
 
 JQ_MERGE_EXPR='
   .[0] as $user | .[1] as $repo |

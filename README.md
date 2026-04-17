@@ -52,6 +52,7 @@ make install
 | `config/claude/scripts/check-docs.zsh` | `~/.claude/scripts/check-docs.zsh` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
 | `config/cmux/settings.json` | `~/.config/cmux/settings.json` |
+| `config/cmux/cmux.json` | `~/.config/cmux/cmux.json` |
 
 ### pnpm Global Packages (`config/pnpm/globals.txt`)
 

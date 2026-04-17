@@ -13,7 +13,19 @@
     "openTerminalLinksInCmuxBrowser": false,
     "interceptTerminalOpenCommandInCmuxBrowser": false
   },
+  "notifications": {
+    "dockBadge": true
+  },
+  "shortcuts": {
+    "bindings": {
+      "focusLeft": "cmd+[",
+      "focusRight": "cmd+]"
+    }
+  },
   "sidebar": {
-    "openPullRequestLinksInCmuxBrowser": false
+    "openPullRequestLinksInCmuxBrowser": false,
+    "showBranchDirectory": true,
+    "showPorts": true,
+    "showProgress": true
   }
 }

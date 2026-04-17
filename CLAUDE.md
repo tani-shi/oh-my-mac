@@ -21,9 +21,10 @@
 
 ## cmux Settings
 
-- NEVER edit `~/.config/cmux/settings.json` directly.
-- Always edit the source file at `config/cmux/settings.json` in this repository instead.
+- NEVER edit `~/.config/cmux/settings.json` or `~/.config/cmux/cmux.json` directly.
+- Always edit the source files under `config/cmux/` in this repository instead.
   - `config/cmux/settings.json` → merged into `~/.config/cmux/settings.json`
+  - `config/cmux/cmux.json` → synced to `~/.config/cmux/cmux.json`
 - Run `make diff-config` to check differences, then `make sync-config` to apply.
 - Security invariants (must not be removed):
   - `app.sendAnonymousTelemetry` must be `false`
