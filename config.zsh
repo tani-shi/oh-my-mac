@@ -31,6 +31,8 @@ CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 REPO_SETTINGS="$SCRIPT_DIR/config/claude/settings.json"
 CLAUDE_KEYBINDINGS="$HOME/.claude/keybindings.json"
 REPO_KEYBINDINGS="$SCRIPT_DIR/config/claude/keybindings.json"
+ITERM_PROFILE_SRC="$SCRIPT_DIR/config/iterm2/profile.json"
+ITERM_PROFILE_DST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/profile.json"
 VSCODE_SETTINGS="$HOME/Library/Application Support/Code/User/settings.json"
 REPO_VSCODE_SETTINGS="$SCRIPT_DIR/config/vscode/settings.json"
 CMUX_SETTINGS="$HOME/.config/cmux/settings.json"
@@ -127,6 +129,45 @@ if ! diff -q "$CLAUDE_KEYBINDINGS" "$tmpdir/keybindings.json" &>/dev/null; then
   else
     cp "$tmpdir/keybindings.json" "$CLAUDE_KEYBINDINGS"
     echo "Merged Claude Code keybindings into $CLAUDE_KEYBINDINGS"
+  fi
+fi
+
+# === iTerm2 Dynamic Profile ===
+if [[ -f "$ITERM_PROFILE_SRC" ]]; then
+  # Compare ignoring Guid (machine-specific)
+  _iterm_normalize='del(.Profiles[].Guid)'
+  _src_norm=$(jq "$_iterm_normalize" "$ITERM_PROFILE_SRC")
+  _dst_norm=""
+  if [[ -f "$ITERM_PROFILE_DST" ]]; then
+    _dst_norm=$(jq "$_iterm_normalize" "$ITERM_PROFILE_DST")
+  fi
+
+  if [[ "$_src_norm" != "$_dst_norm" ]]; then
+    if [[ "$MODE" == "diff" ]]; then
+      echo ""
+      echo "iTerm2 Dynamic Profile:"
+      if [[ -f "$ITERM_PROFILE_DST" ]]; then
+        diff <(echo "$_dst_norm") <(echo "$_src_norm") | head -50 || true
+      else
+        echo "  current:  <not installed>"
+        echo "  expected: $ITERM_PROFILE_SRC"
+      fi
+      diffs=$((diffs + 1))
+    else
+      mkdir -p "$(dirname "$ITERM_PROFILE_DST")"
+      if [[ -f "$ITERM_PROFILE_DST" ]]; then
+        # Merge: overwrite with src settings but preserve dst's Guid
+        jq -n --slurpfile dst "$ITERM_PROFILE_DST" --slurpfile src "$ITERM_PROFILE_SRC" '
+          $src[0] | .Profiles[0].Guid = $dst[0].Profiles[0].Guid
+        ' > "$ITERM_PROFILE_DST.tmp" && mv "$ITERM_PROFILE_DST.tmp" "$ITERM_PROFILE_DST"
+      else
+        # No existing file: generate a new Guid
+        jq --arg guid "$(uuidgen)" '
+          .Profiles[0].Guid = $guid
+        ' "$ITERM_PROFILE_SRC" > "$ITERM_PROFILE_DST"
+      fi
+      echo "Synced iTerm2 Dynamic Profile."
+    fi
   fi
 fi
 
