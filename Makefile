@@ -9,7 +9,7 @@ sync-config:
 install: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
 	brew bundle --no-upgrade --file=Brewfile
 
-update: sync-config install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
+update: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
 	brew bundle --no-upgrade --file=Brewfile
 	brew cleanup
 
