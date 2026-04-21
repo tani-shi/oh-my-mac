@@ -35,7 +35,6 @@ brew "terraform"
 brew "awscli"
 cask "gcloud-cli"
 cask "visual-studio-code"
-cask "codex"
 cask "cmux"
 
 # Git / GitHub

@@ -35,7 +35,7 @@ make install
 | Terminal multiplexer | tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code, codex, cmux |
+| Development | fnm, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code, cmux |
 | Git / GitHub | gh |
 | Google Workspace | gogcli |
 
