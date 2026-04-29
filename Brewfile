@@ -1,3 +1,6 @@
+# Taps
+tap "hashicorp/tap"
+
 # Shell
 brew "starship"
 brew "sheldon"
@@ -31,7 +34,7 @@ brew "fnm"
 brew "pnpm"
 brew "uv"
 brew "ruff"
-brew "terraform"
+brew "hashicorp/tap/terraform"
 brew "awscli"
 cask "gcloud-cli"
 cask "visual-studio-code"
