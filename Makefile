@@ -1,19 +1,25 @@
-.PHONY: diff-config sync-config install update upgrade snapshot-versions install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
+.PHONY: help diff-config sync-config install update upgrade snapshot-versions install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
 
-diff-config:
+.DEFAULT_GOAL := help
+
+help: ## Show this help message
+	@printf "Usage: make <target>\n\nTargets:\n"
+	@awk -F':.*## ' '/^[a-zA-Z][a-zA-Z_-]*:.*## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+diff-config: ## Show differences between repo and local config
 	@./config.zsh diff
 
-sync-config:
+sync-config: ## Sync config files only
 	@./config.zsh sync
 
-install: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
+install: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions ## Install packages + sync config + install plugins
 	brew bundle --no-upgrade --file=Brewfile
 
-update: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
+update: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions ## Sync config + install missing packages (no upgrades)
 	brew bundle --no-upgrade --file=Brewfile
 	brew cleanup
 
-upgrade:
+upgrade: ## Investigate upgrades via Claude Agent SDK, apply them, and auto-commit
 	@uv run scripts/upgrade.py
 	brew upgrade
 	brew cleanup
@@ -21,7 +27,7 @@ upgrade:
 	$(MAKE) snapshot-versions
 	@./scripts/commit-upgrade.zsh
 
-snapshot-versions:
+snapshot-versions: ## Save installed versions to versions.json
 	@echo "Snapshotting installed versions..."
 	@./scripts/snapshot-versions.zsh > versions.json
 	@echo "Saved to versions.json"

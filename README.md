@@ -91,6 +91,7 @@ None installed yet. Add extensions as `publisher.extension-name` per line.
 
 | Command | Description |
 | --- | --- |
+| `make` / `make help` | Show available targets |
 | `make install` | Install packages + sync config + install plugins |
 | `make update` | Sync config + install missing packages (no upgrades) |
 | `make upgrade` | Investigate upgrades via Claude Agent SDK, apply them, and auto-commit |
