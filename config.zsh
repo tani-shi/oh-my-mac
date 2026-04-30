@@ -240,8 +240,9 @@ if command -v code &>/dev/null && [[ -f "$VSCODE_EXTENSIONS" ]]; then
   fi
 fi
 
-# === git-delta pager config ===
-git_delta_keys=(
+# === git config ===
+git_config_keys=(
+  "core.quotepath:false"
   "core.pager:delta"
   "interactive.diffFilter:delta --color-only"
   "delta.navigate:true"
@@ -251,7 +252,7 @@ git_delta_keys=(
   "merge.conflictstyle:diff3"
 )
 
-for entry in "${git_delta_keys[@]}"; do
+for entry in "${git_config_keys[@]}"; do
   key="${entry%%:*}"
   expected="${entry#*:}"
   current=$(git config --global "$key" 2>/dev/null || echo "")
