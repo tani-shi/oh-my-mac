@@ -12,8 +12,9 @@ diff-config: ## Show differences between repo and local config
 sync-config: ## Sync config files only
 	@./config.zsh sync
 
-install: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions ## Install packages + sync config + install plugins
+install: ## Install packages + sync config + install plugins
 	brew bundle --no-upgrade --file=Brewfile
+	$(MAKE) sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
 
 update: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions ## Sync config + install missing packages (no upgrades)
 	brew bundle --no-upgrade --file=Brewfile
