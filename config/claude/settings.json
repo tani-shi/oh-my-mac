@@ -1,11 +1,31 @@
 {
   "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "zsh ~/.claude/scripts/iterm2-tab-color.zsh orange; osascript -e 'display notification \"Claude is waiting for your input\" with title \"Claude Code\" sound name \"Funk\"'"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "if [[ -x ~/.claude/scripts/check-docs.zsh ]]; then zsh ~/.claude/scripts/check-docs.zsh; fi"
+            "command": "if [[ -x ~/.claude/scripts/check-docs.zsh ]]; then zsh ~/.claude/scripts/check-docs.zsh; fi; zsh ~/.claude/scripts/iterm2-tab-color.zsh green; osascript -e 'display notification \"Task completed\" with title \"Claude Code\" sound name \"Glass\"'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "zsh ~/.claude/scripts/iterm2-tab-color.zsh reset"
           }
         ]
       }

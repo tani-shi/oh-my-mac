@@ -38,7 +38,6 @@ brew "hashicorp/tap/terraform"
 brew "awscli"
 cask "gcloud-cli"
 cask "visual-studio-code"
-cask "cmux"
 
 # Git / GitHub
 brew "gh"

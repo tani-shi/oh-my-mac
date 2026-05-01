@@ -174,7 +174,6 @@
   },
   "cask": {
     "blackhole-2ch": "0.6.1",
-    "cmux": "0.63.2",
     "font-jetbrains-mono-nerd-font": "3.4.0",
     "gcloud-cli": "559.0.0",
     "visual-studio-code": "1.115.0"

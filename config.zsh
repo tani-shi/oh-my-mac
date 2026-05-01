@@ -12,13 +12,14 @@ configs=(
   "config/git/ignore:$HOME/.config/git/ignore"
   "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md"
   "config/claude/scripts/check-docs.zsh:$HOME/.claude/scripts/check-docs.zsh"
-  "config/cmux/cmux.json:$HOME/.config/cmux/cmux.json")
+  "config/claude/scripts/iterm2-tab-color.zsh:$HOME/.claude/scripts/iterm2-tab-color.zsh")
 
 JQ_MERGE_EXPR='
   .[0] as $user | .[1] as $repo |
   $user |
-  del(.hooks.Notification) |
+  .hooks.Notification = ($repo.hooks.Notification // .hooks.Notification) |
   .hooks.Stop = ($repo.hooks.Stop // .hooks.Stop) |
+  .hooks.UserPromptSubmit = ($repo.hooks.UserPromptSubmit // .hooks.UserPromptSubmit) |
   .hooks.PermissionRequest = ($repo.hooks.PermissionRequest // .hooks.PermissionRequest) |
   .includeCoAuthoredBy = (if $repo | has("includeCoAuthoredBy") then $repo.includeCoAuthoredBy else .includeCoAuthoredBy end) |
   .permissions = ($repo.permissions // .permissions) |
@@ -35,8 +36,6 @@ ITERM_PROFILE_SRC="$SCRIPT_DIR/config/iterm2/profile.json"
 ITERM_PROFILE_DST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/profile.json"
 VSCODE_SETTINGS="$HOME/Library/Application Support/Code/User/settings.json"
 REPO_VSCODE_SETTINGS="$SCRIPT_DIR/config/vscode/settings.json"
-CMUX_SETTINGS="$HOME/.config/cmux/settings.json"
-REPO_CMUX_SETTINGS="$SCRIPT_DIR/config/cmux/settings.json"
 
 # === File sync ===
 diffs=0
@@ -191,26 +190,6 @@ if [[ -f "$REPO_VSCODE_SETTINGS" ]]; then
   fi
 fi
 
-# === cmux settings.json ===
-if [[ -f "$REPO_CMUX_SETTINGS" ]]; then
-  mkdir -p "$(dirname "$CMUX_SETTINGS")"
-  [[ -f "$CMUX_SETTINGS" ]] || echo '{}' > "$CMUX_SETTINGS"
-
-  jq -s '.[0] * .[1]' "$CMUX_SETTINGS" "$REPO_CMUX_SETTINGS" > "$tmpdir/cmux-settings.json"
-
-  if ! diff -q "$CMUX_SETTINGS" "$tmpdir/cmux-settings.json" &>/dev/null; then
-    if [[ "$MODE" == "diff" ]]; then
-      echo ""
-      echo "cmux settings.json:"
-      git diff --no-index "$CMUX_SETTINGS" "$tmpdir/cmux-settings.json" || true
-      diffs=$((diffs + 1))
-    else
-      cp "$tmpdir/cmux-settings.json" "$CMUX_SETTINGS"
-      echo "Merged cmux settings into $CMUX_SETTINGS"
-    fi
-  fi
-fi
-
 # === VSCode extensions ===
 VSCODE_EXTENSIONS="$SCRIPT_DIR/config/vscode/extensions.txt"
 if command -v code &>/dev/null && [[ -f "$VSCODE_EXTENSIONS" ]]; then
@@ -297,7 +276,6 @@ fi
 # === macOS defaults ===
 macos_defaults=(
   "NSGlobalDomain:NSAutomaticWindowAnimationsEnabled:bool:false"
-  "com.cmuxterm.app:SUEnableAutomaticChecks:bool:false"
 )
 
 for entry in "${macos_defaults[@]}"; do

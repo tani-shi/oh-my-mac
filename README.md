@@ -35,7 +35,7 @@ make install
 | Terminal multiplexer | tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code, cmux |
+| Development | fnm, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code |
 | Git / GitHub | gh |
 | Google Workspace | gogcli |
 
@@ -52,8 +52,6 @@ make install
 | `config/claude/keybindings.json` | `~/.claude/keybindings.json` |
 | `config/claude/scripts/check-docs.zsh` | `~/.claude/scripts/check-docs.zsh` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
-| `config/cmux/settings.json` | `~/.config/cmux/settings.json` |
-| `config/cmux/cmux.json` | `~/.config/cmux/cmux.json` |
 
 ### pnpm Global Packages (`config/pnpm/globals.txt`)
 
@@ -118,17 +116,9 @@ gog auth credentials ~/Downloads/client_secret_*.json
 gog auth add you@gmail.com
 ```
 
-### cmux
-
-- Settings synced via JSON merge (`config/cmux/settings.json`) by `make sync-config`
-- Browser pane restricted to localhost only (security default)
-- Telemetry disabled by default
-- For hard network restriction: configure Little Snitch to allow cmux only to `127.0.0.1` / `::1`
-- Dedicated to Claude Code development; Claude notifications and tab titles are managed natively by cmux
-
 ### iTerm2
 
-- Used as a general-purpose terminal (SSH sessions, launching processes); Claude Code is **not** run inside iTerm2 — use cmux for that
+- Primary terminal for shell work and Claude Code; tab title shows the current directory basename, and tab color flips green on Claude Code completion / orange while it's awaiting input (managed by zsh hooks + Claude Code Stop/Notification hooks)
 - Managed via Dynamic Profile (`config/iterm2/profile.json`), synced by `make sync-config`
 - After first sync: **Profiles → oh-my-mac → Other Actions… → Set as Default** to apply
 

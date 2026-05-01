@@ -69,6 +69,16 @@ alias top="btop"
 # zoxide (smarter cd)
 eval "$(zoxide init zsh)"
 
+# Prevent Claude Code from overriding the terminal title
+export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
+
+# iTerm2 tab title: show current directory basename
+_iterm2_tab_title() { print -Pn "\e]1;%1~\a" }
+# iTerm2 tab color: reset on each shell command (clears Claude Code state colors)
+_iterm2_tab_color_reset() { print -Pn "\e]6;1;bg;*;default\a" }
+precmd_functions+=(_iterm2_tab_title)
+preexec_functions+=(_iterm2_tab_title _iterm2_tab_color_reset)
+
 # Starship (must be last)
 export STARSHIP_LOG=error
 eval "$(starship init zsh)"

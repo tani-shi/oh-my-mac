@@ -19,20 +19,6 @@
   - `config/vscode/extensions.txt` → installed via `code --install-extension`
 - Run `make diff-config` to check differences, then `make sync-config` to apply.
 
-## cmux Settings
-
-- NEVER edit `~/.config/cmux/settings.json` or `~/.config/cmux/cmux.json` directly.
-- Always edit the source files under `config/cmux/` in this repository instead.
-  - `config/cmux/settings.json` → merged into `~/.config/cmux/settings.json`
-  - `config/cmux/cmux.json` → synced to `~/.config/cmux/cmux.json`
-- Run `make diff-config` to check differences, then `make sync-config` to apply.
-- Security invariants (must not be removed):
-  - `app.sendAnonymousTelemetry` must be `false`
-  - `browser.hostsToOpenInEmbeddedBrowser` must restrict to localhost addresses only
-  - `browser.showSearchSuggestions` must be `false`
-  - `browser.openTerminalLinksInCmuxBrowser` must be `false`
-  - `browser.interceptTerminalOpenCommandInCmuxBrowser` must be `false`
-
 ## config.zsh
 
 - Every sync operation MUST include a diff check — only write when the current state differs from the desired state. Never blindly overwrite.
