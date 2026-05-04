@@ -50,7 +50,7 @@ make install
 | `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | `config/claude/settings.json` | `~/.claude/settings.json` |
 | `config/claude/keybindings.json` | `~/.claude/keybindings.json` |
-| `config/claude/scripts/check-docs.zsh` | `~/.claude/scripts/check-docs.zsh` |
+| `config/claude/scripts/*.zsh` | `~/.claude/scripts/` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
 
 ### pnpm Global Packages (`config/pnpm/globals.txt`)

@@ -12,7 +12,8 @@ configs=(
   "config/git/ignore:$HOME/.config/git/ignore"
   "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md"
   "config/claude/scripts/check-docs.zsh:$HOME/.claude/scripts/check-docs.zsh"
-  "config/claude/scripts/iterm2-tab-color.zsh:$HOME/.claude/scripts/iterm2-tab-color.zsh")
+  "config/claude/scripts/iterm2-tab-color.zsh:$HOME/.claude/scripts/iterm2-tab-color.zsh"
+  "config/claude/scripts/claude-hook.zsh:$HOME/.claude/scripts/claude-hook.zsh")
 
 JQ_MERGE_EXPR='
   .[0] as $user | .[1] as $repo |
