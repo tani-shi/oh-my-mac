@@ -118,7 +118,7 @@ gog auth add you@gmail.com
 
 ### iTerm2
 
-- Primary terminal for shell work and Claude Code; tab title shows the current directory basename, and tab color flips green on Claude Code completion / orange while it's awaiting input (managed by zsh hooks + Claude Code Stop/Notification hooks)
+- Primary terminal for shell work and Claude Code; tab title shows the current directory basename, and tab color flips green on Claude Code completion / orange while it's awaiting input / purple while `claude-sentinel` is running a slow LLM-backed permission judgment (managed by zsh hooks + Claude Code Stop/Notification/PermissionRequest hooks)
 - Managed via Dynamic Profile (`config/iterm2/profile.json`), synced by `make sync-config`
 - After first sync: **Profiles → oh-my-mac → Other Actions… → Set as Default** to apply
 

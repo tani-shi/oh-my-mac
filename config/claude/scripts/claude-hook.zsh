@@ -8,6 +8,34 @@
 #   - Deduplication: suppress Notification within DEDUP_WINDOW seconds of Stop
 
 EVENT="${1:?event required: stop|notification|userpromptsubmit}"
+
+# Skip while a claude-sentinel-wrapper is judging in this session.
+# Walk to the topmost `claude` PID; the wrapper's flag is keyed on that PID,
+# so both parent-direct and Agent-SDK-nested hooks find it.
+last_claude_pid=""
+pid=$$
+while [[ "$pid" -gt 1 ]]; do
+  cmd=$(ps -o comm= -p "$pid" 2>/dev/null | xargs)
+  if [[ "$cmd" == "claude" || "$cmd" == */claude ]]; then
+    last_claude_pid=$pid
+  fi
+  pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+  [[ -z "$pid" ]] && break
+done
+if [[ -n "$last_claude_pid" ]]; then
+  # Flag format: <parent-claude-pid>.<wrapper-pid>.flag. kill -0 detects
+  # SIGKILLed wrappers whose trap didn't fire — clean up the stale flag so
+  # the rest of the session isn't suppressed.
+  for flag in /tmp/claude-sentinel-running.${last_claude_pid}.*.flag(N); do
+    wpid=${${flag##*/claude-sentinel-running.${last_claude_pid}.}%.flag}
+    if kill -0 "$wpid" 2>/dev/null; then
+      exit 0
+    else
+      rm -f "$flag"
+    fi
+  done
+fi
+
 INPUT="$(cat)"
 SCRIPT_DIR="${0:A:h}"
 DEDUP_WINDOW=5
@@ -65,7 +93,7 @@ case "$EVENT" in
     if [[ "$LAST_EVENT" == "stop" && $ELAPSED -lt $DEDUP_WINDOW ]]; then
       exit 0
     fi
-    "$SCRIPT_DIR/iterm2-tab-color.zsh" orange
+    # Preserve tab color set by Stop (green) or wrapper (orange on ask).
     body=$(jq -r '.message // "Claude is waiting for your input"' <<<"$INPUT" 2>/dev/null)
     _notify "${PWD##*/}" "$body" "Funk"
     _write_state "$EVENT"
