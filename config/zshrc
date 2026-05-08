@@ -74,9 +74,10 @@ export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
 
 # iTerm2 tab title: show current directory basename
 _iterm2_tab_title() { print -Pn "\e]1;%1~\a" }
-# iTerm2 tab color: reset on each shell command (clears Claude Code state colors)
+# iTerm2 tab color: reset on prompt return and before each command
+# (clears Claude Code state colors after exit, including Ctrl-C)
 _iterm2_tab_color_reset() { print -Pn "\e]6;1;bg;*;default\a" }
-precmd_functions+=(_iterm2_tab_title)
+precmd_functions+=(_iterm2_tab_title _iterm2_tab_color_reset)
 preexec_functions+=(_iterm2_tab_title _iterm2_tab_color_reset)
 
 # Starship (must be last)
