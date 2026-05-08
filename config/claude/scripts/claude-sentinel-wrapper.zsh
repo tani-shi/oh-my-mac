@@ -1,10 +1,9 @@
 #!/bin/zsh
 # Wrap claude-sentinel: paint the iTerm2 tab purple during long LLM-backed
-# judgments, orange on ask, reset on allow/deny, and notify after 5s.
+# judgments, orange on ask, reset on allow/deny.
 
 SCRIPT_DIR="${0:A:h}"
 THRESHOLD_SEC=0.3
-SLOW_NOTIFY_SEC=5
 FIRED_FLAG="/tmp/claude-sentinel-fired.$$.flag"
 rm -f "$FIRED_FLAG"
 
@@ -30,9 +29,6 @@ trap 'rm -f "$RUNNING_FLAG"' EXIT INT TERM
   sleep "$THRESHOLD_SEC"
   : > "$FIRED_FLAG"
   "$SCRIPT_DIR/iterm2-tab-color.zsh" purple
-  remaining=$(awk -v a="$SLOW_NOTIFY_SEC" -v b="$THRESHOLD_SEC" 'BEGIN { print a - b }')
-  sleep "$remaining"
-  osascript -e 'display notification "Sentinel is still judging…" with title "claude-sentinel"' 2>/dev/null
 ) &
 timer_pid=$!
 
