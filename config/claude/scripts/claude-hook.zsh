@@ -70,9 +70,15 @@ _notify() {
 _last_assistant_text() {
   local transcript="$1"
   [[ -f "$transcript" ]] || return
-  tail -100 "$transcript" 2>/dev/null \
-    | jq -r 'select(.type == "assistant") | (.message.content // []) | .[]? | select(.type == "text") | .text' 2>/dev/null \
-    | tail -n 1
+  # Bound search to the current turn (after the last user-prompt entry, where
+  # .message.content is a string — tool_result entries store an array). Avoids
+  # leaking the previous turn's text when the current turn hasn't flushed its
+  # final text to the transcript yet.
+  jq -s -r '
+    . as $all |
+    ([range(0; length) | select($all[.].type == "user" and ($all[.].message.content | type) == "string")] | last // -1) as $boundary |
+    [$all[($boundary + 1):][] | select(.type == "assistant") | (.message.content // [])[] | select(.type == "text") | .text] | last // ""
+  ' "$transcript" 2>/dev/null
 }
 
 case "$EVENT" in
