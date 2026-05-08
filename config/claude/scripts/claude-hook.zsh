@@ -90,6 +90,10 @@ case "$EVENT" in
     [[ -x "$HOME/.claude/scripts/check-docs.zsh" ]] && zsh "$HOME/.claude/scripts/check-docs.zsh"
     "$SCRIPT_DIR/iterm2-tab-color.zsh" green
     transcript=$(jq -r '.transcript_path // ""' <<<"$INPUT" 2>/dev/null)
+    # Wait for the final assistant text to flush to the transcript file.
+    # Stop fires before the last text segment is durably written, so reading
+    # immediately can return an earlier text from the same turn.
+    sleep 1
     body=$(_last_assistant_text "$transcript")
     [[ -z "$body" ]] && body="Task completed"
     _notify "${PWD##*/}" "$body" "Glass"
