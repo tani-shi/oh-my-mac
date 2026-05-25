@@ -60,11 +60,30 @@ _notify() {
   fi
   body="${body//$'\n'/ }"
   body="${body//$'\t'/ }"
-  body="${body//\\/\\\\}"
-  body="${body//\"/\\\"}"
-  title="${title//\\/\\\\}"
-  title="${title//\"/\\\"}"
-  osascript -e "display notification \"$body\" with title \"$title\" sound name \"$sound\"" 2>/dev/null
+
+  local focus_script="$SCRIPT_DIR/iterm2-focus-tab.applescript"
+  # terminal-notifier supports -execute on click; route the click back to the
+  # originating iTerm2 tab via ITERM_SESSION_ID. Fall back to osascript when
+  # terminal-notifier or the iTerm2 session id is unavailable.
+  if [[ -n "$ITERM_SESSION_ID" ]] \
+    && command -v terminal-notifier >/dev/null 2>&1 \
+    && [[ -f "$focus_script" ]]; then
+    # Detach so the hook returns immediately even if terminal-notifier
+    # keeps a process alive to handle the -execute click.
+    (terminal-notifier \
+      -title "$title" \
+      -message "$body" \
+      -sound "$sound" \
+      -sender com.googlecode.iterm2 \
+      -execute "/usr/bin/osascript '$focus_script' '$ITERM_SESSION_ID'" \
+      >/dev/null 2>&1 &) >/dev/null 2>&1
+  else
+    body="${body//\\/\\\\}"
+    body="${body//\"/\\\"}"
+    title="${title//\\/\\\\}"
+    title="${title//\"/\\\"}"
+    osascript -e "display notification \"$body\" with title \"$title\" sound name \"$sound\"" 2>/dev/null
+  fi
 }
 
 _last_assistant_text() {

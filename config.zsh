@@ -14,7 +14,8 @@ configs=(
   "config/claude/scripts/check-docs.zsh:$HOME/.claude/scripts/check-docs.zsh"
   "config/claude/scripts/iterm2-tab-color.zsh:$HOME/.claude/scripts/iterm2-tab-color.zsh"
   "config/claude/scripts/claude-hook.zsh:$HOME/.claude/scripts/claude-hook.zsh"
-  "config/claude/scripts/claude-sentinel-wrapper.zsh:$HOME/.claude/scripts/claude-sentinel-wrapper.zsh")
+  "config/claude/scripts/claude-sentinel-wrapper.zsh:$HOME/.claude/scripts/claude-sentinel-wrapper.zsh"
+  "config/claude/scripts/iterm2-focus-tab.applescript:$HOME/.claude/scripts/iterm2-focus-tab.applescript")
 
 JQ_MERGE_EXPR='
   .[0] as $user | .[1] as $repo |
