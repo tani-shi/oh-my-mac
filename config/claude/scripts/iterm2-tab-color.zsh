@@ -2,6 +2,10 @@
 # Set iTerm2 tab color via OSC 6, written directly to the controlling TTY
 # so it reaches iTerm2 regardless of the caller's stdout capture.
 # Usage: iterm2-tab-color.zsh <green|orange|purple|reset>
+#
+# Claude Code spawns hook subprocesses without a controlling terminal, so
+# /dev/tty fails to open ("device not configured"). When that happens, walk
+# up to the parent `claude` process and write to its tty device instead.
 
 case "${1:-reset}" in
   green)
@@ -22,5 +26,23 @@ case "${1:-reset}" in
     ;;
 esac
 
-{ print -n -- "$esc" > /dev/tty } 2>/dev/null
+# Resolve the tty to write to: prefer /dev/tty, else the parent claude's tty.
+_target_tty() {
+  if { : > /dev/tty } 2>/dev/null; then
+    print -- /dev/tty
+    return
+  fi
+  local pid=$$ cmd t
+  while [[ "$pid" -gt 1 ]]; do
+    IFS=' ' read -r cmd t <<<"$(ps -o comm=,tty= -p "$pid" 2>/dev/null)"
+    if [[ "$cmd" == "claude" || "$cmd" == */claude ]] && [[ -n "$t" && "$t" != "??" ]]; then
+      print -- "/dev/$t"
+      return
+    fi
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+  done
+}
+
+dev=$(_target_tty)
+[[ -n "$dev" ]] && { print -n -- "$esc" > "$dev" } 2>/dev/null
 exit 0
