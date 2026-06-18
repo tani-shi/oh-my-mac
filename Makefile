@@ -22,7 +22,7 @@ update: sync-config install-claude install-claude-plugins install-pnpm-globals i
 
 upgrade: ## Investigate upgrades via Claude Agent SDK, apply them, and auto-commit
 	@uv run scripts/upgrade.py
-	brew upgrade
+	HOMEBREW_NO_INTERACTIVE=1 brew upgrade
 	brew cleanup
 	$(MAKE) install-claude install-claude-plugins install-pnpm-globals install-uv-tools
 	$(MAKE) snapshot-versions
