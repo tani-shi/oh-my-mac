@@ -30,6 +30,7 @@
 All external dependencies are version-pinned to prevent supply chain attacks. `make update` intentionally does NOT upgrade packages — it only installs missing ones and syncs config.
 
 - **Homebrew**: `brew bundle --no-upgrade` prevents automatic upgrades. Use `make upgrade` to review and apply updates.
+- **Homebrew taps**: Non-official taps must be explicitly trusted (Homebrew 6.x `HOMEBREW_REQUIRE_TAP_TRUST`). List every non-official tap in `config/homebrew/trusted-taps.txt`; `make install`/`make update`/`make upgrade` run `make trust-taps` before bundling to trust them idempotently. When adding a `tap`/`tap/formula` to `Brewfile`, also add its tap here (include the resolved formula tap if it differs, e.g. `gogcli` resolves to `openclaw/tap`).
 - **Claude Code**: Version is pinned in `config/claude/version`. `make install`/`make update` install only the pinned version. `make upgrade` tracks the latest published version by default, and only holds back when the CHANGELOG shows breaking changes affecting this repo's config surface (settings.json, hooks, slash commands, MCP, plugins, agents, skills, keybindings) OR GitHub Issues show trending unresolved critical bug reports (crashes, hangs, data loss) from multiple users. Auto-updater is disabled via `DISABLE_AUTOUPDATER=1`.
 - **Sheldon plugins**: Every plugin in `config/sheldon/plugins.toml` MUST have a `tag` (or `rev` if no tags exist). Never add a plugin without version pinning.
 - **pnpm globals**: Packages in `config/pnpm/globals.txt` MUST use `@version` suffix (e.g., `typescript@5.8.3`).

@@ -1,4 +1,4 @@
-.PHONY: help diff-config sync-config install update upgrade snapshot-versions install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
+.PHONY: help diff-config sync-config install update upgrade trust-taps snapshot-versions install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
 
 .DEFAULT_GOAL := help
 
@@ -13,20 +13,39 @@ sync-config: ## Sync config files only
 	@./config.zsh sync
 
 install: ## Install packages + sync config + install plugins
+	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
 	$(MAKE) sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
 
 update: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions ## Sync config + install missing packages (no upgrades)
+	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
 	brew cleanup
 
 upgrade: ## Investigate upgrades via Claude Agent SDK, apply them, and auto-commit
 	@uv run scripts/upgrade.py
+	$(MAKE) trust-taps
 	HOMEBREW_NO_INTERACTIVE=1 brew upgrade
 	brew cleanup
 	$(MAKE) install-claude install-claude-plugins install-pnpm-globals install-uv-tools
 	$(MAKE) snapshot-versions
 	@./scripts/commit-upgrade.zsh
+
+trust-taps:
+	@if [ -f config/homebrew/trusted-taps.txt ]; then \
+		trusted=$$(brew trust --json v1 2>/dev/null); \
+		while IFS= read -r tap || [ -n "$$tap" ]; do \
+			[ -z "$$tap" ] && continue; \
+			case "$$tap" in \#*) continue ;; esac; \
+			if printf '%s' "$$trusted" | grep -q "\"$$tap\""; then \
+				continue; \
+			fi; \
+			echo "Trusting Homebrew tap: $$tap"; \
+			brew trust "$$tap" 2>&1 || echo "Warning: Failed to trust $$tap"; \
+		done < config/homebrew/trusted-taps.txt; \
+	else \
+		echo "Skipping tap trust (trusted-taps.txt missing)"; \
+	fi
 
 snapshot-versions: ## Save installed versions to versions.json
 	@echo "Snapshotting installed versions..."

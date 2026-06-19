@@ -42,6 +42,7 @@ cask "visual-studio-code"
 
 # Git / GitHub
 brew "gh"
+brew "git-lfs"
 
 # Google Workspace
 brew "steipete/tap/gogcli"

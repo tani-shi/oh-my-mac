@@ -36,8 +36,18 @@ make install
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
 | Development | fnm, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code |
-| Git / GitHub | gh |
+| Git / GitHub | gh, git-lfs |
 | Google Workspace | gogcli |
+
+### Trusted Homebrew Taps (`config/homebrew/trusted-taps.txt`)
+
+Homebrew 6.x refuses to load formulae from non-official taps unless they are explicitly trusted. `make install` / `make update` / `make upgrade` run `make trust-taps` before bundling to trust these idempotently, so a fresh machine installs in one shot.
+
+| Tap | Used by |
+| --- | --- |
+| hashicorp/tap | terraform |
+| steipete/tap | gogcli |
+| openclaw/tap | gogcli (resolved formula tap) |
 
 ### Config Files
 
@@ -93,6 +103,7 @@ None installed yet. Add extensions as `publisher.extension-name` per line.
 | `make install` | Install packages + sync config + install plugins |
 | `make update` | Sync config + install missing packages (no upgrades) |
 | `make upgrade` | Investigate upgrades via Claude Agent SDK, apply them, and auto-commit |
+| `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
 | `make snapshot-versions` | Save installed versions to `versions.json` |
 | `make diff-config` | Show differences between repo and local config |
 | `make sync-config` | Sync config files only |

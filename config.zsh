@@ -232,6 +232,10 @@ git_config_keys=(
   "delta.line-numbers:true"
   "delta.hunk-header-style:omit"
   "merge.conflictstyle:diff3"
+  "filter.lfs.clean:git-lfs clean -- %f"
+  "filter.lfs.smudge:git-lfs smudge -- %f"
+  "filter.lfs.process:git-lfs filter-process"
+  "filter.lfs.required:true"
 )
 
 for entry in "${git_config_keys[@]}"; do

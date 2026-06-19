@@ -1,0 +1,8 @@
+# Non-official Homebrew taps that must be trusted before `brew bundle` / `brew upgrade`.
+# Homebrew 6.x refuses to load formulae from non-official taps unless they are
+# explicitly trusted (HOMEBREW_REQUIRE_TAP_TRUST). `make trust-taps` trusts these
+# idempotently before bundling so a fresh machine can `make install` in one shot.
+# One tap per line. Lines starting with # are ignored.
+hashicorp/tap
+steipete/tap
+openclaw/tap
