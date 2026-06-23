@@ -1,1 +1,3 @@
 kaiwood.center-editor-window
+ms-dotnettools.csharp
+ms-dotnettools.csdevkit

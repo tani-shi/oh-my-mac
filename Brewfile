@@ -32,6 +32,7 @@ cask "font-jetbrains-mono-nerd-font"
 
 # Development
 brew "fnm"
+brew "mise"   # polyglot runtime manager (.NET SDK, etc.)
 brew "pnpm"
 brew "uv"
 brew "ruff"

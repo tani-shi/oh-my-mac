@@ -35,7 +35,7 @@ make install
 | Terminal multiplexer | tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code |
+| Development | fnm, mise, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code |
 | Git / GitHub | gh, git-lfs |
 | Google Workspace | gogcli |
 
@@ -55,6 +55,7 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | --- | --- |
 | `config/starship.toml` | `~/.config/starship.toml` |
 | `config/sheldon/plugins.toml` | `~/.config/sheldon/plugins.toml` |
+| `config/mise/config.toml` | `~/.config/mise/config.toml` |
 | `config/zshrc` | `~/.zshrc` |
 | `config/git/ignore` | `~/.config/git/ignore` |
 | `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
@@ -69,6 +70,14 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | --- | --- |
 | typescript | TypeScript compiler (`tsc`) |
 
+### mise Tools (`config/mise/config.toml`)
+
+[mise](https://mise.jdx.dev/) manages the .NET SDK. SDK versions install side-by-side under a single `DOTNET_ROOT`, matching .NET's native multi-version model, and per-project `global.json` selects the build SDK. `mise activate` (in `config/zshrc`) sets `DOTNET_ROOT`. `make install` / `make update` run `mise install` to materialize pinned versions.
+
+| Tool | Version |
+| --- | --- |
+| dotnet | 10.0.301 (.NET 10 SDK) |
+
 ### uv Tools (`config/uv/tools.txt`)
 
 | Tool | Source |
@@ -77,7 +86,13 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 
 ### VSCode Extensions (`config/vscode/extensions.txt`)
 
-None installed yet. Add extensions as `publisher.extension-name` per line.
+| Extension | Description |
+| --- | --- |
+| kaiwood.center-editor-window | Center the active line in the editor |
+| ms-dotnettools.csharp | C# language support (Roslyn) |
+| ms-dotnettools.csdevkit | C# Dev Kit — .NET IntelliSense, project/solution navigation |
+
+Add extensions as `publisher.extension-name` per line.
 
 ### Claude Code Plugins (`config/claude/plugins.txt`)
 

@@ -1,0 +1,6 @@
+[tools]
+dotnet = "10.0.301"
+
+[settings]
+# Respect per-project global.json when selecting the SDK
+idiomatic_version_file_enable_tools = ["dotnet"]

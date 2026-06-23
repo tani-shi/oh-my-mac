@@ -1,4 +1,4 @@
-.PHONY: help diff-config sync-config install update upgrade trust-taps snapshot-versions install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
+.PHONY: help diff-config sync-config install update upgrade trust-taps snapshot-versions install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions install-mise-tools
 
 .DEFAULT_GOAL := help
 
@@ -15,9 +15,9 @@ sync-config: ## Sync config files only
 install: ## Install packages + sync config + install plugins
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
-	$(MAKE) sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions
+	$(MAKE) sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions install-mise-tools
 
-update: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions ## Sync config + install missing packages (no upgrades)
+update: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions install-mise-tools ## Sync config + install missing packages (no upgrades)
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
 	brew cleanup
@@ -27,7 +27,7 @@ upgrade: ## Investigate upgrades via Claude Agent SDK, apply them, and auto-comm
 	$(MAKE) trust-taps
 	HOMEBREW_NO_INTERACTIVE=1 brew upgrade
 	brew cleanup
-	$(MAKE) install-claude install-claude-plugins install-pnpm-globals install-uv-tools
+	$(MAKE) install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-mise-tools
 	$(MAKE) snapshot-versions
 	@./scripts/commit-upgrade.zsh
 
@@ -110,6 +110,14 @@ install-pnpm-globals:
 		done < config/pnpm/globals.txt; \
 	else \
 		echo "Skipping pnpm globals (pnpm not found or globals.txt missing)"; \
+	fi
+
+install-mise-tools:
+	@if command -v mise >/dev/null 2>&1 && [ -f "$$HOME/.config/mise/config.toml" ]; then \
+		echo "Installing mise tools (.NET SDK, etc.)..."; \
+		mise install 2>&1 || echo "Warning: mise install failed"; \
+	else \
+		echo "Skipping mise tools (mise not found or config.toml missing)"; \
 	fi
 
 install-uv-tools:

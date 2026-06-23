@@ -15,6 +15,9 @@ eval "$(sheldon source)"
 # fnm (Node.js version manager)
 eval "$(fnm env --use-on-cd --shell zsh)"
 
+# mise (polyglot version manager: .NET SDK, etc.)
+eval "$(mise activate zsh)"
+
 # uv (Python)
 export PATH="$HOME/.local/bin:$PATH"
 

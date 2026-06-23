@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 configs=(
   "config/starship.toml:$HOME/.config/starship.toml"
   "config/sheldon/plugins.toml:$HOME/.config/sheldon/plugins.toml"
+  "config/mise/config.toml:$HOME/.config/mise/config.toml"
   "config/zshrc:$HOME/.zshrc"
   "config/git/ignore:$HOME/.config/git/ignore"
   "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md"

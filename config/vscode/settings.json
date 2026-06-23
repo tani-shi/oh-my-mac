@@ -10,5 +10,20 @@
   "git.enabled": false,
   "workbench.colorTheme": "Dark Modern",
   "zenMode.fullScreen": false,
-  "zenMode.hideLineNumbers": false
+  "zenMode.hideLineNumbers": false,
+  "dotnet.server.useOmnisharp": false,
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/Library/**": true,
+    "**/Temp/**": true,
+    "**/obj/**": true,
+    "**/bin/**": true
+  },
+  "search.exclude": {
+    "**/node_modules/**": true,
+    "**/Library/**": true,
+    "**/Temp/**": true,
+    "**/obj/**": true,
+    "**/bin/**": true
+  }
 }
