@@ -21,6 +21,7 @@
       "Option Key Sends": 2,
       "Custom Directory": "Recycle",
       "Scrollback Lines": 100000,
+      "Mouse Reporting": true,
       "Silence Bell": true,
       "Prompt Before Closing 2": false,
 
