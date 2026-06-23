@@ -154,6 +154,12 @@ gog auth add you@gmail.com
 - Manual steps required for tmux integration (**Settings → General → tmux**):
   - **Attaching**: "Tabs in the attaching window"
   - **Automatically bury the tmux client session after connecting**: ON
+- Manual steps required for app-global appearance (**Settings → Appearance → General**) — these are application-wide preferences, not profile-scoped, so they cannot be set via Dynamic Profile and must be enabled by hand:
+  - **Auto-hide menu bar in non-native fullscreen**: ON
+  - **Exclude from Dock and ⌘-Tab Application Switcher**: ON
+  - **…but only if all windows are hotkey windows**: ON (required to keep the option above enabled)
+
+  ![Appearance settings](docs/iterm2-appearance-manual-settings.png)
 
 ### macOS Performance
 
