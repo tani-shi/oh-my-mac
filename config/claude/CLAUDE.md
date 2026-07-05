@@ -20,19 +20,32 @@
 
 - Use `uv` instead of `pip` / `pip3` / `python` / `python3`.
 
+## Comments
+
+- Code is the primary medium of explanation: design, naming, and small well-bounded units carry the meaning. Default to zero comments.
+- A comment that explains *what* code does is a refactoring signal — rename, extract, or restructure until the comment is unnecessary, then delete it instead of writing it.
+- The only comments that belong in code state *why* something must be the way it is when the code cannot express it: references to external specs, workarounds for upstream bugs (with links), invariants and concurrency constraints, the rationale behind non-obvious values.
+- Public API doc comments (docstrings, JSDoc) follow the project's existing convention; they document contracts for toolchains, not implementation.
+- Comments, docs, and code state present-tense technical facts — never the conversation, the instructions given, or what was changed, removed, or avoided. Keep a "don't do X" note only when a future reader genuinely needs it, stating the durable technical reason (e.g., `avoid X here: it deadlocks under load`).
+
+## Refactoring
+
+- When changing code, restructure within the touched scope instead of appending: prefer renaming, extracting, and deleting over adding branches, flags, and wrapper layers.
+- Existing code has no authority merely because it exists. Reshape the code you touch into the best form for the current requirements rather than deferring to its current shape.
+- Keep each unit at the minimum size that fully expresses its behavior; growth of a file or function is a design signal, not a default.
+- Outside the touched scope, report refactoring opportunities instead of applying them.
+
 ## Documentation
 
 - When your changes affect what a project does, how it's used, or how it's configured, update README.md and CLAUDE.md (if they exist) in the same changeset.
 - Focus on sections that describe the changed functionality (feature lists, configuration tables, usage examples, setup instructions).
 
-## Comments & Documentation
+## Subagents & Agent Teams
 
-- Comments, docs, and code describe the current state and the technical reason something exists — never the conversation, the instructions you were given, or what was changed, removed, or avoided.
-- Do not leave residue from our discussion. Phrases like "don't do X", "X is intentionally omitted", "removed per request", or "as instructed" are noise to any reader who wasn't part of the conversation.
-- Exception: keep a "don't do X" note only when a reader who knows nothing about our conversation genuinely needs it, and then state the durable technical reason itself (e.g., `avoid X here: it deadlocks under load`) — not that it was requested.
-
-## Agent Teams
-
-- When performing investigation or side-effect-free operations (file reads, searches, code exploration), use the Agent tool to run multiple agents in parallel.
-- Launch independent queries as concurrent agents in a single message rather than running them sequentially.
-- Reserve sequential execution for tasks with dependencies between steps.
+- For investigation and side-effect-free operations (file reads, searches, code exploration, reviews), run multiple agents in parallel via the Agent tool.
+- Launch independent queries as concurrent agents in a single message; reserve sequential execution for steps with dependencies.
+- Default to unnamed background subagents: results return directly as tool results with no coordination overhead.
+- Read-only fan-out (parallel finders, verifiers, searchers) is always unnamed subagents, never a team.
+- Use named teammates (Agent Teams) only for stateful collaboration where agents must respond to each other across turns. Compose by orthogonal roles, not headcount: 2 for pair work (implementer + reviewer), 3 for discussion (proponent, opponent, synthesizer) — 3 is the upper bound, since communication paths and coordination cost grow quadratically.
+- When more perspectives are needed than a team allows, generate them independently with unnamed subagents and synthesize; independent generation preserves diversity that live discussion collapses.
+- When a defined agent in ~/.claude/agents/ fits the role, pass it as subagent_type instead of a generic agent.
