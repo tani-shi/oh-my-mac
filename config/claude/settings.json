@@ -40,6 +40,16 @@
           }
         ]
       }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "zsh ~/.claude/scripts/claude-hook.zsh taskcompleted"
+          }
+        ]
+      }
     ]
   },
   "includeCoAuthoredBy": false,

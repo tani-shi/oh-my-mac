@@ -1,13 +1,13 @@
 #!/bin/zsh
 # Unified Claude Code hook handler.
-# Usage: claude-hook.zsh <stop|notification|userpromptsubmit>
+# Usage: claude-hook.zsh <stop|notification|userpromptsubmit|taskcompleted>
 #
 # Reads Claude Code hook JSON from stdin and orchestrates:
 #   - iTerm2 tab color (green/orange/reset)
 #   - macOS notification (title = current folder, body = response/message)
 #   - Deduplication: suppress Notification within DEDUP_WINDOW seconds of Stop
 
-EVENT="${1:?event required: stop|notification|userpromptsubmit}"
+EVENT="${1:?event required: stop|notification|userpromptsubmit|taskcompleted}"
 
 # Skip while a claude-sentinel-wrapper is judging in this session.
 # Walk to the topmost `claude` PID; the wrapper's flag is keyed on that PID,
@@ -119,12 +119,25 @@ case "$EVENT" in
     _write_state "$EVENT"
     ;;
   notification)
-    if [[ "$LAST_EVENT" == "stop" && $ELAPSED -lt $DEDUP_WINDOW ]]; then
+    # Both stop and taskcompleted already notified for the same moment.
+    if [[ ("$LAST_EVENT" == "stop" || "$LAST_EVENT" == "taskcompleted") && $ELAPSED -lt $DEDUP_WINDOW ]]; then
       exit 0
     fi
     # Preserve tab color set by Stop (green) or wrapper (orange on ask).
     body=$(jq -r '.message // "Claude is waiting for your input"' <<<"$INPUT" 2>/dev/null)
     _notify "${PWD##*/}" "$body" "Funk"
+    _write_state "$EVENT"
+    ;;
+  taskcompleted)
+    # Agent Teams task completion. The payload schema may drift while the
+    # feature is experimental; the jq fallbacks degrade to a generic body
+    # instead of failing. This hook runs globally, so it stays observational:
+    # exit 2 would block task completion for every project on this machine.
+    teammate=$(jq -r 'first((.teammate_name, .teammate.name?) | strings | select(. != "")) // ""' <<<"$INPUT" 2>/dev/null)
+    task=$(jq -r 'first((.task_subject, .task.subject?, .task.description?) | strings | select(. != "")) // ""' <<<"$INPUT" 2>/dev/null)
+    body="${task:-Task completed}"
+    [[ -n "$teammate" ]] && body="[$teammate] $body"
+    _notify "${PWD##*/}" "$body" "Glass"
     _write_state "$EVENT"
     ;;
   *)

@@ -62,6 +62,7 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | `config/claude/settings.json` | `~/.claude/settings.json` |
 | `config/claude/keybindings.json` | `~/.claude/keybindings.json` |
 | `config/claude/scripts/*.zsh` | `~/.claude/scripts/` |
+| `config/claude/agents/*.md` | `~/.claude/agents/` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
 
 ### pnpm Global Packages (`config/pnpm/globals.txt`)

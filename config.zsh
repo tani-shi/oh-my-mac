@@ -18,13 +18,14 @@ configs=(
   "config/claude/scripts/claude-sentinel-wrapper.zsh:$HOME/.claude/scripts/claude-sentinel-wrapper.zsh"
   "config/claude/scripts/iterm2-focus-tab.applescript:$HOME/.claude/scripts/iterm2-focus-tab.applescript")
 
+for f in "$SCRIPT_DIR"/config/claude/agents/*.md(N); do
+  configs+=("config/claude/agents/${f:t}:$HOME/.claude/agents/${f:t}")
+done
+
 JQ_MERGE_EXPR='
   .[0] as $user | .[1] as $repo |
   $user |
-  .hooks.Notification = ($repo.hooks.Notification // .hooks.Notification) |
-  .hooks.Stop = ($repo.hooks.Stop // .hooks.Stop) |
-  .hooks.UserPromptSubmit = ($repo.hooks.UserPromptSubmit // .hooks.UserPromptSubmit) |
-  .hooks.PermissionRequest = ($repo.hooks.PermissionRequest // .hooks.PermissionRequest) |
+  .hooks = ((.hooks // {}) * ($repo.hooks // {})) |
   .includeCoAuthoredBy = (if $repo | has("includeCoAuthoredBy") then $repo.includeCoAuthoredBy else .includeCoAuthoredBy end) |
   .permissions = ($repo.permissions // .permissions) |
   .env = ((.env // {}) * ($repo.env // {})) |
@@ -49,7 +50,11 @@ for entry in "${configs[@]}"; do
   dst="${entry##*:}"
   if ! diff -q "$src" "$dst" &>/dev/null; then
     if [[ "$MODE" == "diff" ]]; then
-      git diff --no-index "$dst" "$src" || true
+      if [[ -e "$dst" || -L "$dst" ]]; then
+        git diff --no-index "$dst" "$src" || true
+      else
+        echo "New: ${entry%%:*} -> $dst"
+      fi
       diffs=$((diffs + 1))
     else
       mkdir -p "$(dirname "$dst")"
@@ -60,8 +65,24 @@ for entry in "${configs[@]}"; do
   fi
 done
 
+# ~/.claude/agents/ mirrors config/claude/agents/, so agents removed from the
+# repo must also be removed from the destination or they keep loading.
+removed=0
+for dst in "$HOME"/.claude/agents/*.md(N); do
+  if [[ ! -f "$SCRIPT_DIR/config/claude/agents/${dst:t}" ]]; then
+    if [[ "$MODE" == "diff" ]]; then
+      echo "Orphan: $dst (no config/claude/agents/${dst:t})"
+      diffs=$((diffs + 1))
+    else
+      trash "$dst"
+      echo "Removed: $dst"
+      removed=$((removed + 1))
+    fi
+  fi
+done
+
 if [[ "$MODE" == "sync" ]]; then
-  if [[ ${#synced[@]} -eq 0 ]]; then
+  if [[ ${#synced[@]} -eq 0 && $removed -eq 0 ]]; then
     echo "Already up to date."
   else
     for src in "${synced[@]}"; do
