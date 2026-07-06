@@ -62,9 +62,6 @@
   "teammateMode": "tmux",
   "tui": "fullscreen",
   "permissions": {
-    "defaultMode": "default",
-    "disableAutoMode": "disable",
-    "deny": [],
     "allow": [
       "Edit",
       "Glob",
@@ -80,13 +77,16 @@
       "mcp__claude_ai_Slack__slack_search_*",
       "mcp__plugin_context7_context7__*"
     ],
+    "deny": [],
     "ask": [
       "mcp__claude_ai_Slack__slack_create_canvas",
       "mcp__claude_ai_Slack__slack_schedule_message",
       "mcp__claude_ai_Slack__slack_send_message",
       "mcp__claude_ai_Slack__slack_send_message_draft",
       "mcp__claude_ai_Slack__slack_update_canvas"
-    ]
+    ],
+    "defaultMode": "default",
+    "disableAutoMode": "disable"
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
