@@ -94,12 +94,6 @@
         "source": "github",
         "repo": "anthropics/skills"
       }
-    },
-    "tani-shi-skills": {
-      "source": {
-        "source": "git",
-        "url": "git@github.com:tani-shi/skills.git"
-      }
     }
   }
 }

@@ -101,7 +101,6 @@ Add extensions as `publisher.extension-name` per line.
 | Plugin | Registry |
 | --- | --- |
 | example-skills | anthropic-agent-skills |
-| tani-shi-skills | tani-shi-skills |
 | claude-md-management | claude-plugins-official |
 | code-review | claude-plugins-official |
 | code-simplifier | claude-plugins-official |
