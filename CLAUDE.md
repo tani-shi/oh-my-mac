@@ -9,6 +9,7 @@
   - `config/claude/keybindings.json` → merged into `~/.claude/keybindings.json`
   - `config/claude/scripts/*.zsh` → synced to `~/.claude/scripts/`
   - `config/claude/agents/*.md` → synced to `~/.claude/agents/` (reusable subagents / Agent Teams teammates)
+  - `config/claude/skills/*/SKILL.md` → synced to `~/.claude/skills/` (personal skills, auto-loaded as `<name>@skills-dir`)
   - `config/claude/plugins.txt` → installed via `claude plugin install`
 - Run `make diff-config` to check differences, then `make sync-config` to apply.
 

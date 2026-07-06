@@ -18,18 +18,22 @@ configs=(
   "config/claude/scripts/claude-sentinel-wrapper.zsh:$HOME/.claude/scripts/claude-sentinel-wrapper.zsh"
   "config/claude/scripts/iterm2-focus-tab.applescript:$HOME/.claude/scripts/iterm2-focus-tab.applescript")
 
-for f in "$SCRIPT_DIR"/config/claude/agents/*.md(N); do
-  configs+=("config/claude/agents/${f:t}:$HOME/.claude/agents/${f:t}")
+for f in "$SCRIPT_DIR"/config/claude/agents/*.md(N) "$SCRIPT_DIR"/config/claude/skills/**/*(.N); do
+  rel="${f#$SCRIPT_DIR/config/claude/}"
+  configs+=("config/claude/$rel:$HOME/.claude/$rel")
 done
 
 JQ_MERGE_EXPR='
   .[0] as $user | .[1] as $repo |
   $user |
   .hooks = ((.hooks // {}) * ($repo.hooks // {})) |
-  .includeCoAuthoredBy = (if $repo | has("includeCoAuthoredBy") then $repo.includeCoAuthoredBy else .includeCoAuthoredBy end) |
-  .permissions = ($repo.permissions // .permissions) |
   .env = ((.env // {}) * ($repo.env // {})) |
-  .teammateMode = (if $repo | has("teammateMode") then $repo.teammateMode else .teammateMode end) |
+  (if $repo | has("extraKnownMarketplaces")
+    then .extraKnownMarketplaces = ((.extraKnownMarketplaces // {}) * $repo.extraKnownMarketplaces)
+    else . end) |
+  .permissions = ($repo.permissions // .permissions) |
+  reduce ["includeCoAuthoredBy", "teammateMode", "tui"][] as $k
+    (.; if $repo | has($k) then .[$k] = $repo[$k] else . end) |
   del(.preferences)
 '
 
@@ -65,13 +69,14 @@ for entry in "${configs[@]}"; do
   fi
 done
 
-# ~/.claude/agents/ mirrors config/claude/agents/, so agents removed from the
-# repo must also be removed from the destination or they keep loading.
+# Claude Code loads any file present in ~/.claude/agents/ and ~/.claude/skills/
+# regardless of repo state, so orphans must be deleted, not merely left unsynced.
 removed=0
-for dst in "$HOME"/.claude/agents/*.md(N); do
-  if [[ ! -f "$SCRIPT_DIR/config/claude/agents/${dst:t}" ]]; then
+for dst in "$HOME"/.claude/agents/*.md(.N) "$HOME"/.claude/skills/**/*(.N); do
+  rel="${dst#$HOME/.claude/}"
+  if [[ ! -f "$SCRIPT_DIR/config/claude/$rel" ]]; then
     if [[ "$MODE" == "diff" ]]; then
-      echo "Orphan: $dst (no config/claude/agents/${dst:t})"
+      echo "Orphan: $dst (no config/claude/$rel)"
       diffs=$((diffs + 1))
     else
       trash "$dst"
@@ -107,11 +112,6 @@ tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 
 jq -s "$JQ_MERGE_EXPR" "$CLAUDE_SETTINGS" "$REPO_SETTINGS" > "$tmpdir/settings.json"
-
-if jq -e '.extraKnownMarketplaces' "$REPO_SETTINGS" &>/dev/null; then
-  jq -s '.[0].extraKnownMarketplaces = ((.[0].extraKnownMarketplaces // {}) * (.[1].extraKnownMarketplaces // {})) | .[0]' \
-    "$tmpdir/settings.json" "$REPO_SETTINGS" > "$tmpdir/settings2.json" && mv "$tmpdir/settings2.json" "$tmpdir/settings.json"
-fi
 
 if ! diff -q "$CLAUDE_SETTINGS" "$tmpdir/settings.json" &>/dev/null; then
   if [[ "$MODE" == "diff" ]]; then
