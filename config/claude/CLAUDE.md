@@ -33,6 +33,8 @@
 - When changing code, restructure within the touched scope instead of appending: prefer renaming, extracting, and deleting over adding branches, flags, and wrapper layers.
 - Existing code has no authority merely because it exists. Reshape the code you touch into the best form for the current requirements rather than deferring to its current shape.
 - Keep each unit at the minimum size that fully expresses its behavior; growth of a file or function is a design signal, not a default.
+- Write only what a current caller needs: no speculative abstractions, options, or parameters for imagined futures — generality is added when the second caller arrives.
+- Delete dead weight on contact: unused code, commented-out code, and TODOs with no owner are removed, not preserved.
 - Outside the touched scope, report refactoring opportunities instead of applying them.
 
 ## Documentation
