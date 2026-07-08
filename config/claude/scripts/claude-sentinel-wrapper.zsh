@@ -44,9 +44,15 @@ if [[ -f "$FIRED_FLAG" ]]; then
   rm -f "$FIRED_FLAG"
 fi
 
-# ask (exit 0, empty) → orange directly (skip reset to avoid flicker).
-# Empty output with non-zero exit is an error, not ask.
-if [[ "$exit_code" -eq 0 && -z "$output" ]]; then
+# claude-sentinel reports its verdict as a permissionDecision under PreToolUse.
+# ask → orange directly (skip reset to avoid flicker); any other verdict clears
+# the purple judging color.
+decision=""
+if [[ -n "$output" ]] && command -v jq >/dev/null 2>&1; then
+  decision=$(printf '%s' "$output" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+fi
+
+if [[ "$decision" == "ask" ]]; then
   "$SCRIPT_DIR/iterm2-tab-color.zsh" orange
 elif (( fired )); then
   "$SCRIPT_DIR/iterm2-tab-color.zsh" reset
