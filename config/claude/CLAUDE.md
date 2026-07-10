@@ -2,8 +2,8 @@
 
 ## Language
 
-- Never use Japanese in code, config files, or commit messages.
-- Use Japanese only in conversation.
+- Write code, config files, and commit messages in English, regardless of the prompt's language.
+- For conversation and human-facing documentation (README, guides, and similar prose meant for readers), match the language of the prompt.
 
 ## Git
 
