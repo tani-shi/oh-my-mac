@@ -22,11 +22,12 @@
 
 ## Comments
 
+- Each kind of explanation has its home: **code** carries *how*, **tests** carry *what*, **commit logs** carry *why*, and **comments** carry *why-not* — the reasons for the paths not taken. When a comment states plain *why* that belongs in the commit log, or *what* that belongs in a test, it is misplaced.
 - Code is the primary medium of explanation: design, naming, and small well-bounded units carry the meaning. Default to zero comments.
 - A comment that explains *what* code does is a refactoring signal — rename, extract, or restructure until the comment is unnecessary, then delete it instead of writing it.
-- The only comments that belong in code state *why* something must be the way it is when the code cannot express it: references to external specs, workarounds for upstream bugs (with links), invariants and concurrency constraints, the rationale behind non-obvious values.
+- The comments that belong in code state *why-not*: the rationale for a decision deliberately not taken, kept where the alternative is plausible enough that a reader would re-introduce it or flag its absence. External-constraint comments are the concrete forms of this — references to external specs, workarounds for upstream bugs (with links), invariants and concurrency constraints, the rationale behind non-obvious values — each answering "why this form and not the obvious alternative".
 - Public API doc comments (docstrings, JSDoc) follow the project's existing convention; they document contracts for toolchains, not implementation.
-- Comments, docs, and code state present-tense technical facts — never the conversation, the instructions given, or what was changed, removed, or avoided. Keep a "don't do X" note only when a future reader genuinely needs it, stating the durable technical reason (e.g., `avoid X here: it deadlocks under load`).
+- Comments, docs, and code state present-tense technical facts — never the conversation, the instructions given, or a narration of what was changed, removed, or avoided in this session. This bans change-narration residue, not durable design why-not: a "don't do X" note stating the lasting technical reason (e.g., `avoid X here: it deadlocks under load`) is exactly the why-not that belongs in code.
 
 ## Refactoring
 
@@ -34,7 +35,7 @@
 - Existing code has no authority merely because it exists. Reshape the code you touch into the best form for the current requirements rather than deferring to its current shape.
 - Keep each unit at the minimum size that fully expresses its behavior; growth of a file or function is a design signal, not a default.
 - Write only what a current caller needs: no speculative abstractions, options, or parameters for imagined futures — generality is added when the second caller arrives.
-- Delete dead weight on contact: unused code, commented-out code, and TODOs with no owner are removed, not preserved.
+- Delete dead weight on contact: unused code, commented-out code, and TODOs with no owner are removed, not preserved. A TODO/FIXME carrying both a rationale and a tracking reference (issue, ticket) is why-not, not ownerless dead weight — keep it.
 - Outside the touched scope, report refactoring opportunities instead of applying them.
 
 ## Documentation
