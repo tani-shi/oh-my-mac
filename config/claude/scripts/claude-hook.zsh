@@ -1,11 +1,6 @@
 #!/bin/zsh
 # Unified Claude Code hook handler.
 # Usage: claude-hook.zsh <stop|notification|userpromptsubmit|taskcompleted>
-#
-# Reads Claude Code hook JSON from stdin and orchestrates:
-#   - iTerm2 tab color (green/orange/reset)
-#   - macOS notification (title = current folder, body = response/message)
-#   - Deduplication: suppress Notification within DEDUP_WINDOW seconds of Stop
 
 EVENT="${1:?event required: stop|notification|userpromptsubmit|taskcompleted}"
 

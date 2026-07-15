@@ -1,7 +1,4 @@
 #!/bin/zsh
-# Wrap claude-sentinel: paint the iTerm2 tab purple during long LLM-backed
-# judgments, orange on ask, reset on allow/deny.
-
 SCRIPT_DIR="${0:A:h}"
 THRESHOLD_SEC=0.3
 FIRED_FLAG="/tmp/claude-sentinel-fired.$$.flag"

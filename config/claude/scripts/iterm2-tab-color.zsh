@@ -26,7 +26,6 @@ case "${1:-reset}" in
     ;;
 esac
 
-# Resolve the tty to write to: prefer /dev/tty, else the parent claude's tty.
 _target_tty() {
   if { : > /dev/tty } 2>/dev/null; then
     print -- /dev/tty

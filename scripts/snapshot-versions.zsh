@@ -1,17 +1,14 @@
 #!/bin/zsh
 set -eu
 
-# Snapshot installed versions of all managed packages as JSON.
 # Usage: ./scripts/snapshot-versions.zsh > versions.json
 
-brew_versions() {
-  brew list --formula --versions | awk '{name=$1; $1=""; sub(/^ /, ""); print name "\t" $0}' | \
-    jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add // {}'
+to_json() {
+  jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add // {}'
 }
 
-cask_versions() {
-  brew list --cask --versions 2>/dev/null | awk '{name=$1; $1=""; sub(/^ /, ""); print name "\t" $0}' | \
-    jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add // {}'
+brew_list_versions() {
+  brew list "$1" --versions 2>/dev/null | awk '{name=$1; $1=""; sub(/^ /, ""); print name "\t" $0}' | to_json
 }
 
 sheldon_versions() {
@@ -19,7 +16,7 @@ sheldon_versions() {
   awk '
     /^\[plugins\./ { gsub(/\[plugins\.|]/, ""); plugin=$0 }
     plugin && /^(tag|rev) = / { gsub(/"/, "", $3); print plugin "\t" $1 ":" $3; plugin="" }
-  ' "$plugins_toml" | jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add // {}'
+  ' "$plugins_toml" | to_json
 }
 
 uv_versions() {
@@ -28,7 +25,7 @@ uv_versions() {
     NF == 0 { next }
     NF == 1 { print $1 "\tHEAD" }
     NF >= 2 { print $1 "\t" $2 }
-  ' "$tools_txt" | jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add // {}'
+  ' "$tools_txt" | to_json
 }
 
 pnpm_versions() {
@@ -36,7 +33,7 @@ pnpm_versions() {
   awk -F@ '
     NF == 0 { next }
     NF >= 2 { print $1 "\t" $2 }
-  ' "$globals_txt" | jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add // {}'
+  ' "$globals_txt" | to_json
 }
 
 claude_version() {
@@ -44,8 +41,8 @@ claude_version() {
 }
 
 jq -n \
-  --argjson brew "$(brew_versions)" \
-  --argjson cask "$(cask_versions)" \
+  --argjson brew "$(brew_list_versions --formula)" \
+  --argjson cask "$(brew_list_versions --cask)" \
   --argjson sheldon "$(sheldon_versions)" \
   --argjson pnpm "$(pnpm_versions)" \
   --argjson uv "$(uv_versions)" \
