@@ -114,8 +114,12 @@ install-pnpm-globals:
 
 install-mise-tools:
 	@if command -v mise >/dev/null 2>&1 && [ -f "$$HOME/.config/mise/config.toml" ]; then \
-		echo "Installing mise tools (.NET SDK, etc.)..."; \
-		mise install 2>&1 || echo "Warning: mise install failed"; \
+		if command -v dotnet >/dev/null 2>&1; then \
+			echo "Skipping mise tools: dotnet already installed and managed externally ($$(command -v dotnet))"; \
+		else \
+			echo "Installing mise tools (.NET SDK, etc.)..."; \
+			mise install 2>&1 || echo "Warning: mise install failed"; \
+		fi; \
 	else \
 		echo "Skipping mise tools (mise not found or config.toml missing)"; \
 	fi

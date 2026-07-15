@@ -74,7 +74,7 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 
 ### mise Tools (`config/mise/config.toml`)
 
-[mise](https://mise.jdx.dev/) manages the .NET SDK. SDK versions install side-by-side under a single `DOTNET_ROOT`, matching .NET's native multi-version model, and per-project `global.json` selects the build SDK. `mise activate` (in `config/zshrc`) sets `DOTNET_ROOT`. `make install` / `make update` run `mise install` to materialize pinned versions.
+[mise](https://mise.jdx.dev/) manages the .NET SDK. SDK versions install side-by-side under a single `DOTNET_ROOT`, matching .NET's native multi-version model, and per-project `global.json` selects the build SDK. `mise activate` (in `config/zshrc`) sets `DOTNET_ROOT`. `make install` / `make update` run `mise install` to materialize pinned versions, unless a `dotnet` binary is already on `PATH` — in that case the SDK is assumed to be managed externally (a system install) and the mise step is skipped.
 
 | Tool | Version |
 | --- | --- |
