@@ -5,7 +5,7 @@ description: Review the changed code treating every comment as evidence of a des
 
 # /refactor
 
-A comment is treated as evidence that the design failed to express something. The goal of this skill is not to delete comments — it is to restructure code until each comment has nothing left to say, then delete it. A comment survives only by proving it carries *why*-knowledge the code cannot express: a spec reference, an upstream-bug workaround, an invariant or concurrency constraint, the rationale behind a non-obvious value, or the rationale for a decision deliberately *not* taken (why-not) where the alternative is plausible enough that a reader would otherwise re-introduce it or flag its absence.
+A comment is treated as evidence that the design failed to express something. The goal of this skill is not to delete comments — it is to restructure code until each comment has nothing left to say, then delete it. A comment survives only by proving it carries *why*-knowledge the code cannot express: a spec reference, an upstream-bug workaround, an invariant or concurrency constraint, the rationale behind a non-obvious value, or the rationale for a decision deliberately *not* taken (why-not) where the alternative is plausible enough that a reader would otherwise re-introduce it or flag its absence. A surviving comment is at most two lines; when several would survive on one unit, keep only the highest-priority one.
 
 ## Phase 0 — Scope
 
@@ -22,13 +22,13 @@ Comments that restate the code they sit above, section-divider comments narratin
 Comments that exist because a name is wrong or vague, a function does more than its name admits, a parameter's meaning is not derivable from its type and name, or a magic value is unexplained by a constant name. The comment is the patch; the refactoring fixes what it patches.
 
 ### Angle C — append-driven growth
-Branches, flags, wrapper layers, and parameter lists that grew by accretion where a restructuring would unify them — including duplicated logic that appending created where an extraction exists or should. Comments marking special cases ("handle legacy path", "except when X") are the strongest signal here.
+Branches, flags, wrapper layers, and parameter lists that grew by accretion where a restructuring would unify them — including duplicated logic that appending created where an extraction exists or should. Comments marking special cases ("handle legacy path", "except when X") are the strongest signal here. The same accretion in prose: a comment or `*.md` doc extended by appending rather than restructured, or the same fact duplicated across homes that belongs in one — the refactoring rewrites from the structure, consolidates each fact to its single home, and keeps only the essential rather than tacking on.
 
 ### Angle D — dead weight
 Dead code, unused parameters, speculative generality with no current caller, and commented-out code. Also TODO/FIXME comments older than the code around them — either the task is real (report it) or the comment is dead (delete it). A TODO/FIXME carrying both a rationale and a tracking reference (issue link, ticket) is why-not, not dead weight — route it to Angle E rather than deletion; dead judgment is reserved for stale markers with neither reason nor reference.
 
 ### Angle E — why-comment audit
-Comments claiming to be *why*-knowledge, including *why-not* — the rationale for a decision deliberately not taken. Challenge each: is the "why" actually expressible in code (a named constant, an assertion, a type, a test)? A why-comment is legitimate only when the constraint lives outside the code — external specs, upstream bugs, protocol requirements, measured values. A why-not comment is legitimate whenever the alternative is plausible enough that a reader would re-introduce it or flag its absence: code cannot express the absence of the path not taken, so the comment is the only carrier. This is the angle that owns why-not — a candidate flagged as a what-comment (Angle A) or special-case marker (Angle C) that is really why-not belongs here.
+Comments claiming to be *why*-knowledge, including *why-not*. Challenge each against the survival test in the intro: is the "why" actually expressible in code (a named constant, an assertion, a type, a test), or does the constraint genuinely live outside it? Code cannot express the absence of a path not taken, so a why-not comment is its only carrier — this is the angle that owns why-not: a candidate flagged as a what-comment (Angle A) or special-case marker (Angle C) that is really why-not belongs here.
 
 Pass every candidate with a nameable refactoring through — finders that silently drop half-believed candidates bypass the verify step and are the dominant cause of misses.
 
