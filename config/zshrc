@@ -46,9 +46,9 @@ ipinfo() {
 export BAT_THEME="TwoDark"
 alias cat="bat"
 
-ls() { eza --icons "$@" }
-ll() { eza --icons -la "$@" }
-lt() { eza --icons --tree "$@" }
+ls() { eza --icons=auto "$@" }
+ll() { eza --icons=auto -la "$@" }
+lt() { eza --icons=auto --tree "$@" }
 compdef ls=eza ll=eza lt=eza
 
 export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git"
