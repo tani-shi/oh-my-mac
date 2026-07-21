@@ -5,7 +5,7 @@ description: Review the changed code treating every comment as evidence of a des
 
 # /refactor
 
-A comment is treated as evidence that the design failed to express something. The goal of this skill is not to delete comments — it is to restructure code until each comment has nothing left to say, then delete it. A comment survives only by proving it carries *why*-knowledge the code cannot express: a spec reference, an upstream-bug workaround, an invariant or concurrency constraint, the rationale behind a non-obvious value, or the rationale for a decision deliberately *not* taken (why-not) where the alternative is plausible enough that a reader would otherwise re-introduce it or flag its absence. A surviving comment is at most two lines; when several would survive on one unit, keep only the highest-priority one.
+A comment is treated as evidence that the design failed to express something. The goal of this skill is not to delete comments — it is to restructure code until each comment has nothing left to say, then delete it. A comment survives only by proving it carries *why*-knowledge the code cannot express: a spec reference, an upstream-bug workaround, an invariant or concurrency constraint, the rationale behind a non-obvious value, or the rationale for a decision deliberately *not* taken (why-not) where the alternative is plausible enough that a reader would otherwise re-introduce it or flag its absence. A surviving comment is measured by what it carries, not its line count: every clause must add why-knowledge, so a clause that restates the code, narrates the change, or announces what comes next is filler even in a short comment — cut it rather than packing survivors onto denser lines. When several would survive on one unit, keep only the highest-priority one.
 
 ## Phase 0 — Scope
 
@@ -16,7 +16,7 @@ One tool call: read the unified diff (`git diff @{upstream}...HEAD; git diff HEA
 Run 5 independent finder angles in parallel via the Agent tool, each with `subagent_type: refactoring-reviewer` and the file list from Phase 0. Each angle surfaces up to 6 candidates as a JSON array of `{file, line, summary, refactoring, cost}` — `refactoring` names the specific restructuring (rename / extract / inline / restructure / delete) and `cost` states what a reader loses while the flaw remains.
 
 ### Angle A — what-comments
-Comments that restate the code they sit above, section-divider comments narrating steps of an oversized unit, and comments describing what changed rather than what is. The refactoring names the unit boundaries or names that make the narration redundant.
+Comments that restate the code they sit above, section-divider comments narrating steps of an oversized unit, and comments describing what changed rather than what is. The refactoring names the unit boundaries or names that make the narration redundant. Brevity is no defense: a tidy one-liner whose subject is the code itself is still narration, and terseness or rhythm never earns a comment its place.
 
 ### Angle B — comment-compensated design
 Comments that exist because a name is wrong or vague, a function does more than its name admits, a parameter's meaning is not derivable from its type and name, or a magic value is unexplained by a constant name. The comment is the patch; the refactoring fixes what it patches.
