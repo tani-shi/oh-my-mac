@@ -16,7 +16,8 @@ eval "$(mise activate zsh)"
 export PATH="$HOME/.local/bin:$PATH"
 
 export PNPM_HOME="$HOME/Library/pnpm"
-export PATH="$PNPM_HOME:$PATH"
+# pnpm's global bin dir is $PNPM_HOME on older versions and $PNPM_HOME/bin on newer ones; keep both on PATH so any machine's pnpm resolves.
+export PATH="$PNPM_HOME:$PNPM_HOME/bin:$PATH"
 
 pip() {
   echo "⚠ Use uv instead of pip"
