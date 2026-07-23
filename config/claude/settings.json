@@ -74,7 +74,12 @@
       "Write",
       "mcp__claude_ai_Slack__slack_read_*",
       "mcp__claude_ai_Slack__slack_search_*",
-      "mcp__plugin_context7_context7__*"
+      "mcp__plugin_context7_context7__*",
+      "mcp__claude_ai_Notion__notion-download-*",
+      "mcp__claude_ai_Notion__notion-fetch",
+      "mcp__claude_ai_Notion__notion-get-*",
+      "mcp__claude_ai_Notion__notion-query-*",
+      "mcp__claude_ai_Notion__notion-search"
     ],
     "deny": [
       "Edit(**/*.jks)",
@@ -159,7 +164,11 @@
       "mcp__claude_ai_Slack__slack_schedule_message",
       "mcp__claude_ai_Slack__slack_send_message",
       "mcp__claude_ai_Slack__slack_send_message_draft",
-      "mcp__claude_ai_Slack__slack_update_canvas"
+      "mcp__claude_ai_Slack__slack_update_canvas",
+      "mcp__claude_ai_Notion__notion-create-*",
+      "mcp__claude_ai_Notion__notion-duplicate-*",
+      "mcp__claude_ai_Notion__notion-move-*",
+      "mcp__claude_ai_Notion__notion-update-*"
     ],
     "defaultMode": "default",
     "disableAutoMode": "disable"
