@@ -1,4 +1,4 @@
-.PHONY: help diff-config sync-config install update upgrade trust-taps snapshot-versions install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions install-mise-tools
+.PHONY: help diff-config sync-config install update upgrade trust-taps snapshot-versions install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-mise-tools
 
 .DEFAULT_GOAL := help
 
@@ -15,9 +15,9 @@ sync-config: ## Sync config files only
 install: ## Install packages + sync config + install plugins
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
-	$(MAKE) sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions install-mise-tools
+	$(MAKE) sync-config install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-mise-tools
 
-update: sync-config install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-vscode-extensions install-mise-tools ## Sync config + install missing packages (no upgrades)
+update: sync-config install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-mise-tools ## Sync config + install missing packages (no upgrades)
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
 	brew cleanup
@@ -27,7 +27,7 @@ upgrade: ## Investigate upgrades via Claude Agent SDK, apply them, and auto-comm
 	$(MAKE) trust-taps
 	HOMEBREW_NO_INTERACTIVE=1 brew upgrade
 	brew cleanup
-	$(MAKE) install-claude install-claude-plugins install-pnpm-globals install-uv-tools install-mise-tools
+	$(MAKE) install-claude install-claude-plugins install-uv-tools install-mise-tools
 	$(MAKE) snapshot-versions
 	@./scripts/commit-upgrade.zsh
 
@@ -94,22 +94,6 @@ install-vscode-extensions:
 		done < config/vscode/extensions.txt; \
 	else \
 		echo "Skipping VSCode extensions (code not found or extensions.txt missing)"; \
-	fi
-
-install-pnpm-globals:
-	@if command -v pnpm >/dev/null 2>&1 && [ -f config/pnpm/globals.txt ]; then \
-		installed=$$(pnpm list -g --depth=0 2>/dev/null); \
-		while IFS= read -r pkg || [ -n "$$pkg" ]; do \
-			[ -z "$$pkg" ] && continue; \
-			name=$${pkg%%@*}; \
-			if echo "$$installed" | grep -q "$$name"; then \
-				continue; \
-			fi; \
-			echo "Installing pnpm global: $$pkg"; \
-			pnpm add -g "$$pkg" 2>&1 || echo "Warning: Failed to install $$pkg"; \
-		done < config/pnpm/globals.txt; \
-	else \
-		echo "Skipping pnpm globals (pnpm not found or globals.txt missing)"; \
 	fi
 
 install-mise-tools:

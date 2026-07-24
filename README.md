@@ -35,7 +35,7 @@ make install
 | Terminal multiplexer | tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, mise, pnpm, uv, terraform, awscli, gcloud-cli, visual-studio-code |
+| Development | fnm, mise, uv, terraform, awscli, gcloud-cli, visual-studio-code |
 | Git / GitHub | gh, git-lfs |
 | Google Workspace | gogcli |
 
@@ -65,12 +65,6 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | `config/claude/agents/*.md` | `~/.claude/agents/` |
 | `config/claude/skills/*/SKILL.md` | `~/.claude/skills/` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
-
-### pnpm Global Packages (`config/pnpm/globals.txt`)
-
-| Package | Description |
-| --- | --- |
-| typescript | TypeScript compiler (`tsc`) |
 
 ### mise Tools (`config/mise/config.toml`)
 
