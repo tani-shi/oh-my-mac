@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: Review the changed code treating every comment as evidence of a design flaw, then restructure until the comment is unnecessary. Finds what-comments, comment-compensated naming and structure, append-driven growth, dead code, and names or scopes that no longer predict their contents; applies behavior-preserving refactorings. Pass a path or diff target to scope the review; defaults to the working tree diff.
+description: Review the changed code treating every comment as evidence of a design flaw, then restructure until the comment is unnecessary. Finds what-comments, comment-compensated naming and structure, append-driven growth, dead code, and file or directory scopes too narrow or too broad for their contents (consolidating over-fragmented files, splitting grab-bags); applies behavior-preserving refactorings. Pass a path or diff target to scope the review; defaults to the working tree diff.
 ---
 
 # /refactor
@@ -40,7 +40,12 @@ The judgement rests on one stance: read as a new reader who knows nothing of the
 - **Single-source test** — a comment that exists only to keep duplicated or double-managed state in sync is masking a structural flaw, not carrying why-not. Tag it for Angle C's consolidation, or report it PLAUSIBLE if the restructuring is out of scope — never keep it.
 
 ### Angle F — naming & scope
-Names inconsistent with the surrounding vocabulary that force readers to translate. File and directory names whose scope no longer predicts their contents: a file named after one specific function has no room for cohesive growth, while grab-bag names (`common`, `utils`, `helpers`, `misc`) accumulate unrelated code and force readers and searches to scan everything. Directory structure that does not let a reader locate a responsibility from the name alone — judge against the project's own layout conventions, flagging deviations from that project's pattern, not from a universal ideal.
+Names inconsistent with the surrounding vocabulary that force readers to translate. File and directory names whose scope mispredicts their contents in *either* direction:
+
+- **Too broad** — grab-bag names (`common`, `utils`, `helpers`, `misc`) accumulate unrelated code and force readers and searches to scan everything; the refactoring splits them into cohesively-named homes.
+- **Too narrow** — a name so specific that only one function ever fits partitions the namespace one-file-per-function, so a reader must open many fragments to assemble a single responsibility. When the boundary carries less meaning than the navigation cost it imposes — a lone export whose natural home is an existing module, no cohesive sibling concept that would ever join it — the refactoring consolidates it into that home (`inline` / `delete` the boundary), not a rename.
+
+Anchor the too-narrow judgment on present evidence — the current import graph and the existing module that is its natural home — never on "the file is small" alone: a file whose contents are cohesive and have room to grow is correctly scoped even when small. Directory structure that does not let a reader locate a responsibility from the name alone — judge against the project's own layout conventions, flagging deviations from that project's pattern, not from a universal ideal.
 
 Pass every candidate with a nameable refactoring through — finders that silently drop half-believed candidates bypass the verify step and are the dominant cause of misses.
 
@@ -58,7 +63,7 @@ Emit one deduped, classified candidate list for Phase 2.
 For each candidate, spawn one verifier agent with `subagent_type: Explore`, under the same reviewer stance as the finders. The verifier takes the defendant's side: the burden of proof is on the refactoring, and the comment or code is presumed innocent until the verifier constructs the refactoring concretely — the new names, the extraction boundaries, the deleted lines — and shows it is behavior-preserving and clearly superior. Verdicts:
 
 - **CONFIRMED** — the refactoring is constructible and behavior-preserving; the verifier states it precisely. For a `restructure` (the one open-ended verb that reshapes control or data flow), CONFIRMED requires the verifier to exhibit the concrete target shape *and* an explicit behavior-preservation argument; absent either, it caps at PLAUSIBLE.
-- **PLAUSIBLE** — the flaw is real but the fix needs context beyond the reviewed files (callers, tests, API stability). State what would confirm it.
+- **PLAUSIBLE** — the flaw is real but the fix needs context beyond the reviewed files (callers, tests, API stability). State what would confirm it. A mechanical, behavior-preserving follow-through on the callers of an in-scope change — rewriting imports after a move, extraction, inline, or consolidation — is not such context: read those callers to construct the refactoring, and do not cap at PLAUSIBLE merely because they lie outside the diff.
 - **REFUTED** — the comment proves its innocence: quote the *why*-knowledge and why code cannot carry it, or show the "growth" is the minimal expression of the requirement. A why-not that names a real rationale but fails any Angle E survival gate is still REFUTED, not retained.
 
 Refute only from evidence in the code — never for being "too minor" or "matter of taste".

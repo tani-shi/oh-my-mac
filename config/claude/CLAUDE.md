@@ -35,6 +35,7 @@
 - When changing code, restructure within the touched scope instead of appending: prefer renaming, extracting, and deleting over adding branches, flags, and wrapper layers.
 - Existing code has no authority merely because it exists. Reshape the code you touch into the best form for the current requirements rather than deferring to its current shape.
 - Keep each unit at the minimum size that fully expresses its behavior; growth of a file or function is a design signal, not a default.
+- Name files and directories at a scope that both predicts their contents and earns a separate unit. A grab-bag too broad to predict its contents and a boundary too narrow to hold a whole responsibility — one that proliferates fragment files a reader must reassemble — are equally scope failures; the fix for the latter is consolidation, folding the fragment into its natural home.
 - Write only what a current caller needs: no speculative abstractions, options, or parameters for imagined futures — generality is added when the second caller arrives.
 - Delete dead weight on contact: unused code, commented-out code, and ownerless TODOs are removed, not preserved. A TODO/FIXME that records a lasting reason for the deferred work, traceable to where it is tracked, is not ownerless dead weight.
 - Outside the touched scope, report refactoring opportunities instead of applying them.
