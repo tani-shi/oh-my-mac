@@ -232,6 +232,7 @@ apply_git_config() {
     "filter.lfs.smudge:git-lfs smudge -- %f"
     "filter.lfs.process:git-lfs filter-process"
     "filter.lfs.required:true"
+    "alias.st:status --short"
   )
   local entry key expected current
   for entry in "${git_config_keys[@]}"; do
