@@ -16,7 +16,8 @@ brew "fd"         # better find
 brew "delta"      # better git diff
 brew "zoxide"     # smarter cd
 
-# Terminal multiplexer
+# Terminal
+cask "iterm2"     # terminal emulator; tab color/focus integration in config/claude/scripts
 brew "tmux"       # used with iTerm2 Control Mode for remote SSH
 
 # Utilities
