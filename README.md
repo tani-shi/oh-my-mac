@@ -37,7 +37,6 @@ make install
 | Font | font-jetbrains-mono-nerd-font |
 | Development | fnm, mise, uv, terraform, awscli, gcloud-cli, visual-studio-code |
 | Git / GitHub | gh, git-lfs |
-| Google Workspace | gogcli |
 
 ### Trusted Homebrew Taps (`config/homebrew/trusted-taps.txt`)
 
@@ -46,8 +45,6 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | Tap | Used by |
 | --- | --- |
 | hashicorp/tap | terraform |
-| steipete/tap | gogcli |
-| openclaw/tap | gogcli (resolved formula tap) |
 
 ### Config Files
 
@@ -128,13 +125,6 @@ These require interactive authentication and cannot be automated:
 ssh-keygen
 gh auth login
 # Protocol: SSH / Key: id_ed25519
-```
-
-### gogcli (Google Workspace)
-
-```bash
-gog auth credentials ~/Downloads/client_secret_*.json
-gog auth add you@gmail.com
 ```
 
 ### iTerm2

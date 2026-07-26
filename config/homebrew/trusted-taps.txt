@@ -4,5 +4,3 @@
 # idempotently before bundling so a fresh machine can `make install` in one shot.
 # One tap per line. Lines starting with # are ignored.
 hashicorp/tap
-steipete/tap
-openclaw/tap
