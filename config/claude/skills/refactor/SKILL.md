@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: Review the changed code treating every comment as evidence of a design flaw, then restructure until the comment is unnecessary. Finds what-comments, comment-compensated naming and structure, append-driven growth, dead code, and file or directory scopes too narrow or too broad for their contents (consolidating over-fragmented files, splitting grab-bags, renaming units scoped to one operation up to their entity); applies behavior-preserving refactorings. Pass a path or diff target to scope the review; defaults to the working tree diff.
+description: Review the changed code treating every comment as evidence of a design flaw, then restructure until the comment is unnecessary. Finds what-comments, comment-compensated naming and structure, append-driven growth, dead code, and file or directory scopes too narrow or too broad for their contents (consolidating over-fragmented files, splitting grab-bags, renaming units scoped to one operation up to their entity); applies behavior-preserving refactorings. Pass a path or diff target to scope the review; defaults to the diff against the branch's base (PR base / default branch) plus the working tree.
 ---
 
 # /refactor
@@ -9,7 +9,33 @@ A comment is treated as evidence that the design failed to express something. Th
 
 ## Phase 0 — Scope
 
-One tool call: read the unified diff to cover both committed and uncommitted changes (`git diff @{upstream}...HEAD; git diff HEAD`), or use the target passed as an argument (a path scopes the review to that file or directory instead of a diff). `@{upstream}` fails with no tracking branch, on an initial commit, or when detached — fall back in order to the merge-base with the default branch (`git merge-base HEAD main` / `master`), then to `git diff HEAD` alone (working tree only). Collect the list of touched files; later phases operate on those files in full, not just the hunks, because the flaw a comment marks usually spans more than the commented line.
+Collect the list of touched files; later phases operate on those files in full, not just the hunks, because the flaw a comment marks usually spans more than the commented line.
+
+**Mode** — a path/diff argument selects **path mode**: review that path (a file or directory), and the mark mechanism below is not involved. No argument selects **full-scope**.
+
+**Skip** (full-scope, checked *before* base resolution because it is base-independent — a match spares the `gh pr view` call). Only when the marker `.git/refactor-mark` (`git rev-parse --git-path refactor-mark`) exists: compute the working-tree tree SHA `cur`, and if it equals the marker's contents, report that nothing changed since the last full review and stop — do not run Phases 1–4. Compute `cur` through a throwaway index so the real index is untouched (this computation is a contract — do not alter it):
+
+```
+idx="$(git rev-parse --git-path refactor-mark-index)"
+GIT_INDEX_FILE="$idx" git read-tree HEAD
+GIT_INDEX_FILE="$idx" git add -A
+cur="$(GIT_INDEX_FILE="$idx" git write-tree)"; rm -f "$idx"
+```
+
+`cur` captures the full working-tree content — staged, unstaged, and untracked alike, honoring `.gitignore`. Compare it as `[ "$(cat "$marker")" = "$cur" ]` with `marker="$(git rev-parse --git-path refactor-mark)"`: `git write-tree` emits `<sha>\n`, so the marker may carry a trailing newline, but command substitution strips it on both sides, making the comparison independent of how the marker was written. A raw byte comparison would never match `cur` (already newline-stripped by `$(…)`) and would silently disable skip entirely.
+
+**Base** (full-scope, only if not skipped, in order):
+
+- **PR base** — `gh pr view --json baseRefName -q .baseRefName`; on success the candidate is `origin/<baseRefName>`.
+- **Default branch** — `git symbolic-ref --short refs/remotes/origin/HEAD` (already `origin/<name>`).
+- **Ref guard** — verify each candidate with `git rev-parse --verify --quiet <candidate>` before use; a shallow or single-branch clone may lack the `origin/<base>` remote-tracking ref, which would make `git diff <base>...HEAD` fail. If the PR-base candidate is absent, fall through to the default branch; if that too is absent, there is no base.
+- **No base** — none of the above resolved: review the working tree only, and note this in the Phase 4 report.
+
+**Diff** —
+
+- base resolved → `git diff <base>...HEAD; git diff HEAD` (three-dot: the diff from the merge-base, matching the PR diff on GitHub — never the two-dot tip comparison).
+- no base → `git diff HEAD` (working tree only).
+- path mode → the given path.
 
 ## Phase 1 — Find candidates (6 angles, up to 6 each)
 
@@ -78,3 +104,5 @@ A `restructure` reaches this apply step only through the Phase 2 proof gate; tes
 ## Phase 4 — Report
 
 Summarize in the final message: applied refactorings (`file:line — refactoring — comment removed`), PLAUSIBLE findings left for the user with what would confirm each, and REFUTED comments that earned their place (one line each). If nothing was found, say the reviewed scope is clean and what was checked.
+
+**Record the mark** — only in full-scope with a resolved base (not the working-tree-only fallback) and only once Phases 1–4 have completed: recompute the working-tree tree SHA `cur` with the Phase 0 skip block and write it to `.git/refactor-mark` (`git rev-parse --git-path refactor-mark`). Recompute here rather than reusing the Phase 0 value because Phase 3 may have changed the tree; with nothing applied the value is unchanged and stays consistent. This base-required record is deliberately asymmetric with the base-independent skip: a degraded working-tree-only scope leaves no mark, so it can never claim a full review it did not perform.
