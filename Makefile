@@ -1,4 +1,4 @@
-INSTALL_STEPS := install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-mise-tools install-node
+INSTALL_STEPS := install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-mise-tools install-node install-ntn
 
 .PHONY: help diff-config sync-config install update upgrade trust-taps snapshot-versions $(INSTALL_STEPS)
 
@@ -29,7 +29,7 @@ upgrade: ## Investigate upgrades via Claude Agent SDK, apply them, and auto-comm
 	$(MAKE) trust-taps
 	HOMEBREW_NO_INTERACTIVE=1 brew upgrade
 	brew cleanup
-	$(MAKE) install-claude install-claude-plugins install-uv-tools install-mise-tools
+	$(MAKE) install-claude install-claude-plugins install-uv-tools install-mise-tools install-ntn
 	$(MAKE) snapshot-versions
 	@./scripts/commit-upgrade.zsh
 
@@ -55,6 +55,7 @@ snapshot-versions: ## Save installed versions to versions.json
 	@echo "Saved to versions.json"
 
 CLAUDE_VERSION := $(shell cat config/claude/version 2>/dev/null)
+NTN_VERSION := $(shell cat config/ntn/version 2>/dev/null)
 
 install-claude:
 	@if [ -z "$(CLAUDE_VERSION)" ]; then \
@@ -122,6 +123,24 @@ install-node:
 		fi; \
 	else \
 		echo "Skipping Node install (fnm not found or config/fnm/version missing)"; \
+	fi
+
+install-ntn:
+	@if [ -z "$(NTN_VERSION)" ]; then \
+		echo "Skipping Notion CLI (config/ntn/version missing)"; \
+	else \
+		command -v fnm >/dev/null 2>&1 && eval "$$(fnm env)"; \
+		if ! command -v npm >/dev/null 2>&1; then \
+			echo "Skipping Notion CLI (npm not found)"; \
+		else \
+			current=$$(ntn --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1) || true; \
+			if [ "$$current" = "$(NTN_VERSION)" ]; then \
+				echo "Notion CLI (ntn) $(NTN_VERSION) already installed"; \
+			else \
+				echo "Installing Notion CLI (ntn) $(NTN_VERSION)..."; \
+				npm install -g "ntn@$(NTN_VERSION)" 2>&1 || echo "Warning: Failed to install ntn"; \
+			fi; \
+		fi; \
 	fi
 
 install-uv-tools:

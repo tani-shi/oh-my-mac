@@ -79,6 +79,14 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | --- | --- |
 | dotnet | 10.0.301 (.NET 10 SDK) |
 
+### Notion CLI (`config/ntn/version`)
+
+[ntn](https://developers.notion.com/cli) is Notion's official CLI, published on npm by Notion. It gives scripts and coding agents session-independent, idempotent access to the Notion API (the Notion MCP server covers interactive use). `make install` / `make update` install the pinned version globally with npm using the fnm-managed Node, reinstalling only when `ntn --version` differs from the pin.
+
+| Tool | Version |
+| --- | --- |
+| ntn | 0.21.6 |
+
 ### uv Tools (`config/uv/tools.txt`)
 
 | Tool | Source |
@@ -133,6 +141,18 @@ These require interactive authentication and cannot be automated:
 ssh-keygen
 gh auth login
 # Protocol: SSH / Key: id_ed25519
+```
+
+### Notion CLI auth
+
+```bash
+ntn login   # opens a browser; token is stored in the macOS Keychain
+```
+
+For scripts and CI, export a Notion personal access token instead of logging in — it takes precedence over the Keychain and is never stored in this repo:
+
+```bash
+export NOTION_API_TOKEN=ntn_...
 ```
 
 ### iTerm2

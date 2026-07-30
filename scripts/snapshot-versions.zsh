@@ -32,15 +32,22 @@ claude_version() {
   claude --version 2>/dev/null | awk '{print $1}' || echo "unknown"
 }
 
+ntn_version() {
+  command -v fnm >/dev/null 2>&1 && eval "$(fnm env)" 2>/dev/null
+  ntn --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unknown"
+}
+
 jq -n \
   --argjson brew "$(brew_list_versions --formula)" \
   --argjson cask "$(brew_list_versions --cask)" \
   --argjson sheldon "$(sheldon_versions)" \
   --argjson uv "$(uv_versions)" \
   --arg claude "$(claude_version)" \
+  --arg ntn "$(ntn_version)" \
   '{
     _generated: now | todate,
     claude: $claude,
+    ntn: $ntn,
     brew: $brew,
     cask: $cask,
     sheldon: $sheldon,
