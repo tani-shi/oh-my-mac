@@ -63,6 +63,14 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | `config/claude/skills/*/SKILL.md` | `~/.claude/skills/` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
 
+### Node (`config/fnm/version`)
+
+[fnm](https://github.com/Schniz/fnm) manages Node.js. `fnm env --use-on-cd` (in `config/zshrc`) switches versions per project from a `.node-version` / `.nvmrc` file, while `config/fnm/version` pins the global default that `make install` / `make update` install via `fnm install` + `fnm default`. The step is skipped when the pinned version is already installed and set as default.
+
+| Tool | Version |
+| --- | --- |
+| node | 24.18.0 (Node 24 LTS "Krypton") |
+
 ### mise Tools (`config/mise/config.toml`)
 
 [mise](https://mise.jdx.dev/) manages the .NET SDK. SDK versions install side-by-side under a single `DOTNET_ROOT`, matching .NET's native multi-version model, and per-project `global.json` selects the build SDK. `mise activate` (in `config/zshrc`) sets `DOTNET_ROOT`. `make install` / `make update` run `mise install` to materialize pinned versions, unless a `dotnet` binary is already on `PATH` — in that case the SDK is assumed to be managed externally (a system install) and the mise step is skipped.

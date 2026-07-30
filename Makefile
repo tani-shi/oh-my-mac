@@ -1,4 +1,6 @@
-.PHONY: help diff-config sync-config install update upgrade trust-taps snapshot-versions install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-mise-tools
+INSTALL_STEPS := install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-mise-tools install-node
+
+.PHONY: help diff-config sync-config install update upgrade trust-taps snapshot-versions $(INSTALL_STEPS)
 
 .DEFAULT_GOAL := help
 
@@ -15,9 +17,9 @@ sync-config: ## Sync config files only
 install: ## Install packages + sync config + install plugins
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
-	$(MAKE) sync-config install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-mise-tools
+	$(MAKE) sync-config $(INSTALL_STEPS)
 
-update: sync-config install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-mise-tools ## Sync config + install missing packages (no upgrades)
+update: sync-config $(INSTALL_STEPS) ## Sync config + install missing packages (no upgrades)
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
 	brew cleanup
@@ -106,6 +108,20 @@ install-mise-tools:
 		fi; \
 	else \
 		echo "Skipping mise tools (mise not found or config.toml missing)"; \
+	fi
+
+install-node:
+	@if command -v fnm >/dev/null 2>&1 && [ -f config/fnm/version ]; then \
+		version=$$(cat config/fnm/version); \
+		eval "$$(fnm env)"; \
+		if fnm list 2>/dev/null | grep -q "v$$version default"; then \
+			echo "Node v$$version already installed and set as default"; \
+		else \
+			echo "Installing Node v$$version (fnm)..."; \
+			fnm install "$$version" 2>&1 && fnm default "$$version" 2>&1 || echo "Warning: fnm install failed"; \
+		fi; \
+	else \
+		echo "Skipping Node install (fnm not found or config/fnm/version missing)"; \
 	fi
 
 install-uv-tools:
