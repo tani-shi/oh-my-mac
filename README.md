@@ -65,11 +65,11 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 
 ### Node (`config/fnm/version`)
 
-[fnm](https://github.com/Schniz/fnm) manages Node.js. `fnm env --use-on-cd` (in `config/zshrc`) switches versions per project from a `.node-version` / `.nvmrc` file, while `config/fnm/version` pins the global default that `make install` / `make update` install via `fnm install` + `fnm default`. The step is skipped when the pinned version is already installed and set as default.
+[fnm](https://github.com/Schniz/fnm) manages Node.js. `fnm env --use-on-cd` (in `config/zshrc`) switches versions per project from a `.node-version` / `.nvmrc` file, while `config/fnm/version` pins the global default that `make install` / `make update` install via `fnm install` + `fnm default`. The step is skipped when the pinned version is already installed and set as default. The default is held below 24.17 pending [nodejs/node#63989](https://github.com/nodejs/node/issues/63989) — an `http.Agent` keep-alive regression that breaks node-fetch-based tooling.
 
 | Tool | Version |
 | --- | --- |
-| node | 24.18.0 (Node 24 LTS "Krypton") |
+| node | 24.16.0 (Node 24 LTS "Krypton") |
 
 ### mise Tools (`config/mise/config.toml`)
 
