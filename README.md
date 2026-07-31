@@ -127,7 +127,7 @@ Add extensions as `publisher.extension-name` per line.
 | `make update` | Sync config + install missing packages (no upgrades) |
 | `make upgrade` | Investigate upgrades via Claude Agent SDK, apply them, and auto-commit |
 | `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
-| `make snapshot-versions` | Save installed versions to `versions.json` |
+| `make snapshot-versions` | Record installed versions of repo-declared packages to `versions.json` |
 | `make diff-config` | Show differences between repo and local config |
 | `make sync-config` | Sync config files only |
 

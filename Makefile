@@ -27,7 +27,7 @@ update: sync-config $(INSTALL_STEPS) ## Sync config + install missing packages (
 upgrade: ## Investigate upgrades via Claude Agent SDK, apply them, and auto-commit
 	@uv run scripts/upgrade.py
 	$(MAKE) trust-taps
-	HOMEBREW_NO_INTERACTIVE=1 brew upgrade
+	HOMEBREW_NO_INTERACTIVE=1 brew bundle --file=Brewfile
 	brew cleanup
 	$(MAKE) install-claude install-claude-plugins install-uv-tools install-mise-tools install-ntn
 	$(MAKE) snapshot-versions
@@ -49,7 +49,7 @@ trust-taps:
 		echo "Skipping tap trust (trusted-taps.txt missing)"; \
 	fi
 
-snapshot-versions: ## Save installed versions to versions.json
+snapshot-versions: ## Record installed versions of repo-declared packages to versions.json
 	@echo "Snapshotting installed versions..."
 	@./scripts/snapshot-versions.zsh > versions.json
 	@echo "Saved to versions.json"

@@ -7,8 +7,14 @@ to_json() {
   jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add // {}'
 }
 
-brew_list_versions() {
-  brew list "$1" --versions 2>/dev/null | awk '{name=$1; $1=""; sub(/^ /, ""); print name "\t" $0}' | to_json
+brew_managed_versions() {
+  local kind="$1"
+  local brewfile="${2:-Brewfile}"
+
+  local declared
+  HOMEBREW_NO_AUTO_UPDATE=1 brew bundle list "$kind" --file="$brewfile" 2>/dev/null | while IFS= read -r declared; do
+    brew list "$kind" "$declared" --versions 2>/dev/null | awk '{name=$1; $1=""; sub(/^ /, ""); print name "\t" $0}'
+  done | to_json
 }
 
 sheldon_versions() {
@@ -38,8 +44,8 @@ ntn_version() {
 }
 
 jq -n \
-  --argjson brew "$(brew_list_versions --formula)" \
-  --argjson cask "$(brew_list_versions --cask)" \
+  --argjson brew "$(brew_managed_versions --formula)" \
+  --argjson cask "$(brew_managed_versions --cask)" \
   --argjson sheldon "$(sheldon_versions)" \
   --argjson uv "$(uv_versions)" \
   --arg claude "$(claude_version)" \
