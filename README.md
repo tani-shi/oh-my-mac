@@ -35,7 +35,7 @@ make install
 | Terminal multiplexer | tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, mise, uv, terraform, awscli, gcloud-cli, visual-studio-code |
+| Development | fnm, uv, terraform, awscli, gcloud-cli, visual-studio-code |
 | Git / GitHub | gh, git-lfs |
 
 ### Trusted Homebrew Taps (`config/homebrew/trusted-taps.txt`)
@@ -52,7 +52,6 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | --- | --- |
 | `config/starship.toml` | `~/.config/starship.toml` |
 | `config/sheldon/plugins.toml` | `~/.config/sheldon/plugins.toml` |
-| `config/mise/config.toml` | `~/.config/mise/config.toml` |
 | `config/zshrc` | `~/.zshrc` |
 | `config/git/ignore` | `~/.config/git/ignore` |
 | `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
@@ -70,14 +69,6 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | Tool | Version |
 | --- | --- |
 | node | 24.16.0 (Node 24 LTS "Krypton") |
-
-### mise Tools (`config/mise/config.toml`)
-
-[mise](https://mise.jdx.dev/) manages the .NET SDK. SDK versions install side-by-side under a single `DOTNET_ROOT`, matching .NET's native multi-version model, and per-project `global.json` selects the build SDK. `mise activate` (in `config/zshrc`) sets `DOTNET_ROOT`. `make install` / `make update` run `mise install` to materialize pinned versions, unless a `dotnet` binary is already on `PATH` — in that case the SDK is assumed to be managed externally (a system install) and the mise step is skipped.
-
-| Tool | Version |
-| --- | --- |
-| dotnet | 10.0.301 (.NET 10 SDK) |
 
 ### Notion CLI (`config/ntn/version`)
 

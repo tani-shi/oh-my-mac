@@ -1,4 +1,4 @@
-INSTALL_STEPS := install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-mise-tools install-node install-ntn
+INSTALL_STEPS := install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-node install-ntn
 
 .PHONY: help diff-config sync-config install update upgrade trust-taps snapshot-versions $(INSTALL_STEPS)
 
@@ -29,7 +29,7 @@ upgrade: ## Investigate upgrades via Claude Agent SDK, apply them, and auto-comm
 	$(MAKE) trust-taps
 	HOMEBREW_NO_INTERACTIVE=1 brew bundle --file=Brewfile
 	brew cleanup
-	$(MAKE) install-claude install-claude-plugins install-uv-tools install-mise-tools install-ntn
+	$(MAKE) install-claude install-claude-plugins install-uv-tools install-ntn
 	$(MAKE) snapshot-versions
 	@./scripts/commit-upgrade.zsh
 
@@ -97,18 +97,6 @@ install-vscode-extensions:
 		done < config/vscode/extensions.txt; \
 	else \
 		echo "Skipping VSCode extensions (code not found or extensions.txt missing)"; \
-	fi
-
-install-mise-tools:
-	@if command -v mise >/dev/null 2>&1 && [ -f "$$HOME/.config/mise/config.toml" ]; then \
-		if command -v dotnet >/dev/null 2>&1; then \
-			echo "Skipping mise tools: dotnet already installed and managed externally ($$(command -v dotnet))"; \
-		else \
-			echo "Installing mise tools (.NET SDK, etc.)..."; \
-			mise install 2>&1 || echo "Warning: mise install failed"; \
-		fi; \
-	else \
-		echo "Skipping mise tools (mise not found or config.toml missing)"; \
 	fi
 
 install-node:

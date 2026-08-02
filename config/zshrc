@@ -11,8 +11,6 @@ eval "$(sheldon source)"
 
 eval "$(fnm env --use-on-cd --shell zsh)"
 
-eval "$(mise activate zsh)"
-
 export PATH="$HOME/.local/bin:$PATH"
 
 pip() {
