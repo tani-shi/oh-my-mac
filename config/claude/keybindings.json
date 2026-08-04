@@ -3,17 +3,41 @@
   "$docs": "https://code.claude.com/docs/en/keybindings",
   "bindings": [
     {
+      "context": "Global",
+      "bindings": {
+        "ctrl+t": null,
+        "ctrl+o": null,
+        "ctrl+r": null,
+        "ctrl+shift+o": null
+      }
+    },
+    {
       "context": "Chat",
       "bindings": {
         "ctrl+f": null,
-        "ctrl+shift+f": "chat:killAgents"
+        "ctrl+g": null,
+        "ctrl+l": null,
+        "ctrl+shift+f": null
       }
     },
     {
       "context": "Task",
       "bindings": {
         "ctrl+b": null,
-        "ctrl+shift+b": "task:background"
+        "ctrl+shift+b": null
+      }
+    },
+    {
+      "context": "Transcript",
+      "bindings": {
+        "ctrl+b": null,
+        "ctrl+f": null
+      }
+    },
+    {
+      "context": "HistorySearch",
+      "bindings": {
+        "ctrl+r": null
       }
     }
   ]

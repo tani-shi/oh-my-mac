@@ -30,12 +30,14 @@ JQ_SETTINGS_MERGE='
   del(.preferences)
 '
 
+# null is a meaningful value here, not an absence: Claude Code reads it as an explicit
+# unbind of a default key, so the merge preserves it instead of dropping the entry.
 JQ_KEYBINDINGS_MERGE='
   .[0] as $user | .[1] as $repo |
   $user | .bindings = [
     .bindings[] | . as $ub |
     ($repo.bindings | map(select(.context == $ub.context)) | first // null) as $rb |
-    if $rb then .bindings = ((.bindings * $rb.bindings) | with_entries(select(.value != null)))
+    if $rb then .bindings = (.bindings * $rb.bindings)
     else . end
   ] + [
     $repo.bindings[] | select(
