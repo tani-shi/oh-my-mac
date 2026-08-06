@@ -26,7 +26,6 @@ brew "sqlite"            # SQL database
 brew "tree"              # directory tree
 brew "btop"              # resource monitor
 brew "duti"              # default app associations
-brew "terminal-notifier" # macOS notifications with click-to-execute
 
 # Font
 cask "font-jetbrains-mono-nerd-font"
