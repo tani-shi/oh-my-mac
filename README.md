@@ -98,16 +98,9 @@ Add extensions as `publisher.extension-name` per line.
 
 | Plugin | Registry |
 | --- | --- |
-| example-skills | anthropic-agent-skills |
-| claude-md-management | claude-plugins-official |
 | code-review | claude-plugins-official |
-| code-simplifier | claude-plugins-official |
 | context7 | claude-plugins-official |
-| feature-dev | claude-plugins-official |
-| frontend-design | claude-plugins-official |
-| playground | claude-plugins-official |
 | playwright | claude-plugins-official |
-| superpowers | claude-plugins-official |
 
 ## Usage
 

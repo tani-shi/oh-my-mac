@@ -172,13 +172,5 @@
     ],
     "defaultMode": "default",
     "disableAutoMode": "disable"
-  },
-  "extraKnownMarketplaces": {
-    "anthropic-agent-skills": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/skills"
-      }
-    }
   }
 }

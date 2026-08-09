@@ -40,6 +40,11 @@
 - Delete dead weight on contact: unused code, commented-out code, and ownerless TODOs are removed, not preserved. A TODO/FIXME that records a lasting reason for the deferred work, traceable to where it is tracked, is not ownerless dead weight.
 - Outside the touched scope, report refactoring opportunities instead of applying them.
 
+## Debugging
+
+- Identify the root cause before proposing any fix; a change that only removes the symptom is not a fix.
+- Test one hypothesis at a time with the smallest change that discriminates it — never stack a fix on top of an unverified one.
+
 ## Documentation
 
 - When your changes affect what a project does, how it's used, or how it's configured, update README.md and CLAUDE.md (if they exist) in the same changeset.
