@@ -1,4 +1,4 @@
-INSTALL_STEPS := install-claude install-claude-plugins install-uv-tools install-vscode-extensions install-node install-ntn
+INSTALL_STEPS := install-claude sync-claude-plugins install-uv-tools install-vscode-extensions install-node install-ntn
 
 .PHONY: help diff-config sync-config install update upgrade trust-taps snapshot-versions $(INSTALL_STEPS)
 
@@ -29,7 +29,7 @@ upgrade: ## Investigate upgrades via Claude Agent SDK, apply them, and auto-comm
 	$(MAKE) trust-taps
 	HOMEBREW_NO_INTERACTIVE=1 brew bundle --file=Brewfile
 	brew cleanup
-	$(MAKE) install-claude install-claude-plugins install-uv-tools install-ntn
+	$(MAKE) install-claude sync-claude-plugins install-uv-tools install-ntn
 	$(MAKE) snapshot-versions
 	@./scripts/commit-upgrade.zsh
 
@@ -69,7 +69,7 @@ install-claude:
 		claude install "$(CLAUDE_VERSION)" 2>&1 || curl -fsSL https://claude.ai/install.sh | bash; \
 	fi
 
-install-claude-plugins:
+sync-claude-plugins:
 	@if command -v claude >/dev/null 2>&1 && [ -f config/claude/plugins.txt ]; then \
 		settings="$$HOME/.claude/settings.json"; \
 		while IFS= read -r plugin || [ -n "$$plugin" ]; do \
@@ -80,6 +80,15 @@ install-claude-plugins:
 			echo "Installing plugin: $$plugin"; \
 			claude plugin install "$$plugin" 2>/dev/null || echo "Warning: Failed to install $$plugin"; \
 		done < config/claude/plugins.txt; \
+		claude plugin list --json 2>/dev/null | jq -r '.[] | select(.scope == "user") | .id' | \
+		while IFS= read -r plugin; do \
+			[ -z "$$plugin" ] && continue; \
+			if grep -qxF "$$plugin" config/claude/plugins.txt; then \
+				continue; \
+			fi; \
+			echo "Uninstalling plugin: $$plugin"; \
+			claude plugin uninstall "$$plugin" -y 2>/dev/null || echo "Warning: Failed to uninstall $$plugin"; \
+		done; \
 	else \
 		echo "Skipping Claude Code plugins (claude not found or plugins.txt missing)"; \
 	fi

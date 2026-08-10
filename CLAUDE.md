@@ -10,7 +10,7 @@
   - `config/claude/scripts/*` → synced to `~/.claude/scripts/`
   - `config/claude/agents/*.md` → synced to `~/.claude/agents/` (reusable subagents / Agent Teams teammates)
   - `config/claude/skills/*/SKILL.md` → synced to `~/.claude/skills/` (personal skills, auto-loaded as `<name>@skills-dir`)
-  - `config/claude/plugins.txt` → installed via `claude plugin install`
+  - `config/claude/plugins.txt` → the full set of user-scope plugins; `make sync-claude-plugins` installs what is listed and uninstalls what is not
 - Run `make diff-config` to check differences, then `make sync-config` to apply.
 
 ## VSCode Settings
@@ -38,6 +38,6 @@ All external dependencies are version-pinned to prevent supply chain attacks. `m
 - **uv tools**: Tools in `config/uv/tools.txt` MUST use `@tag` or `@commit` suffix, except `claude-sentinel` and `claude-sessions` (owned by the user, always use HEAD).
 - **Node (fnm)**: The global default Node version is pinned in `config/fnm/version` as an exact version (e.g., `24.16.0`), never a floating alias like `lts-latest`. `make install`/`make update` run `fnm install` + `fnm default` for that version, skipping when it is already the default. `fnm env --use-on-cd` still honors per-project `.node-version`/`.nvmrc` files on top of this default. Node 24.17 regressed `http.Agent` keep-alive handling (`ERR_STREAM_PREMATURE_CLOSE` on reused sockets), breaking `node-fetch@2`-based tooling such as Google's `gaxios`/`googleapis` stack (nodejs/node#63989); stay below 24.17 until it is resolved.
 - **Notion CLI (ntn)**: Notion's official CLI (published on npm by Notion) is pinned in `config/ntn/version` as an exact version and installed globally with npm using the fnm-managed Node. `make install`/`make update` run `install-ntn` after `install-node` and reinstall only when `ntn --version` differs from the pin. `make upgrade` tracks the latest published version (`npm view ntn version`) with the same hold-back policy as Claude Code (breaking CLI changes or trending critical bug reports). Auth is never stored in the repo: use interactive `ntn login` (macOS Keychain) or the `NOTION_API_TOKEN` env var for scripts/CI.
-- **Claude Code plugins**: Updated only via `make upgrade`, not automatically.
+- **Claude Code plugins**: Updated only via `make upgrade`, not automatically. Removing an entry from `plugins.txt` uninstalls it on the next `make install`/`make update`.
 
 `versions.json` is a committed snapshot that records only repo-declared packages, so it stays reproducible across machines. `snapshot-versions.zsh` scopes the brew/cask sections to `brew bundle list --file=Brewfile` (declared formulae/casks, resolved to canonical names) rather than `brew list` (every installed formula), matching the config-file-scoped sheldon/uv/claude/ntn sections. Locally installed packages outside `Brewfile` and transitive dependencies are intentionally excluded.
