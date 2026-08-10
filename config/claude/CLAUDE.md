@@ -5,6 +5,15 @@
 - Write code, config files, and commit messages in English, regardless of the prompt's language.
 - For conversation and human-facing documentation (README, guides, and similar prose meant for readers), match the language of the prompt.
 
+## Wording
+
+Comments, commit messages, and docs reach a reader who was not part of the conversation that produced them.
+
+- Write from the code as it stands, not from the discussion that changed it. After a long exchange, read the surrounding lines first and match how they read.
+- State what holds. Write a prohibition only where a reader would otherwise take the rejected path; the reason it was rejected is the content, not the ban itself.
+- One point per comment. Words like "so", "therefore", and "which means" carry a derivation that belongs in the commit log.
+- Use words that already appear in this codebase or in plain technical English. A term invented during a discussion stays there.
+
 ## Git
 
 - Use conventional commit style (e.g., `feat:`, `fix:`, `docs:`, `refactor:`).
@@ -27,7 +36,6 @@
 - A comment that explains *what* code does is a refactoring signal — rename, extract, or restructure until the comment is unnecessary, then delete it instead of writing it.
 - External-constraint comments are the typical why-not: references to external specs, workarounds for upstream bugs (with links), invariants and concurrency constraints, the rationale behind non-obvious values.
 - Public API doc comments (docstrings, JSDoc) follow the project's existing convention; they document contracts for toolchains, not implementation.
-- Comments, docs, and code state present-tense technical facts — never the conversation, the instructions given, or a narration of what was changed, removed, or avoided in this session. This bans change-narration residue, not durable design why-not: a "don't do X" note stating the lasting technical reason (e.g., `avoid X here: it deadlocks under load`) is exactly the why-not that belongs in code.
 
 ## Refactoring
 
@@ -43,6 +51,7 @@
 
 - Identify the root cause before proposing any fix; a change that only removes the symptom is not a fix.
 - Test one hypothesis at a time with the smallest change that discriminates it — never stack a fix on top of an unverified one.
+- Fix at the shared function and check its other callers; repairing only the path the report names leaves the siblings broken.
 
 ## Documentation
 
