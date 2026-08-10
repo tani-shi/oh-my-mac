@@ -102,6 +102,8 @@ Add extensions as `publisher.extension-name` per line.
 | context7 | claude-plugins-official |
 | playwright | claude-plugins-official |
 
+`make install` / `make update` install plugins listed here and uninstall user-scope plugins that are not. Marketplaces are not managed by this repository; remove an unused one with `claude plugin marketplace remove <name>`.
+
 ## Usage
 
 | Command | Description |
