@@ -10,7 +10,6 @@
 - Use conventional commit style (e.g., `feat:`, `fix:`, `docs:`, `refactor:`).
 - A commit message states the rationale for the change, not just a conventional-commit type prefix.
 - Use `--force-with-lease` instead of `--force` when force pushing.
-- Never commit automatically after completing work. Only commit when explicitly asked.
 - Bundle all related changes (code, config, generated files) into a single commit.
 
 ## Shell
@@ -48,14 +47,9 @@
 ## Documentation
 
 - When your changes affect what a project does, how it's used, or how it's configured, update README.md and CLAUDE.md (if they exist) in the same changeset.
-- Focus on sections that describe the changed functionality (feature lists, configuration tables, usage examples, setup instructions).
 
 ## Subagents & Agent Teams
 
-- For investigation and side-effect-free operations (file reads, searches, code exploration, reviews), run multiple agents in parallel via the Agent tool.
-- Launch independent queries as concurrent agents in a single message; reserve sequential execution for steps with dependencies.
-- Default to unnamed background subagents: results return directly as tool results with no coordination overhead.
-- Read-only fan-out (parallel finders, verifiers, searchers) is always unnamed subagents, never a team.
+- Run read-only work (searches, finders, verifiers, reviews) under a subagent type whose tool grants cannot write — `Explore`, not the default `general-purpose` — and fan it out as unnamed subagents, never a team. `Explore` and `Plan` do not receive CLAUDE.md, so a rule they must honor is restated in the delegation prompt.
 - Use named teammates (Agent Teams) only for stateful collaboration where agents must respond to each other across turns. Compose by orthogonal roles, not headcount: 2 for pair work (implementer + reviewer), 3 for discussion (proponent, opponent, synthesizer) — 3 is the upper bound, since communication paths and coordination cost grow quadratically.
 - When more perspectives are needed than a team allows, generate them independently with unnamed subagents and synthesize; independent generation preserves diversity that live discussion collapses.
-- Prefer the subagent type whose tool grants match the task, so read-only work runs under a type that cannot write (e.g. Explore for read-only fan-out).
