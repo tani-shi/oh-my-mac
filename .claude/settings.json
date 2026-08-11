@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew outdated:*)",
+      "Bash(gh api:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(make upgrade-apply)",
+      "Bash(npm view:*)"
+    ]
+  }
+}

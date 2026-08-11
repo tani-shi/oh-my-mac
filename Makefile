@@ -1,6 +1,6 @@
 INSTALL_STEPS := install-claude sync-claude-plugins install-uv-tools install-vscode-extensions install-node install-ntn
 
-.PHONY: help diff-config sync-config install update upgrade trust-taps snapshot-versions $(INSTALL_STEPS)
+.PHONY: help diff-config sync-config install update upgrade upgrade-apply trust-taps snapshot-versions $(INSTALL_STEPS)
 
 .DEFAULT_GOAL := help
 
@@ -24,14 +24,15 @@ update: sync-config $(INSTALL_STEPS) ## Sync config + install missing packages (
 	brew bundle --no-upgrade --file=Brewfile
 	brew cleanup
 
-upgrade: ## Investigate upgrades via Claude Agent SDK, apply them, and auto-commit
-	@uv run scripts/upgrade.py
+upgrade: ## Investigate upgrades in a Claude Code session, apply them, and commit
+	claude "/upgrade"
+
+upgrade-apply: ## Apply the pinned versions and refresh versions.json (invoked from /upgrade)
 	$(MAKE) trust-taps
 	HOMEBREW_NO_INTERACTIVE=1 brew bundle --file=Brewfile
 	brew cleanup
 	$(MAKE) install-claude sync-claude-plugins install-uv-tools install-ntn
 	$(MAKE) snapshot-versions
-	@./scripts/commit-upgrade.zsh
 
 trust-taps:
 	@if [ -f config/homebrew/trusted-taps.txt ]; then \

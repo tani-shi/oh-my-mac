@@ -40,7 +40,7 @@ make install
 
 ### Trusted Homebrew Taps (`config/homebrew/trusted-taps.txt`)
 
-Homebrew 6.x refuses to load formulae from non-official taps unless they are explicitly trusted. `make install` / `make update` / `make upgrade` run `make trust-taps` before bundling to trust these idempotently, so a fresh machine installs in one shot.
+Homebrew 6.x refuses to load formulae from non-official taps unless they are explicitly trusted. `make install` / `make update` / `make upgrade-apply` run `make trust-taps` before bundling to trust these idempotently, so a fresh machine installs in one shot.
 
 | Tap | Used by |
 | --- | --- |
@@ -111,7 +111,8 @@ Add extensions as `publisher.extension-name` per line.
 | `make` / `make help` | Show available targets |
 | `make install` | Install packages + sync config + install plugins |
 | `make update` | Sync config + install missing packages (no upgrades) |
-| `make upgrade` | Investigate upgrades via Claude Agent SDK, apply them, and auto-commit |
+| `make upgrade` | Open a Claude Code session that investigates upgrades, applies them, and commits |
+| `make upgrade-apply` | Apply the pinned versions and refresh `versions.json` (invoked from `/upgrade`) |
 | `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
 | `make snapshot-versions` | Record installed versions of repo-declared packages to `versions.json` |
 | `make diff-config` | Show differences between repo and local config |
