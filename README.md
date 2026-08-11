@@ -54,6 +54,7 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | `config/sheldon/plugins.toml` | `~/.config/sheldon/plugins.toml` |
 | `config/zshrc` | `~/.zshrc` |
 | `config/git/ignore` | `~/.config/git/ignore` |
+| `config/git/discard.zsh` | `~/.config/git/discard.zsh` |
 | `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | `config/claude/settings.json` | `~/.claude/settings.json` |
 | `config/claude/keybindings.json` | `~/.claude/keybindings.json` |
@@ -61,6 +62,25 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | `config/claude/agents/*.md` | `~/.claude/agents/` |
 | `config/claude/skills/*/SKILL.md` | `~/.claude/skills/` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
+
+### git discard (`config/git/discard.zsh`)
+
+`git discard` throws away working-tree state after recording it, so every discard can be taken back. `config.zsh` registers it as the global git alias `discard`.
+
+| Command | Effect |
+| --- | --- |
+| `git discard [<pathspec>...]` | Reset the working tree and index to HEAD (whole repository by default) |
+| `git discard --source=<rev> [<pathspec>...]` | Reset to `<rev>` instead, discarding everything since it |
+| `git discard --untracked [<pathspec>...]` | Move untracked files to the Trash; gitignored files are left alone |
+| `git discard --hard [<commit>]` | Snapshot, then `git reset --hard` |
+| `git discard --list` | List snapshots |
+| `git discard --undo [<ref>] [-- <pathspec>...]` | Restore the newest (or named) snapshot |
+
+`--undo` restores only the paths whose current content still matches what the discard left there, so files edited again afterwards keep their newer version and are reported as skipped. Restored files come back staged.
+
+Snapshots are commit objects made with `git stash create` and held under `refs/discard/*`, so they cost nothing until the working tree is dirty and survive garbage collection. Each one older than `GIT_DISCARD_KEEP_DAYS` (30) is dropped once `GIT_DISCARD_KEEP_MIN` (20) newer ones exist; `GIT_DISCARD_KEEP_DAYS=0` keeps them forever. Untracked files have no git object to snapshot; the Trash is their recovery path.
+
+The point is the permission layer: an operation that can always be undone is safe to auto-approve. [claude-sentinel](https://github.com/tani-shi/claude-sentinel) allows `git discard` outright and, once it sees the `discard` alias configured, denies `git checkout` and the working-tree form of `git restore` so coding agents reach for the recoverable command instead. `git restore --staged`, which moves the index without touching files, stays allowed.
 
 ### Node (`config/fnm/version`)
 
@@ -114,6 +134,7 @@ Add extensions as `publisher.extension-name` per line.
 | `make upgrade` | Open a Claude Code session that investigates upgrades, applies them, and commits |
 | `make upgrade-apply` | Apply the pinned versions and refresh `versions.json` (invoked from `/upgrade`) |
 | `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
+| `make test` | Run the test suite |
 | `make snapshot-versions` | Record installed versions of repo-declared packages to `versions.json` |
 | `make diff-config` | Show differences between repo and local config |
 | `make sync-config` | Sync config files only |

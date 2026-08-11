@@ -27,6 +27,13 @@
 - Every sync operation MUST include a diff check — only write when the current state differs from the desired state. Never blindly overwrite.
 - diff and sync modes share the same definitions (configs array, jq expressions, plist keys, etc.). When adding a new sync target, write both mode handlers in the same block.
 - macOS defaults are managed via the `macos_defaults` array using `defaults read`/`defaults write`. Add new entries as `"domain:key:type:value"` (supported types: `bool`, `int`, `float`, `string`).
+- Global git config, including aliases such as `git discard`, is managed via the `git_config_keys` array as `"key:value"`. A script an alias invokes is synced through the `configs` array and run as `zsh <path>`, so it needs no executable bit — `sync_files` copies content only and never manages file modes.
+
+## Tests
+
+- `make test` runs `scripts/test-discard.zsh`. Add cases there when changing `config/git/discard.zsh`.
+- Tests run against the repository copy of a script, never the synced copy under `$HOME`, so a change is verified before `make sync-config`.
+- Each case runs in a throwaway repository under `mktemp -d` with `HOME`, `GIT_CONFIG_GLOBAL`, and `GIT_CONFIG_SYSTEM` redirected, and with a `trash` stub earlier in `PATH`. Keep that isolation: a test must not reach the real Trash, the real git config, or a real repository.
 
 ## Version Pinning
 
