@@ -19,6 +19,7 @@ Comments, commit messages, and docs reach a reader who was not part of the conve
 - Use conventional commit style (e.g., `feat:`, `fix:`, `docs:`, `refactor:`).
 - A commit message states the rationale for the change, not just a conventional-commit type prefix.
 - Use `--force-with-lease` instead of `--force` when force pushing.
+- Finishing a task is not a request to commit. Commit only when the user asks for it in that turn.
 - Bundle all related changes (code, config, generated files) into a single commit.
 
 ## Shell
