@@ -1,6 +1,6 @@
 INSTALL_STEPS := install-claude sync-claude-plugins install-uv-tools install-vscode-extensions install-node install-ntn
 
-.PHONY: help diff-config sync-config install update upgrade upgrade-apply trust-taps snapshot-versions $(INSTALL_STEPS)
+.PHONY: help diff-config sync-config install update upgrade upgrade-apply trust-taps test snapshot-versions $(INSTALL_STEPS)
 
 .DEFAULT_GOAL := help
 
@@ -49,6 +49,9 @@ trust-taps:
 	else \
 		echo "Skipping tap trust (trusted-taps.txt missing)"; \
 	fi
+
+test: ## Run the test suite
+	@./scripts/test-discard.zsh
 
 snapshot-versions: ## Record installed versions of repo-declared packages to versions.json
 	@echo "Snapshotting installed versions..."
