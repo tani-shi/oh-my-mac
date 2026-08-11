@@ -12,6 +12,7 @@
   - `config/claude/skills/*/SKILL.md` → synced to `~/.claude/skills/` (personal skills, auto-loaded as `<name>@skills-dir`)
   - `config/claude/plugins.txt` → the full set of user-scope plugins; `make sync-claude-plugins` installs what is listed and uninstalls what is not
 - Run `make diff-config` to check differences, then `make sync-config` to apply.
+- `.claude/` at the repository root is project scope: it configures Claude Code sessions run inside this repository and is not synced to `~/.claude/`.
 
 ## VSCode Settings
 
@@ -31,8 +32,10 @@
 
 All external dependencies are version-pinned to prevent supply chain attacks. `make update` intentionally does NOT upgrade packages — it only installs missing ones and syncs config.
 
-- **Homebrew**: `brew bundle --no-upgrade` prevents automatic upgrades. Use `make upgrade` to review and apply updates. `make upgrade` runs `brew bundle --file=Brewfile` (without `--no-upgrade`), so it upgrades only Brewfile-declared formulae/casks and never touches locally installed packages outside the repo.
-- **Homebrew taps**: Non-official taps must be explicitly trusted (Homebrew 6.x `HOMEBREW_REQUIRE_TAP_TRUST`). List every non-official tap in `config/homebrew/trusted-taps.txt`; `make install`/`make update`/`make upgrade` run `make trust-taps` before bundling to trust them idempotently. When adding a `tap`/`tap/formula` to `Brewfile`, also add its tap here (include the resolved formula tap if it differs from the one named in the `tap/formula` spec).
+`make upgrade` opens an interactive Claude Code session on `/upgrade`. The command lives in `.claude/commands/upgrade.md` and carries the investigation steps and the hold-back criteria summarized below; edit it there when the policy changes. It presents its findings, rewrites the pins the user approves, runs `make upgrade-apply` to install them and refresh `versions.json`, then commits via `scripts/commit-upgrade.zsh`. The user approves the pins and the commit; `upgrade-apply` runs unattended, since it converges on whatever the pins already say.
+
+- **Homebrew**: `brew bundle --no-upgrade` prevents automatic upgrades. Use `make upgrade` to review and apply updates. `make upgrade-apply` runs `brew bundle --file=Brewfile` (without `--no-upgrade`), so it upgrades only Brewfile-declared formulae/casks and never touches locally installed packages outside the repo.
+- **Homebrew taps**: Non-official taps must be explicitly trusted (Homebrew 6.x `HOMEBREW_REQUIRE_TAP_TRUST`). List every non-official tap in `config/homebrew/trusted-taps.txt`; `make install`/`make update`/`make upgrade-apply` run `make trust-taps` before bundling to trust them idempotently. When adding a `tap`/`tap/formula` to `Brewfile`, also add its tap here (include the resolved formula tap if it differs from the one named in the `tap/formula` spec).
 - **Claude Code**: Version is pinned in `config/claude/version`. `make install`/`make update` install only the pinned version. `make upgrade` tracks the latest published version by default, and only holds back when the CHANGELOG shows breaking changes affecting this repo's config surface (settings.json, hooks, slash commands, MCP, plugins, agents, skills, keybindings) OR GitHub Issues show trending unresolved critical bug reports (crashes, hangs, data loss) from multiple users. Auto-updater is disabled via `DISABLE_AUTOUPDATER=1`.
 - **Sheldon plugins**: Every plugin in `config/sheldon/plugins.toml` MUST have a `tag` (or `rev` if no tags exist). Never add a plugin without version pinning.
 - **uv tools**: Tools in `config/uv/tools.txt` MUST use `@tag` or `@commit` suffix, except `claude-sentinel` and `claude-sessions` (owned by the user, always use HEAD).
