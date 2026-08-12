@@ -27,6 +27,7 @@
 - Every sync operation MUST include a diff check — only write when the current state differs from the desired state. Never blindly overwrite.
 - diff and sync modes share the same definitions (configs array, jq expressions, plist keys, etc.). When adding a new sync target, write both mode handlers in the same block.
 - macOS defaults are managed via the `macos_defaults` array using `defaults read`/`defaults write`. Add new entries as `"domain:key:type:value"` (supported types: `bool`, `int`, `float`, `string`).
+- `remove_orphans` deletes anything under `~/.claude/agents/` and `~/.claude/skills/` that the repository no longer declares — files, then the directories left behind by a renamed or deleted skill. Deletion is permanent: keep anything worth surviving a sync in `config/claude/`.
 - Global git config, including aliases such as `git discard`, is managed via the `git_config_keys` array as `"key:value"`. A script an alias invokes is synced through the `configs` array and run as `zsh <path>`, so it needs no executable bit — `sync_files` copies content only and never manages file modes.
 
 ## Tests

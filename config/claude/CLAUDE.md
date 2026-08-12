@@ -26,7 +26,11 @@ Comments, commit messages, and docs reach a reader who was not part of the conve
 
 ## Shell
 
-- Use `trash` instead of `rm -rf` for file deletion.
+- Pick the deletion tool by how the target comes back:
+  - `rm` — what a rerun regenerates: ignored build output, paths under a temporary directory, state a script itself writes.
+  - `git rm -r` — tracked files.
+  - `git discard --untracked` — untracked work in a repository.
+  - `trash` — user data with no other way back.
 
 ## Python
 
