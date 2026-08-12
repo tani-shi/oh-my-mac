@@ -157,7 +157,9 @@
       "Read(**/service-account*.json)",
       "Read(**/service_account*.json)",
       "Read(**/terraform.tfvars)",
-      "Read(**/terraform.tfvars.json)"
+      "Read(**/terraform.tfvars.json)",
+      "Edit(**/.config/notion/auth.json)",
+      "Read(**/.config/notion/auth.json)"
     ],
     "ask": [
       "mcp__claude_ai_Slack__slack_create_canvas",
