@@ -89,16 +89,32 @@ sync_files() {
 # Claude Code loads any file present in ~/.claude/agents/ and ~/.claude/skills/
 # regardless of repo state, so orphans must be deleted, not merely left unsynced.
 remove_orphans() {
-  local dst rel
-  for dst in "$HOME"/.claude/agents/*.md(.N) "$HOME"/.claude/skills/**/*(.N); do
-    rel="${dst#$HOME/.claude/}"
+  local orphan_file orphan_dir rel
+  for orphan_file in "$HOME"/.claude/agents/*.md(.N) "$HOME"/.claude/skills/**/*(.N); do
+    rel="${orphan_file#$HOME/.claude/}"
     if [[ ! -f "$SCRIPT_DIR/config/claude/$rel" ]]; then
       if [[ "$MODE" == "diff" ]]; then
-        echo "Orphan: $dst (no config/claude/$rel)"
+        echo "Orphan: $orphan_file (no config/claude/$rel)"
         diffs=$((diffs + 1))
       else
-        trash "$dst"
-        echo "Removed: $dst"
+        rm -f "$orphan_file"
+        echo "Removed: $orphan_file"
+        removed=$((removed + 1))
+      fi
+    fi
+  done
+  # On visits deepest-first: parent-first would report a nested directory its
+  # parent already took.
+  for orphan_dir in "$HOME"/.claude/skills/**/*(/NOn); do
+    rel="${orphan_dir#$HOME/.claude/}"
+    if [[ ! -d "$SCRIPT_DIR/config/claude/$rel" ]]; then
+      if [[ "$MODE" == "diff" ]]; then
+        echo "Orphan: $orphan_dir/ (no config/claude/$rel)"
+        diffs=$((diffs + 1))
+      else
+        # rmdir would fail on a .DS_Store, which the file loop's (.N) glob skips.
+        rm -rf "$orphan_dir"
+        echo "Removed: $orphan_dir/"
         removed=$((removed + 1))
       fi
     fi
