@@ -28,7 +28,7 @@ def main() -> None:
             installed.remove(key)
 
     declared_text = tomlkit.dumps(declared)
-    installed_text = tomlkit.dumps(installed)
+    installed_text = tomlkit.dumps(installed).lstrip("\n")
     merged = declared_text + ("\n" + installed_text if installed_text else "")
     tomlkit.parse(merged)
     sys.stdout.write(merged)

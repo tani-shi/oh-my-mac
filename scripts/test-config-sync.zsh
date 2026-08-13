@@ -153,6 +153,11 @@ EOF
   check_contains "an undeclared top-level key survives" "$merged" 'notify = ["client", "turn-ended"]'
   check_equals "the application-owned table remains byte-for-byte" \
     "$(sed -n '/^# Written by Codex/,$p' "$HOME/.codex/config.toml")" "$app_owned_before"
+  local first_merge="$tmp/first-codex-merge.toml"
+  cp "$HOME/.codex/config.toml" "$first_merge"
+  check_contains "a repeated merge changes nothing" "$(sync_config)" "Already up to date."
+  check_files_equal "a repeated merge preserves the config byte-for-byte" \
+    "$HOME/.codex/config.toml" "$first_merge"
 }
 
 t_codex_config_rejects_invalid_toml() {
