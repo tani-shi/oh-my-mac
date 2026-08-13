@@ -12,6 +12,7 @@ Only these files record a pinned version, and they are the only files you may ed
 
 - `config/claude/version` — Claude Code
 - `config/ntn/version` — Notion CLI (ntn)
+- `config/codex/version` — Codex CLI
 - `config/sheldon/plugins.toml` — zsh plugins
 - `config/uv/tools.txt` — uv tools
 
@@ -28,8 +29,9 @@ Run these in parallel where you can:
    pinned tag with `gh api repos/{owner}/{repo}/tags --jq '.[0].name'`.
 3. `npm view @anthropic-ai/claude-code version` — the latest Claude Code.
 4. `npm view ntn version` — the latest Notion CLI.
-5. `config/uv/tools.txt` — tools that carry an `@tag`/`@commit` suffix.
-6. Research changelogs, security advisories, and incident reports for every
+5. `npm view @openai/codex version` — the latest Codex CLI.
+6. `config/uv/tools.txt` — tools that carry an `@tag`/`@commit` suffix.
+7. Research changelogs, security advisories, and incident reports for every
    candidate.
 
 ## 2. Decide
@@ -48,6 +50,9 @@ Run these in parallel where you can:
 - **Notion CLI (ntn)**: track the latest release under the same two criteria,
   read against the CLI surface this repo relies on (auth, `ntn api`, global npm
   install).
+- **Codex CLI**: track the latest release under the same two criteria, read
+  against the surface this repo relies on (`config.toml`, `AGENTS.md` discovery,
+  and global npm install).
 - **Sheldon plugins**: pin by tag, or by rev when the repository has no tags.
 - **uv tools**: pin with an `@tag`/`@commit` suffix, except `claude-sentinel`
   and `claude-sessions`, which the user owns and which track HEAD.
@@ -59,11 +64,10 @@ and get the user's approval before editing any pin.
 
 Once approved, write the pins, then run `make upgrade-apply` without asking again
 — it converges on whatever the pins say, so a repeat run costs nothing. It trusts
-the taps, runs `brew bundle`, installs the pinned Claude Code / plugins / uv tools
-/ ntn, and regenerates `versions.json`. Read its output and report any step that
-failed.
+the taps, runs `brew bundle`, and installs the pinned Claude Code / plugins / uv
+tools / ntn / codex. Read its output and report any step that failed.
 
 ## 4. Commit
 
 Show `git diff`, and on the user's approval run `./scripts/commit-upgrade.zsh`,
-which derives the commit message from the `versions.json` diff.
+which derives the commit message from the changed pin files.

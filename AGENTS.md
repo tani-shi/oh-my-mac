@@ -1,0 +1,85 @@
+# Project instructions
+
+This repository is the source of truth for a macOS workstation: shell, git, editors,
+CLI agents, and macOS preferences. `make sync-config` copies and merges what is
+declared here into the locations those tools actually read.
+
+## Configuration sources
+
+- Edit the sources under `config/` — never the generated copies under the user's home directory. A direct edit there is lost on the next sync.
+- Run `make diff-config` to see what a sync would change, then `make sync-config` to apply it.
+
+| Directory | Holds |
+| --- | --- |
+| `config/agents/` | user-global instructions shared by every CLI agent |
+| `config/claude/` | Claude Code configuration and its user-global instructions |
+| `config/codex/` | Codex configuration, version pin, and user-global instructions |
+| `config/vscode/`, `config/iterm2/`, `config/git/`, … | one directory per tool |
+
+Instruction files fall into two scopes that must not be mixed:
+
+| File | Scope | Read by |
+| --- | --- | --- |
+| `AGENTS.md` | this repository | Claude Code, Codex |
+| `CLAUDE.md` | this repository | Claude Code |
+| `.codex/config.toml` (`developer_instructions`) | this repository | Codex |
+| `config/agents/instructions.md` | every repository, as user settings | Claude Code, Codex |
+| `config/claude/instructions.md` | every repository, as user settings | Claude Code |
+| `config/codex/instructions.md` | every repository, as user settings | Codex |
+
+Codex reads this file by its own discovery rules and `CLAUDE.md` imports it with
+`@AGENTS.md`, so project instructions live here once. Neither a Codex fallback
+filename nor a symlink is involved.
+
+The `config/` entries are a different scope from the first three: they are the
+sources for the user's own `~/.claude/` and `~/.codex/`, and apply in every
+repository rather than this one.
+
+## Codex CLI Settings
+
+- `config/agents/instructions.md` + `config/codex/instructions.md` are concatenated into the generated `~/.codex/AGENTS.md`.
+- `config/codex/config.toml` declares the top-level keys merged into `~/.codex/config.toml`.
+- `config/codex/version` pins the installed CLI version.
+- `.codex/` at the repository root is project scope: it configures Codex sessions run inside this repository, is not synced to `~/.codex/`, and loads only once the directory is trusted. Its `developer_instructions` carries what only Codex needs while working here.
+- Auth lives in `~/.codex/auth.json` or the macOS Keychain and never in the repository:
+  sign in with `codex login`, or set `OPENAI_API_KEY` for scripts and CI.
+
+## VSCode Settings
+
+- NEVER edit `~/Library/Application Support/Code/User/settings.json` directly.
+- Always edit the source files under `config/vscode/` in this repository instead.
+  - `config/vscode/settings.json` → merged into `~/Library/Application Support/Code/User/settings.json`
+  - `config/vscode/extensions.txt` → installed via `code --install-extension`
+
+## config.zsh
+
+- Every sync operation MUST include a diff check — only write when the current state differs from the desired state. Never blindly overwrite. `diff` mode writes nothing at all: compare against a temporary stand-in rather than creating the destination.
+- diff and sync modes share the same definitions (configs array, jq expressions, plist keys, etc.). When adding a new sync target, write both mode handlers in the same block.
+- `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` are generated: `sync_instructions` concatenates `config/agents/instructions.md` with the CLI's own `instructions.md` into a temporary file, and `sync_file` diffs and copies that.
+- `merge-codex-config.py` uses its pinned `tomlkit` dependency to update only the top-level keys declared by `config/codex/config.toml`. Tables and other undeclared values in `~/.codex/config.toml` remain application-owned. A parse failure aborts the sync before the installed file is changed.
+- macOS defaults are managed via the `macos_defaults` array using `defaults read`/`defaults write`. Add new entries as `"domain:key:type:value"` (supported types: `bool`, `int`, `float`, `string`).
+- `remove_orphans` deletes anything under `~/.claude/agents/` and `~/.claude/skills/` that the repository no longer declares — files, then the directories left behind by a renamed or deleted skill. Deletion is permanent: keep anything worth surviving a sync in `config/claude/`.
+- Global git config, including aliases such as `git discard`, is managed via the `git_config_keys` array as `"key:value"`. A script an alias invokes is synced through the `configs` array and run as `zsh <path>`, so it needs no executable bit — `sync_files` copies content only and never manages file modes.
+
+## Tests
+
+- `make test` runs `scripts/test-discard.zsh` and `scripts/test-config-sync.zsh`. Add cases to the first when changing `config/git/discard.zsh`, and to the second when changing `config.zsh`.
+- Tests run against the repository copy of a script, never the synced copy under `$HOME`, so a change is verified before `make sync-config`.
+- Each case runs in a throwaway directory under `mktemp -d` with `HOME`, `GIT_CONFIG_GLOBAL`, and `GIT_CONFIG_SYSTEM` redirected, and with stubs earlier in `PATH`. Keep that isolation: a test must not reach the real Trash, the real git config, a real repository, or the real macOS preferences.
+- `defaults`, `duti`, and `code` reach state that `HOME` does not redirect, so `test-config-sync.zsh` stubs them with ones that record what they were told; a stub that loses its state between passes makes the idempotency cases pass for the wrong reason.
+
+## Version Pinning
+
+All external dependencies are version-pinned to prevent supply chain attacks. `make update` intentionally does NOT upgrade packages — it only installs missing ones and syncs config.
+
+`make upgrade` opens an interactive `/upgrade` session. The command lives in `.claude/commands/upgrade.md` and carries the investigation steps and the hold-back criteria summarized below; edit it there when the policy changes. It presents its findings, rewrites the pins the user approves, runs `make upgrade-apply` to install them, then commits via `scripts/commit-upgrade.zsh`. The user approves the pins and the commit; `upgrade-apply` runs unattended, since it converges on whatever the pins already say.
+
+- **Homebrew**: `brew bundle --no-upgrade` prevents automatic upgrades. Use `make upgrade` to review and apply updates. `make upgrade-apply` runs `brew bundle --file=Brewfile` (without `--no-upgrade`), so it upgrades only Brewfile-declared formulae/casks and never touches locally installed packages outside the repo.
+- **Homebrew taps**: Non-official taps must be explicitly trusted (Homebrew 6.x `HOMEBREW_REQUIRE_TAP_TRUST`). List every non-official tap in `config/homebrew/trusted-taps.txt`; `make install`/`make update`/`make upgrade-apply` run `make trust-taps` before bundling to trust them idempotently. When adding a `tap`/`tap/formula` to `Brewfile`, also add its tap here (include the resolved formula tap if it differs from the one named in the `tap/formula` spec).
+- **Claude Code**: Version is pinned in `config/claude/version`. `make install`/`make update` install only the pinned version. `make upgrade` tracks the latest published version by default, and only holds back when the CHANGELOG shows breaking changes affecting this repo's config surface (settings.json, hooks, slash commands, MCP, plugins, agents, skills, keybindings) OR GitHub Issues show trending unresolved critical bug reports (crashes, hangs, data loss) from multiple users. Auto-updater is disabled via `DISABLE_AUTOUPDATER=1`.
+- **Sheldon plugins**: Every plugin in `config/sheldon/plugins.toml` MUST have a `tag` (or `rev` if no tags exist). Never add a plugin without version pinning.
+- **uv tools**: Tools in `config/uv/tools.txt` MUST use `@tag` or `@commit` suffix, except `claude-sentinel` and `claude-sessions` (owned by the user, always use HEAD).
+- **Node (fnm)**: The global default Node version is pinned in `config/fnm/version` as an exact version (e.g., `24.16.0`), never a floating alias like `lts-latest`. `make install`/`make update` run `fnm install` + `fnm default` for that version, skipping when it is already the default. `fnm env --use-on-cd` still honors per-project `.node-version`/`.nvmrc` files on top of this default. Node 24.17 regressed `http.Agent` keep-alive handling (`ERR_STREAM_PREMATURE_CLOSE` on reused sockets), breaking `node-fetch@2`-based tooling such as Google's `gaxios`/`googleapis` stack (nodejs/node#63989); stay below 24.17 until it is resolved.
+- **Notion CLI (ntn)**: Notion's official CLI (published on npm by Notion) is pinned in `config/ntn/version` as an exact version and installed globally with npm using the fnm-managed Node. `make install`/`make update` run `install-ntn` after `install-node` and reinstall only when `ntn --version` differs from the pin. `make upgrade` tracks the latest published version (`npm view ntn version`) with the same hold-back policy as Claude Code (breaking CLI changes or trending critical bug reports). Auth is never stored in the repo: use interactive `ntn login` (macOS Keychain) or the `NOTION_API_TOKEN` env var for scripts/CI.
+- **Codex CLI**: OpenAI's CLI is pinned in `config/codex/version` as an exact version and installed globally with npm (`@openai/codex`) using the fnm-managed Node. Homebrew's cask carries no pin, so it is not used. `make install`/`make update` run `install-codex` after `install-ntn` and reinstall only when the globally installed `@openai/codex` differs from the pin. `make upgrade` tracks the latest published version (`npm view @openai/codex version`) with the same hold-back policy as Claude Code. The ChatGPT desktop app bundles its own copy at `/Applications/ChatGPT.app/Contents/Resources/codex`, which this pin does not govern.
+- **Claude Code plugins**: Updated only via `make upgrade`, not automatically. Removing an entry from `plugins.txt` uninstalls it on the next `make install`/`make update`.

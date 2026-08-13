@@ -1,6 +1,6 @@
-INSTALL_STEPS := install-claude sync-claude-plugins install-uv-tools install-vscode-extensions install-node install-ntn
+INSTALL_STEPS := install-claude sync-claude-plugins install-uv-tools install-vscode-extensions install-node install-ntn install-codex
 
-.PHONY: help diff-config sync-config install update upgrade upgrade-apply trust-taps test snapshot-versions $(INSTALL_STEPS)
+.PHONY: help diff-config sync-config install update upgrade upgrade-apply trust-taps test $(INSTALL_STEPS)
 
 .DEFAULT_GOAL := help
 
@@ -27,12 +27,11 @@ update: sync-config $(INSTALL_STEPS) ## Sync config + install missing packages (
 upgrade: ## Investigate upgrades in a Claude Code session, apply them, and commit
 	claude "/upgrade"
 
-upgrade-apply: ## Apply the pinned versions and refresh versions.json (invoked from /upgrade)
+upgrade-apply: ## Apply the pinned versions (invoked from /upgrade)
 	$(MAKE) trust-taps
 	HOMEBREW_NO_INTERACTIVE=1 brew bundle --file=Brewfile
 	brew cleanup
-	$(MAKE) install-claude sync-claude-plugins install-uv-tools install-ntn
-	$(MAKE) snapshot-versions
+	$(MAKE) install-claude sync-claude-plugins install-uv-tools install-ntn install-codex
 
 trust-taps:
 	@if [ -f config/homebrew/trusted-taps.txt ]; then \
@@ -52,14 +51,11 @@ trust-taps:
 
 test: ## Run the test suite
 	@./scripts/test-discard.zsh
-
-snapshot-versions: ## Record installed versions of repo-declared packages to versions.json
-	@echo "Snapshotting installed versions..."
-	@./scripts/snapshot-versions.zsh > versions.json
-	@echo "Saved to versions.json"
+	@./scripts/test-config-sync.zsh
 
 CLAUDE_VERSION := $(shell cat config/claude/version 2>/dev/null)
 NTN_VERSION := $(shell cat config/ntn/version 2>/dev/null)
+CODEX_VERSION := $(shell cat config/codex/version 2>/dev/null)
 
 install-claude:
 	@if [ -z "$(CLAUDE_VERSION)" ]; then \
@@ -140,6 +136,24 @@ install-ntn:
 			else \
 				echo "Installing Notion CLI (ntn) $(NTN_VERSION)..."; \
 				npm install -g "ntn@$(NTN_VERSION)" 2>&1 || echo "Warning: Failed to install ntn"; \
+			fi; \
+		fi; \
+	fi
+
+install-codex:
+	@if [ -z "$(CODEX_VERSION)" ]; then \
+		echo "Skipping Codex CLI (config/codex/version missing)"; \
+	else \
+		command -v fnm >/dev/null 2>&1 && eval "$$(fnm env)"; \
+		if ! command -v npm >/dev/null 2>&1; then \
+			echo "Skipping Codex CLI (npm not found)"; \
+		else \
+			current=$$(npm ls -g --depth=0 --json @openai/codex 2>/dev/null | jq -r '.dependencies["@openai/codex"].version // empty'); \
+			if [ "$$current" = "$(CODEX_VERSION)" ]; then \
+				echo "Codex CLI $(CODEX_VERSION) already installed"; \
+			else \
+				echo "Installing Codex CLI $(CODEX_VERSION)..."; \
+				npm install -g "@openai/codex@$(CODEX_VERSION)"; \
 			fi; \
 		fi; \
 	fi

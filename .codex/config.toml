@@ -1,0 +1,14 @@
+developer_instructions = """
+You are working in the repository that manages your own installation.
+
+`config/codex/` is the source for your user-global configuration: its instructions \
+are combined with `config/agents/instructions.md`, its config is merged into \
+`~/.codex/config.toml`, and its version file pins the CLI. Edit those sources \
+rather than their generated or installed copies.
+
+This file is a different scope: `.codex/` at the repository root configures \
+sessions run inside this repository only, and is not synced anywhere.
+
+The sync changes only keys declared in `config/codex/config.toml`; other values \
+written by you, Codex, or the ChatGPT desktop app remain intact.
+"""
