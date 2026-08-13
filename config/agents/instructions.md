@@ -1,4 +1,4 @@
-# CLAUDE.md
+# Global instructions
 
 ## Language
 
@@ -62,10 +62,13 @@ Comments, commit messages, and docs reach a reader who was not part of the conve
 
 ## Documentation
 
-- When your changes affect what a project does, how it's used, or how it's configured, update README.md and CLAUDE.md (if they exist) in the same changeset.
+- Update README.md in the same changeset as a change to what a project does, how it's used, or how it's configured.
+- Update a project's agent instructions when the change alters how an agent must work in it — a new constraint, a moved workflow, a rule that no longer holds. A change the instructions do not speak to leaves them untouched.
 
-## Subagents & Agent Teams
+## Project agent instructions
 
-- Run read-only work (searches, finders, verifiers, reviews) under a subagent type whose tool grants cannot write — `Explore`, not the default `general-purpose` — and fan it out as unnamed subagents, never a team. `Explore` and `Plan` do not receive CLAUDE.md, so a rule they must honor is restated in the delegation prompt.
-- Use named teammates (Agent Teams) only for stateful collaboration where agents must respond to each other across turns. Compose by orthogonal roles, not headcount: 2 for pair work (implementer + reviewer), 3 for discussion (proponent, opponent, synthesizer) — 3 is the upper bound, since communication paths and coordination cost grow quadratically.
-- When more perspectives are needed than a team allows, generate them independently with unnamed subagents and synthesize; independent generation preserves diversity that live discussion collapses.
+- Reach for this layout when the task itself is to initialize or standardize a repository's agent instructions:
+  - `AGENTS.md` — the rules every agent follows. Codex discovers it by name.
+  - `CLAUDE.md` — Claude Code loads this file; do not count on it discovering `AGENTS.md` on its own. Wherever Claude Code is used this file exists and carries the line `@AGENTS.md` ahead of anything it adds. Rules only Claude Code follows go below that line; with none, the import is the whole point of the file.
+  - `.codex/config.toml` — rules only Codex follows, as `developer_instructions`. Write it once such a rule exists.
+- A repository that already has its own convention keeps it until the user asks to migrate; unrelated work leaves its instruction files alone.

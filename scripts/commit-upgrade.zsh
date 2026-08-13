@@ -9,30 +9,16 @@ if git diff --quiet && git diff --cached --quiet; then
 fi
 
 changed_packages=()
-if ! git diff --quiet -- versions.json; then
-  versions_diff=$(git diff -- versions.json)
-
-  local -A old_versions
-  while IFS= read -r line; do
-    if [[ "$line" =~ '^\-[[:space:]]+"([^"]+)":[[:space:]]+"([^"]+)"' ]]; then
-      old_versions[${match[1]}]=${match[2]}
-    fi
-  done <<< "$versions_diff"
-
-  while IFS= read -r line; do
-    if [[ "$line" =~ '^\+[[:space:]]+"([^"]+)":[[:space:]]+"([^"]+)"' ]]; then
-      local pkg=${match[1]}
-      [[ "$pkg" == "_generated" ]] && continue
-      if (( ${+old_versions[$pkg]} )); then
-        changed_packages+=("$pkg")
-      fi
-    fi
-  done <<< "$versions_diff"
-fi
-
-if ! git diff --quiet -- config/claude/version 2>/dev/null; then
-  changed_packages+=("claude")
-fi
+for pin in \
+  "claude:config/claude/version" \
+  "ntn:config/ntn/version" \
+  "codex:config/codex/version" \
+  "sheldon:config/sheldon/plugins.toml" \
+  "uv:config/uv/tools.txt"; do
+  if ! git diff --quiet -- "${pin#*:}" || ! git diff --cached --quiet -- "${pin#*:}"; then
+    changed_packages+=("${pin%%:*}")
+  fi
+done
 
 changed_packages=(${(u)changed_packages})
 

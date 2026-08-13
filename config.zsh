@@ -9,8 +9,7 @@ configs=(
   "config/sheldon/plugins.toml:$HOME/.config/sheldon/plugins.toml"
   "config/zshrc:$HOME/.zshrc"
   "config/git/ignore:$HOME/.config/git/ignore"
-  "config/git/discard.zsh:$HOME/.config/git/discard.zsh"
-  "config/claude/CLAUDE.md:$HOME/.claude/CLAUDE.md")
+  "config/git/discard.zsh:$HOME/.config/git/discard.zsh")
 
 for f in "$SCRIPT_DIR"/config/claude/agents/*.md(N) "$SCRIPT_DIR"/config/claude/scripts/*(.N) "$SCRIPT_DIR"/config/claude/skills/**/*(.N); do
   rel="${f#$SCRIPT_DIR/config/claude/}"
@@ -47,6 +46,7 @@ JQ_KEYBINDINGS_MERGE='
   ]
 '
 
+SHARED_INSTRUCTIONS="$SCRIPT_DIR/config/agents/instructions.md"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 REPO_SETTINGS="$SCRIPT_DIR/config/claude/settings.json"
 CLAUDE_KEYBINDINGS="$HOME/.claude/keybindings.json"
@@ -55,35 +55,49 @@ ITERM_PROFILE_SRC="$SCRIPT_DIR/config/iterm2/profile.json"
 ITERM_PROFILE_DST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/profile.json"
 VSCODE_SETTINGS="$HOME/Library/Application Support/Code/User/settings.json"
 REPO_VSCODE_SETTINGS="$SCRIPT_DIR/config/vscode/settings.json"
+CODEX_CONFIG="$HOME/.codex/config.toml"
+REPO_CODEX_CONFIG="$SCRIPT_DIR/config/codex/config.toml"
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 
 diffs=0
 synced=()
-removed=0
+changes=0
+
+sync_file() {
+  local src=$1 dst=$2 label=$3
+  if diff -q "$src" "$dst" &>/dev/null; then
+    return 0
+  fi
+  if [[ "$MODE" == "diff" ]]; then
+    if [[ -e "$dst" || -L "$dst" ]]; then
+      git diff --no-index "$dst" "$src" || true
+    else
+      echo "New: $label -> $dst"
+    fi
+    diffs=$((diffs + 1))
+  else
+    mkdir -p "$(dirname "$dst")"
+    cp "$src" "$dst"
+    echo "Synced: $dst"
+    synced+=("$src")
+    changes=$((changes + 1))
+  fi
+}
 
 sync_files() {
-  local entry src dst
+  local entry
   for entry in "${configs[@]}"; do
-    src="$SCRIPT_DIR/${entry%%:*}"
-    dst="${entry##*:}"
-    if ! diff -q "$src" "$dst" &>/dev/null; then
-      if [[ "$MODE" == "diff" ]]; then
-        if [[ -e "$dst" || -L "$dst" ]]; then
-          git diff --no-index "$dst" "$src" || true
-        else
-          echo "New: ${entry%%:*} -> $dst"
-        fi
-        diffs=$((diffs + 1))
-      else
-        mkdir -p "$(dirname "$dst")"
-        cp "$src" "$dst"
-        echo "Synced: $dst"
-        synced+=("$src")
-      fi
-    fi
+    sync_file "$SCRIPT_DIR/${entry%%:*}" "${entry##*:}" "${entry%%:*}"
   done
+}
+
+sync_instructions() {
+  local specific=$1 dst=$2
+  local composed="$tmpdir/${specific:h:t}-instructions.md"
+  { cat "$SHARED_INSTRUCTIONS"; echo; cat "$specific" } > "$composed"
+  sync_file "$composed" "$dst" "config/agents/instructions.md + ${specific#$SCRIPT_DIR/}"
 }
 
 # Claude Code loads any file present in ~/.claude/agents/ and ~/.claude/skills/
@@ -99,7 +113,7 @@ remove_orphans() {
       else
         rm -f "$orphan_file"
         echo "Removed: $orphan_file"
-        removed=$((removed + 1))
+        changes=$((changes + 1))
       fi
     fi
   done
@@ -115,7 +129,7 @@ remove_orphans() {
         # rmdir would fail on a .DS_Store, which the file loop's (.N) glob skips.
         rm -rf "$orphan_dir"
         echo "Removed: $orphan_dir/"
-        removed=$((removed + 1))
+        changes=$((changes + 1))
       fi
     fi
   done
@@ -125,7 +139,7 @@ run_post_sync_hooks() {
   if [[ "$MODE" != "sync" ]]; then
     return 0
   fi
-  if [[ ${#synced[@]} -eq 0 && $removed -eq 0 ]]; then
+  if [[ $changes -eq 0 ]]; then
     echo "Already up to date."
     return 0
   fi
@@ -145,21 +159,35 @@ run_post_sync_hooks() {
 
 merge_json_config() {
   local label=$1 user_file=$2 repo_file=$3 jq_expr=$4 empty_default=$5
-  local merged="$tmpdir/${label// /-}.json"
-  mkdir -p "$(dirname "$user_file")"
-  [[ -f "$user_file" ]] || echo "$empty_default" > "$user_file"
-  jq -s "$jq_expr" "$user_file" "$repo_file" > "$merged"
-  if ! diff -q "$user_file" "$merged" &>/dev/null; then
+  local merged="$tmpdir/${label// /-}.json" installed="$user_file"
+  if [[ ! -f "$user_file" ]]; then
+    installed="$tmpdir/${label// /-}-installed.json"
+    echo "$empty_default" > "$installed"
+  fi
+  jq -s "$jq_expr" "$installed" "$repo_file" > "$merged"
+  if ! diff -q "$installed" "$merged" &>/dev/null; then
     if [[ "$MODE" == "diff" ]]; then
       echo ""
       echo "$label.json:"
-      git diff --no-index "$user_file" "$merged" || true
+      git diff --no-index "$installed" "$merged" || true
       diffs=$((diffs + 1))
     else
+      mkdir -p "$(dirname "$user_file")"
       cp "$merged" "$user_file"
       echo "Merged $label into $user_file"
+      changes=$((changes + 1))
     fi
   fi
+}
+
+merge_codex_config() {
+  local installed="$CODEX_CONFIG" merged="$tmpdir/codex-config.toml"
+  if [[ ! -f "$installed" ]]; then
+    installed="$tmpdir/codex-config-installed.toml"
+    : > "$installed"
+  fi
+  uv run "$SCRIPT_DIR/scripts/merge-codex-config.py" "$installed" "$REPO_CODEX_CONFIG" > "$merged"
+  sync_file "$merged" "$CODEX_CONFIG" "config/codex/config.toml"
 }
 
 sync_iterm_profile() {
@@ -198,6 +226,7 @@ sync_iterm_profile() {
     jq --arg guid "$guid" '.Profiles[0].Guid = $guid' "$ITERM_PROFILE_SRC" \
       > "$ITERM_PROFILE_DST.tmp" && mv "$ITERM_PROFILE_DST.tmp" "$ITERM_PROFILE_DST"
     echo "Synced iTerm2 Dynamic Profile."
+    changes=$((changes + 1))
   fi
 }
 
@@ -231,6 +260,7 @@ install_vscode_extensions() {
     for ext in "${missing[@]}"; do
       echo "Installing VSCode extension: $ext"
       code --install-extension "$ext" 2>/dev/null || echo "Warning: failed to install $ext"
+      changes=$((changes + 1))
     done
   fi
 }
@@ -268,6 +298,7 @@ apply_git_config() {
       else
         git config --global "$key" "$expected"
         echo "Set git config: $key = $expected"
+        changes=$((changes + 1))
       fi
     fi
   done
@@ -293,6 +324,7 @@ apply_duti() {
       else
         if duti -s "$bundle" "$ext" "$role" 2>/dev/null; then
           echo "Set default for ${ext} → $bundle"
+          changes=$((changes + 1))
         else
           echo "Warning: failed to set default for ${ext} (skipped)"
         fi
@@ -328,16 +360,19 @@ apply_macos_defaults() {
       else
         defaults write "$domain" "$key" "-$type" "$expected"
         echo "Set defaults: $domain $key = $expected"
+        changes=$((changes + 1))
       fi
     fi
   done
 }
 
 sync_files
+sync_instructions "$SCRIPT_DIR/config/claude/instructions.md" "$HOME/.claude/CLAUDE.md"
+sync_instructions "$SCRIPT_DIR/config/codex/instructions.md" "$HOME/.codex/AGENTS.md"
 remove_orphans
-run_post_sync_hooks
 merge_json_config "Claude Code settings" "$CLAUDE_SETTINGS" "$REPO_SETTINGS" "$JQ_SETTINGS_MERGE" '{}'
 merge_json_config "Claude Code keybindings" "$CLAUDE_KEYBINDINGS" "$REPO_KEYBINDINGS" "$JQ_KEYBINDINGS_MERGE" '{"bindings":[]}'
+merge_codex_config
 sync_iterm_profile
 if [[ -f "$REPO_VSCODE_SETTINGS" ]]; then
   merge_json_config "VSCode settings" "$VSCODE_SETTINGS" "$REPO_VSCODE_SETTINGS" '.[0] * .[1]' '{}'
@@ -346,6 +381,7 @@ install_vscode_extensions
 apply_git_config
 apply_duti
 apply_macos_defaults
+run_post_sync_hooks
 
 if [[ "$MODE" == "diff" && $diffs -eq 0 ]]; then
   echo "No differences found."

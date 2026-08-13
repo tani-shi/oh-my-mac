@@ -159,7 +159,9 @@
       "Read(**/terraform.tfvars)",
       "Read(**/terraform.tfvars.json)",
       "Edit(**/.config/notion/auth.json)",
-      "Read(**/.config/notion/auth.json)"
+      "Read(**/.config/notion/auth.json)",
+      "Edit(**/.codex/auth.json)",
+      "Read(**/.codex/auth.json)"
     ],
     "ask": [
       "mcp__claude_ai_Slack__slack_create_canvas",

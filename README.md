@@ -24,6 +24,25 @@ cd ~/dev/oh-my-mac
 make install
 ```
 
+## Agent Instructions
+
+Claude Code and Codex both work in this repository, and both read their instructions from one place per scope.
+
+| File | Scope | Read by |
+| --- | --- | --- |
+| `AGENTS.md` | this repository | Claude Code, Codex |
+| `CLAUDE.md` | this repository | Claude Code |
+| `.codex/config.toml` (`developer_instructions`) | this repository | Codex |
+| `config/agents/instructions.md` | every repository, as user settings | Claude Code, Codex |
+| `config/claude/instructions.md` | every repository, as user settings | Claude Code |
+| `config/codex/instructions.md` | every repository, as user settings | Codex |
+
+`AGENTS.md` holds the project instructions both agents follow. Codex finds it by its own discovery rules; `CLAUDE.md` pulls it in with `@AGENTS.md` and adds only what is specific to Claude Code. Neither a Codex fallback filename nor a symlink is needed, and no sentence is written twice.
+
+`.claude/` and `.codex/` at the repository root are the per-agent project scopes, holding what only one agent needs while working here. Codex reads `.codex/config.toml` once the directory is trusted.
+
+The `config/` entries are a different scope again: `make sync-config` concatenates the shared `instructions.md` with each agent's own into `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`, so they apply in every repository rather than this one.
+
 ## What's Included
 
 ### Homebrew Packages (`Brewfile`)
@@ -55,7 +74,9 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | `config/zshrc` | `~/.zshrc` |
 | `config/git/ignore` | `~/.config/git/ignore` |
 | `config/git/discard.zsh` | `~/.config/git/discard.zsh` |
-| `config/claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
+| `config/agents/instructions.md` + `config/claude/instructions.md` | `~/.claude/CLAUDE.md` |
+| `config/agents/instructions.md` + `config/codex/instructions.md` | `~/.codex/AGENTS.md` |
+| `config/codex/config.toml` | managed keys in `~/.codex/config.toml` |
 | `config/claude/settings.json` | `~/.claude/settings.json` |
 | `config/claude/keybindings.json` | `~/.claude/keybindings.json` |
 | `config/claude/scripts/*.zsh` | `~/.claude/scripts/` |
@@ -96,7 +117,17 @@ The point is the permission layer: an operation that can always be undone is saf
 
 | Tool | Version |
 | --- | --- |
-| ntn | 0.21.6 |
+| ntn | 0.21.10 |
+
+### Codex CLI (`config/codex/version`)
+
+[Codex CLI](https://developers.openai.com/codex/cli) is OpenAI's coding agent, published on npm as `@openai/codex`. It runs alongside Claude Code and reads the same rules — see [Agent Instructions](#agent-instructions). `make install` / `make update` install the pinned version globally with npm using the fnm-managed Node, reinstalling only when the globally installed `@openai/codex` differs from the pin; the step is skipped when npm is unavailable. Homebrew's `codex` cask carries no version pin and is not used.
+
+`config/codex/config.toml` declares the global defaults this repository manages. The sync uses a pinned TOML parser to update those top-level keys while preserving project trust entries, plugins, MCP servers, and other values written by Codex or the ChatGPT desktop app. Invalid TOML aborts the sync without changing the installed file.
+
+| Tool | Version |
+| --- | --- |
+| codex | 0.147.0 |
 
 ### uv Tools (`config/uv/tools.txt`)
 
@@ -132,10 +163,9 @@ Add extensions as `publisher.extension-name` per line.
 | `make install` | Install packages + sync config + install plugins |
 | `make update` | Sync config + install missing packages (no upgrades) |
 | `make upgrade` | Open a Claude Code session that investigates upgrades, applies them, and commits |
-| `make upgrade-apply` | Apply the pinned versions and refresh `versions.json` (invoked from `/upgrade`) |
+| `make upgrade-apply` | Apply the pinned versions (invoked from `/upgrade`) |
 | `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
 | `make test` | Run the test suite |
-| `make snapshot-versions` | Record installed versions of repo-declared packages to `versions.json` |
 | `make diff-config` | Show differences between repo and local config |
 | `make sync-config` | Sync config files only |
 
@@ -161,6 +191,18 @@ For scripts and CI, export a Notion personal access token instead of logging in 
 
 ```bash
 export NOTION_API_TOKEN=ntn_...
+```
+
+### Codex CLI auth
+
+```bash
+codex login   # opens a browser; credentials land in ~/.codex/auth.json
+```
+
+For scripts and CI, export an OpenAI API key instead — it is never stored in this repo:
+
+```bash
+export OPENAI_API_KEY=sk-...
 ```
 
 ### iTerm2
