@@ -1,0 +1,7 @@
+interface:
+  display_name: "Refactor Review"
+  short_description: "Review structural refactoring candidates"
+  default_prompt: "Use $refactor-review to review the current changes for structural refactoring opportunities."
+
+policy:
+  allow_implicit_invocation: false

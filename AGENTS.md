@@ -13,7 +13,7 @@ declared here into the locations those tools actually read.
 | --- | --- |
 | `config/agents/` | user-global instructions shared by every CLI agent |
 | `config/claude/` | Claude Code configuration and its user-global instructions |
-| `config/codex/` | Codex configuration, version pin, and user-global instructions |
+| `config/codex/` | Codex configuration, version pin, user-global instructions, and skills |
 | `config/vscode/`, `config/iterm2/`, `config/git/`, … | one directory per tool |
 
 Instruction files fall into two scopes that must not be mixed:
@@ -40,6 +40,7 @@ repository rather than this one.
 - `config/agents/instructions.md` + `config/codex/instructions.md` are concatenated into the generated `~/.codex/AGENTS.md`.
 - `config/codex/config.toml` declares the top-level keys merged into `~/.codex/config.toml`.
 - `config/codex/version` pins the installed CLI version.
+- `config/codex/skills/*/` is synced into `~/.agents/skills/`. Invoke `refactor-review` explicitly with `$refactor-review`; implicit invocation is disabled by its `agents/openai.yaml` policy.
 - `.codex/` at the repository root is project scope: it configures Codex sessions run inside this repository, is not synced to `~/.codex/`, and loads only once the directory is trusted. Its `developer_instructions` carries what only Codex needs while working here.
 - Auth lives in `~/.codex/auth.json` or the macOS Keychain and never in the repository:
   sign in with `codex login`, or set `OPENAI_API_KEY` for scripts and CI.
@@ -58,7 +59,8 @@ repository rather than this one.
 - `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` are generated: `sync_instructions` concatenates `config/agents/instructions.md` with the CLI's own `instructions.md` into a temporary file, and `sync_file` diffs and copies that.
 - `merge-codex-config.py` uses its pinned `tomlkit` dependency to update only the top-level keys declared by `config/codex/config.toml`. Tables and other undeclared values in `~/.codex/config.toml` remain application-owned. A parse failure aborts the sync before the installed file is changed.
 - macOS defaults are managed via the `macos_defaults` array using `defaults read`/`defaults write`. Add new entries as `"domain:key:type:value"` (supported types: `bool`, `int`, `float`, `string`).
-- `remove_orphans` deletes anything under `~/.claude/agents/` and `~/.claude/skills/` that the repository no longer declares — files, then the directories left behind by a renamed or deleted skill. Deletion is permanent: keep anything worth surviving a sync in `config/claude/`.
+- `remove_claude_orphans` deletes anything under `~/.claude/agents/` and `~/.claude/skills/` that the repository no longer declares — files, then the directories left behind by a renamed or deleted skill. Deletion is permanent: keep anything worth surviving a sync in `config/claude/`.
+- Codex skill ownership is recorded as relative file paths in `~/.agents/skills/.oh-my-mac-managed` because that directory is shared with independently installed skills. Sync aborts rather than overwrite an unrecorded same-name skill. `reconcile_codex_skills` removes only valid paths in the previous manifest that no longer exist under `config/codex/skills/`; unrecorded skills and files are left untouched.
 - Global git config, including aliases such as `git discard`, is managed via the `git_config_keys` array as `"key:value"`. A script an alias invokes is synced through the `configs` array and run as `zsh <path>`, so it needs no executable bit — `sync_files` copies content only and never manages file modes.
 
 ## Tests
