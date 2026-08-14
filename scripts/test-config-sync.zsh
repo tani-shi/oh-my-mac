@@ -119,6 +119,32 @@ run() {
 sync_config() { "$REPO/config.zsh" sync 2>&1 }
 diff_config() { "$REPO/config.zsh" diff 2>&1 }
 
+t_invalid_modes_are_rejected() {
+  local output exit_status
+
+  output="$("$REPO/config.zsh" typo 2>&1)"
+  exit_status=$?
+  check_equals "an unknown mode fails" "$exit_status" "1"
+  check_contains "an unknown mode prints usage" "$output" "Usage: $REPO/config.zsh diff|sync"
+
+  output="$("$REPO/config.zsh" 2>&1)"
+  exit_status=$?
+  check_equals "a missing mode fails" "$exit_status" "1"
+  check_contains "a missing mode prints usage" "$output" "Usage: $REPO/config.zsh diff|sync"
+
+  output="$("$REPO/config.zsh" sync extra 2>&1)"
+  exit_status=$?
+  check_equals "extra arguments fail" "$exit_status" "1"
+  check_contains "extra arguments print usage" "$output" "Usage: $REPO/config.zsh diff|sync"
+
+  check_equals "invalid invocations leave HOME untouched" \
+    "$(find "$HOME" -mindepth 1 | wc -l | tr -d ' ')" "0"
+  check_equals "invalid invocations leave global Git config untouched" \
+    "$([[ ! -e "$GIT_CONFIG_GLOBAL" ]] && print yes || print no)" "yes"
+  check_equals "invalid invocations leave external settings untouched" \
+    "$(find "$STUB_STATE" -mindepth 1 | wc -l | tr -d ' ')" "0"
+}
+
 t_diff_writes_nothing() {
   diff_config > /dev/null
   check_equals "HOME untouched" "$(find "$HOME" -mindepth 1 | wc -l | tr -d ' ')" "0"
@@ -380,6 +406,7 @@ STUB
     "Error: installed Claude Code version 9.9.9, expected $version"
 }
 
+run "invalid modes are rejected"             t_invalid_modes_are_rejected
 run "diff writes nothing"                    t_diff_writes_nothing
 run "diff after sync is clean"               t_diff_after_sync_is_clean
 run "sync is idempotent"                     t_sync_is_idempotent
