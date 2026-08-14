@@ -1,3 +1,7 @@
+## Git
+
+- Name branches after the change they contain, using a suitable prefix such as `feat/`, `fix/`, `docs/`, or `refactor/`, rather than an agent-specific prefix such as `codex/`.
+
 ## Subagents
 
 - Use subagents for independent read-only work when parallelism materially helps; keep small, single-source checks direct.
