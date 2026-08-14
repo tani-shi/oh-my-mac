@@ -3,7 +3,8 @@
 ## Language
 
 - Write code, config files, and commit messages in English, regardless of the prompt's language.
-- For conversation and human-facing documentation (README, guides, and similar prose meant for readers), match the language of the prompt.
+- Reply to the user in Japanese, regardless of the language used in the prompt.
+- For human-facing documentation (README, guides, and similar prose meant for readers), match the language of the prompt.
 
 ## Wording
 
