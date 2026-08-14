@@ -1,6 +1,6 @@
-INSTALL_STEPS := install-claude sync-claude-plugins install-uv-tools install-vscode-extensions install-node install-ntn install-codex
+INSTALL_STEPS := install-claude sync-claude-plugins install-vscode-extensions install-node install-ntn install-codex
 
-.PHONY: help diff-config sync-config install update upgrade upgrade-apply trust-taps test $(INSTALL_STEPS)
+.PHONY: help diff-config sync-config install update upgrade upgrade-apply refresh-agent-sentinel trust-taps test install-uv-tools $(INSTALL_STEPS)
 
 .DEFAULT_GOAL := help
 
@@ -17,21 +17,33 @@ sync-config: ## Sync config files only
 install: ## Install packages + sync config + install plugins
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
-	$(MAKE) sync-config $(INSTALL_STEPS)
+	$(MAKE) install-uv-tools
+	$(MAKE) sync-config
+	$(MAKE) $(INSTALL_STEPS)
 
-update: sync-config $(INSTALL_STEPS) ## Sync config + install missing packages (no upgrades)
+update: ## Sync config + install missing packages (no upgrades)
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
+	$(MAKE) install-uv-tools
+	$(MAKE) sync-config
+	$(MAKE) $(INSTALL_STEPS)
 	brew cleanup
 
 upgrade: ## Investigate upgrades in a Claude Code session, apply them, and commit
 	claude "/upgrade"
 
+refresh-agent-sentinel: ## Update agent-sentinel HEAD and refresh generated config
+	$(MAKE) install-uv-tools AGENT_SENTINEL_UPGRADE=1
+	@./scripts/refresh-agent-sentinel.zsh
+	$(MAKE) test
+	$(MAKE) diff-config
+
 upgrade-apply: ## Apply the pinned versions (invoked from /upgrade)
 	$(MAKE) trust-taps
 	HOMEBREW_NO_INTERACTIVE=1 brew bundle --file=Brewfile
 	brew cleanup
-	$(MAKE) install-claude sync-claude-plugins install-uv-tools install-ntn install-codex
+	$(MAKE) install-uv-tools
+	$(MAKE) install-claude sync-claude-plugins install-ntn install-codex
 
 trust-taps:
 	@if [ -f config/homebrew/trusted-taps.txt ]; then \
@@ -166,11 +178,27 @@ install-codex:
 
 install-uv-tools:
 	@if command -v uv >/dev/null 2>&1 && [ -f config/uv/tools.txt ]; then \
+		installed=$$(uv tool list 2>&1) || { echo "$$installed"; exit 1; }; \
 		while IFS= read -r tool || [ -n "$$tool" ]; do \
 			[ -z "$$tool" ] && continue; \
 			echo "Installing uv tool: $$tool"; \
-			uv tool install "$$tool" 2>&1 || echo "Warning: Failed to install $$tool"; \
+			case "$$tool" in \
+				agent-sentinel*) \
+					options=""; \
+					if echo "$$installed" | grep -q '^claude-sentinel ' && ! echo "$$installed" | grep -q '^agent-sentinel '; then \
+						options="--force"; \
+					fi; \
+					if [ "$(AGENT_SENTINEL_UPGRADE)" = "1" ]; then \
+						options="$$options --upgrade"; \
+					fi; \
+					uv tool install $$options "$$tool" 2>&1 || exit 1; \
+					command -v agent-sentinel >/dev/null 2>&1 || { echo "Error: agent-sentinel executable not found after install"; exit 1; }; \
+					agent-sentinel --help >/dev/null 2>&1 || { echo "Error: agent-sentinel executable check failed"; exit 1; }; \
+					;; \
+				*) uv tool install "$$tool" 2>&1 || echo "Warning: Failed to install $$tool" ;; \
+			esac; \
 		done < config/uv/tools.txt; \
 	else \
-		echo "Skipping uv tools (uv not found or tools.txt missing)"; \
+		echo "Error: uv not found or config/uv/tools.txt missing"; \
+		exit 1; \
 	fi

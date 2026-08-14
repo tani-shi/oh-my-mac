@@ -7,6 +7,7 @@ if (( $# != 1 )) || [[ "$1" != "diff" && "$1" != "sync" ]]; then
 fi
 MODE="$1"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/scripts/agent-sentinel.zsh"
 CODEX_SKILLS_SRC="$SCRIPT_DIR/config/codex/skills"
 CODEX_SKILLS_DST="$HOME/.agents/skills"
 CODEX_SKILLS_MANIFEST="$CODEX_SKILLS_DST/.oh-my-mac-managed"
@@ -88,6 +89,8 @@ VSCODE_SETTINGS="$HOME/Library/Application Support/Code/User/settings.json"
 REPO_VSCODE_SETTINGS="$SCRIPT_DIR/config/vscode/settings.json"
 CODEX_CONFIG="$HOME/.codex/config.toml"
 REPO_CODEX_CONFIG="$SCRIPT_DIR/config/codex/config.toml"
+CODEX_HOOKS="$HOME/.codex/hooks.json"
+CODEX_AGENT_SENTINEL_RULES="$HOME/.codex/rules/agent-sentinel.rules"
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
@@ -96,6 +99,8 @@ diffs=0
 synced=()
 changes=0
 CODEX_SKILLS_DESIRED="$tmpdir/codex-skills-managed"
+GENERATED_CODEX_HOOKS="$tmpdir/codex/hooks.json"
+GENERATED_CODEX_AGENT_SENTINEL_RULES="$tmpdir/codex/rules/agent-sentinel.rules"
 
 sync_file() {
   local src=$1 dst=$2 label=$3
@@ -123,6 +128,23 @@ sync_files() {
   for entry in "${configs[@]}"; do
     sync_file "$SCRIPT_DIR/${entry%%:*}" "${entry##*:}" "${entry%%:*}"
   done
+}
+
+verify_agent_sentinel() {
+  if ! command -v agent-sentinel &>/dev/null || ! agent-sentinel --help &>/dev/null; then
+    print -u2 "Error: agent-sentinel must be installed before syncing its configuration"
+    return 1
+  fi
+}
+
+generate_agent_sentinel_codex_config() {
+  mkdir -p "${GENERATED_CODEX_HOOKS:h}"
+  if [[ -f "$CODEX_HOOKS" ]]; then
+    cp "$CODEX_HOOKS" "$GENERATED_CODEX_HOOKS"
+  fi
+  agent-sentinel install --target codex --path "$GENERATED_CODEX_HOOKS" >/dev/null
+  validate_agent_sentinel_codex_config \
+    "$GENERATED_CODEX_HOOKS" "$GENERATED_CODEX_AGENT_SENTINEL_RULES"
 }
 
 sync_instructions() {
@@ -517,8 +539,13 @@ apply_macos_defaults() {
   done
 }
 
+verify_agent_sentinel
+generate_agent_sentinel_codex_config
 prepare_codex_skills
 sync_files
+sync_file "$GENERATED_CODEX_HOOKS" "$CODEX_HOOKS" "generated agent-sentinel Codex hooks"
+sync_file "$GENERATED_CODEX_AGENT_SENTINEL_RULES" "$CODEX_AGENT_SENTINEL_RULES" \
+  "generated agent-sentinel Codex rules"
 sync_instructions "$SCRIPT_DIR/config/claude/instructions.md" "$HOME/.claude/CLAUDE.md"
 sync_instructions "$SCRIPT_DIR/config/codex/instructions.md" "$HOME/.codex/AGENTS.md"
 remove_claude_orphans
