@@ -317,6 +317,69 @@ t_project_instructions_reach_each_agent() {
     "$(<"$REPO/CLAUDE.md")" "$shared_section"
 }
 
+t_claude_installer_fallback_uses_the_pin() {
+  stub claude <<'STUB'
+#!/bin/zsh
+case "$1" in
+  --version)
+    [[ -f "$STUB_STATE/claude-version" ]] && cat "$STUB_STATE/claude-version" || print 0.0.0
+    ;;
+  install)
+    print -r -- "$*" > "$STUB_STATE/claude-install-args"
+    exit 1
+    ;;
+esac
+STUB
+  stub curl <<'STUB'
+#!/bin/zsh
+cat <<'INSTALLER'
+#!/bin/sh
+printf '%s\n' "$#" > "$STUB_STATE/claude-installer-argc"
+printf '%s\n' "$*" > "$STUB_STATE/claude-installer-args"
+printf '%s\n' "$1" > "$STUB_STATE/claude-version"
+INSTALLER
+STUB
+
+  local version="$(<"$REPO/config/claude/version")" output exit_status
+  output="$(make -s -C "$REPO" install-claude 2>&1)"
+  exit_status=$?
+
+  check_equals "the fallback installation succeeds" "$exit_status" "0"
+  check_equals "the regular installer receives the pin" \
+    "$(<"$STUB_STATE/claude-install-args")" "install $version"
+  check_equals "the fallback receives one argument" \
+    "$(<"$STUB_STATE/claude-installer-argc")" "1"
+  check_equals "the fallback receives the pin" \
+    "$(<"$STUB_STATE/claude-installer-args")" "$version"
+}
+
+t_claude_installer_rejects_a_version_mismatch() {
+  stub claude <<'STUB'
+#!/bin/zsh
+case "$1" in
+  --version)
+    [[ -f "$STUB_STATE/claude-version" ]] && cat "$STUB_STATE/claude-version" || print 0.0.0
+    ;;
+  install) exit 1 ;;
+esac
+STUB
+  stub curl <<'STUB'
+#!/bin/zsh
+cat <<'INSTALLER'
+#!/bin/sh
+printf '%s\n' 9.9.9 > "$STUB_STATE/claude-version"
+INSTALLER
+STUB
+
+  local version="$(<"$REPO/config/claude/version")" output exit_status
+  output="$(make -s -C "$REPO" install-claude 2>&1)"
+  exit_status=$?
+
+  check_equals "a mismatched installed version fails" "$exit_status" "2"
+  check_contains "the mismatch identifies both versions" "$output" \
+    "Error: installed Claude Code version 9.9.9, expected $version"
+}
+
 run "diff writes nothing"                    t_diff_writes_nothing
 run "diff after sync is clean"               t_diff_after_sync_is_clean
 run "sync is idempotent"                     t_sync_is_idempotent
@@ -330,6 +393,8 @@ run "codex config rejects invalid TOML"      t_codex_config_rejects_invalid_toml
 run "codex config rejects a table conflict"  t_codex_config_rejects_a_table_conflict
 run "instructions are shared then specific"  t_instructions_are_shared_then_specific
 run "project instructions reach each agent"  t_project_instructions_reach_each_agent
+run "Claude fallback uses the pin"            t_claude_installer_fallback_uses_the_pin
+run "Claude install verifies the pin"         t_claude_installer_rejects_a_version_mismatch
 
 print
 print "$pass passed, $fail failed"
