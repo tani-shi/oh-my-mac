@@ -132,7 +132,14 @@ The point is the permission layer: an operation that can always be undone is saf
 
 `config/codex/config.toml` declares the global defaults this repository manages. The sync uses a pinned TOML parser to update those top-level keys while preserving project trust entries, plugins, MCP servers, and other values written by Codex or the ChatGPT desktop app. Invalid TOML aborts the sync without changing the installed file.
 
-`agent-sentinel` is installed and checked before config sync. The sync generates its Codex hook and execution rules in a temporary directory, preserving unrelated hooks already installed in `~/.codex/hooks.json`, then compares or copies the result to `~/.codex/`. Generated copies are not stored in the repository, and `~/.codex/rules/default.rules` remains user- or application-owned. Before writing, sync requires the exact agent-sentinel hook and an explicit `prompt` or `forbidden` decision on every generated rule. `make refresh-agent-sentinel` updates the HEAD-tracking tool, refreshes the integrated Claude settings, validates both hosts, runs the tests, and shows the pending user-config diff. After syncing, open `/hooks` in Codex CLI and trust the hook. Codex GUI execution is not part of this repository's verified integration surface.
+`agent-sentinel` is installed and checked before config sync. The sync generates its Codex hook and execution rules in a temporary directory, preserving unrelated hooks already installed in `~/.codex/hooks.json`, then compares or copies the result to `~/.codex/`. Generated copies are not stored in the repository, and `~/.codex/rules/default.rules` remains user- or application-owned. Before writing, sync requires the exact agent-sentinel hook and an explicit `prompt` or `forbidden` decision on every generated rule. `make refresh-agent-sentinel` updates the HEAD-tracking tool, refreshes the integrated Claude settings, validates both hosts, runs the tests, and shows the pending user-config diff.
+
+Codex requires manual review before it runs a new or changed non-managed command hook. After a sync that changes the agent-sentinel hook definition, use the interface for the Codex surface you run:
+
+- Codex app: open **Settings > Hooks** and trust the hook. The app does not expose `/hooks` as a slash command, so its absence from the command list is not a configuration error.
+- Codex CLI: run `/hooks` and trust the hook.
+
+Trust is recorded for the current hook-definition hash. The same definition remains trusted across tasks; changing the definition requires another review. The sync reports these steps only when it writes a new or changed agent-sentinel hook. A refresh that detects a pending definition change asks you to sync first and repeats that notice while the change remains pending. A refresh with no pending definition change, or an identical sync, reports no trust notice. See the [Codex hooks documentation](https://learn.chatgpt.com/docs/hooks) for the trust model and CLI workflow.
 
 | Tool | Version |
 | --- | --- |

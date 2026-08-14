@@ -543,7 +543,14 @@ verify_agent_sentinel
 generate_agent_sentinel_codex_config
 prepare_codex_skills
 sync_files
+codex_hook_changed=0
+if agent_sentinel_codex_hook_changed "$CODEX_HOOKS" "$GENERATED_CODEX_HOOKS"; then
+  codex_hook_changed=1
+fi
 sync_file "$GENERATED_CODEX_HOOKS" "$CODEX_HOOKS" "generated agent-sentinel Codex hooks"
+if [[ "$MODE" == "sync" && $codex_hook_changed -eq 1 ]]; then
+  print_codex_hook_trust_instructions applied
+fi
 sync_file "$GENERATED_CODEX_AGENT_SENTINEL_RULES" "$CODEX_AGENT_SENTINEL_RULES" \
   "generated agent-sentinel Codex rules"
 sync_instructions "$SCRIPT_DIR/config/claude/instructions.md" "$HOME/.claude/CLAUDE.md"
