@@ -4,7 +4,7 @@
 
 EVENT="${1:?event required: stop|notification|userpromptsubmit|taskcompleted}"
 
-# Skip while a claude-sentinel-wrapper is judging in this session.
+# Skip while an agent-sentinel-wrapper is judging in this session.
 # Walk to the topmost `claude` PID; the wrapper's flag is keyed on that PID,
 # so both parent-direct and Agent-SDK-nested hooks find it.
 last_claude_pid=""
@@ -21,8 +21,8 @@ if [[ -n "$last_claude_pid" ]]; then
   # Flag format: <parent-claude-pid>.<wrapper-pid>.flag. kill -0 detects
   # SIGKILLed wrappers whose trap didn't fire — clean up the stale flag so
   # the rest of the session isn't suppressed.
-  for flag in /tmp/claude-sentinel-running.${last_claude_pid}.*.flag(N); do
-    wpid=${${flag##*/claude-sentinel-running.${last_claude_pid}.}%.flag}
+  for flag in /tmp/agent-sentinel-running.${last_claude_pid}.*.flag(N); do
+    wpid=${${flag##*/agent-sentinel-running.${last_claude_pid}.}%.flag}
     if kill -0 "$wpid" 2>/dev/null; then
       exit 0
     else

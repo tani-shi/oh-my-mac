@@ -1,7 +1,7 @@
 #!/bin/zsh
 SCRIPT_DIR="${0:A:h}"
 THRESHOLD_SEC=0.3
-FIRED_FLAG="/tmp/claude-sentinel-fired.$$.flag"
+FIRED_FLAG="/tmp/agent-sentinel-fired.$$.flag"
 rm -f "$FIRED_FLAG"
 
 # Walk ancestors to the topmost `claude` PID. Both parent-direct hooks and
@@ -18,7 +18,7 @@ while [[ "$pid" -gt 1 ]]; do
   pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
   [[ -z "$pid" ]] && break
 done
-RUNNING_FLAG="/tmp/claude-sentinel-running.${last_claude_pid:-$$}.$$.flag"
+RUNNING_FLAG="/tmp/agent-sentinel-running.${last_claude_pid:-$$}.$$.flag"
 : > "$RUNNING_FLAG"
 trap 'rm -f "$RUNNING_FLAG"' EXIT INT TERM
 
@@ -29,7 +29,7 @@ trap 'rm -f "$RUNNING_FLAG"' EXIT INT TERM
 ) &
 timer_pid=$!
 
-output=$(claude-sentinel)
+output=$(agent-sentinel --host claude)
 exit_code=$?
 
 kill "$timer_pid" 2>/dev/null
@@ -41,7 +41,7 @@ if [[ -f "$FIRED_FLAG" ]]; then
   rm -f "$FIRED_FLAG"
 fi
 
-# claude-sentinel reports its verdict as a permissionDecision under PreToolUse.
+# agent-sentinel reports its verdict as a permissionDecision under PreToolUse.
 # ask → orange directly (skip reset to avoid flicker); any other verdict clears
 # the purple judging color.
 decision=""
@@ -57,7 +57,7 @@ fi
 
 if [[ -n "$output" ]]; then
   if command -v jq >/dev/null 2>&1; then
-    printf '%s' "$output" | jq -c '. + {statusMessage: "claude-sentinel: judging…"}' 2>/dev/null \
+    printf '%s' "$output" | jq -c '. + {statusMessage: "agent-sentinel: judging…"}' 2>/dev/null \
       || printf '%s\n' "$output"
   else
     printf '%s\n' "$output"

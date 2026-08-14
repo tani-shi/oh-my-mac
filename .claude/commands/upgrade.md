@@ -54,8 +54,10 @@ Run these in parallel where you can:
   against the surface this repo relies on (`config.toml`, `AGENTS.md` discovery,
   and global npm install).
 - **Sheldon plugins**: pin by tag, or by rev when the repository has no tags.
-- **uv tools**: pin with an `@tag`/`@commit` suffix, except `claude-sentinel`
+- **uv tools**: pin with an `@tag`/`@commit` suffix, except `agent-sentinel`
   and `claude-sessions`, which the user owns and which track HEAD.
+  Refresh agent-sentinel separately with `make refresh-agent-sentinel` because
+  its generated Claude configuration is part of the repository.
 
 ## 3. Report and apply
 

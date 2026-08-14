@@ -108,7 +108,7 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 
 Snapshots are commit objects made with `git stash create` and held under `refs/discard/*`, so they cost nothing until the working tree is dirty and survive garbage collection. Each one older than `GIT_DISCARD_KEEP_DAYS` (30) is dropped once `GIT_DISCARD_KEEP_MIN` (20) newer ones exist; `GIT_DISCARD_KEEP_DAYS=0` keeps them forever. Untracked files have no git object to snapshot; the Trash is their recovery path.
 
-The point is the permission layer: an operation that can always be undone is safe to auto-approve. [claude-sentinel](https://github.com/tani-shi/claude-sentinel) allows `git discard` outright and, once it sees the `discard` alias configured, denies `git checkout` and the working-tree form of `git restore` so coding agents reach for the recoverable command instead. `git restore --staged`, which moves the index without touching files, stays allowed.
+The point is the permission layer: an operation that can always be undone is safe to auto-approve. [agent-sentinel](https://github.com/tani-shi/agent-sentinel) recognizes `git discard` as the recoverable path and, once it sees the alias configured, denies `git checkout` and the working-tree form of `git restore` so coding agents reach for it instead. `git restore --staged`, which moves the index without touching files, stays allowed. Its Codex execution rules use only `prompt` and `forbidden`; they never grant sandbox bypass.
 
 ### Node (`config/fnm/version`)
 
@@ -132,6 +132,8 @@ The point is the permission layer: an operation that can always be undone is saf
 
 `config/codex/config.toml` declares the global defaults this repository manages. The sync uses a pinned TOML parser to update those top-level keys while preserving project trust entries, plugins, MCP servers, and other values written by Codex or the ChatGPT desktop app. Invalid TOML aborts the sync without changing the installed file.
 
+`agent-sentinel` is installed and checked before config sync. The sync generates its Codex hook and execution rules in a temporary directory, preserving unrelated hooks already installed in `~/.codex/hooks.json`, then compares or copies the result to `~/.codex/`. Generated copies are not stored in the repository, and `~/.codex/rules/default.rules` remains user- or application-owned. Before writing, sync requires the exact agent-sentinel hook and an explicit `prompt` or `forbidden` decision on every generated rule. `make refresh-agent-sentinel` updates the HEAD-tracking tool, refreshes the integrated Claude settings, validates both hosts, runs the tests, and shows the pending user-config diff. After syncing, open `/hooks` in Codex CLI and trust the hook. Codex GUI execution is not part of this repository's verified integration surface.
+
 | Tool | Version |
 | --- | --- |
 | codex | 0.147.0 |
@@ -140,7 +142,7 @@ The point is the permission layer: an operation that can always be undone is saf
 
 | Tool | Source |
 | --- | --- |
-| claude-sentinel | [tani-shi/claude-sentinel](https://github.com/tani-shi/claude-sentinel) |
+| agent-sentinel (Claude extra) | [tani-shi/agent-sentinel](https://github.com/tani-shi/agent-sentinel) |
 
 ### VSCode Extensions (`config/vscode/extensions.txt`)
 
@@ -171,6 +173,7 @@ Add extensions as `publisher.extension-name` per line.
 | `make update` | Sync config + install missing packages (no upgrades) |
 | `make upgrade` | Open a Claude Code session that investigates upgrades, applies them, and commits |
 | `make upgrade-apply` | Apply the pinned versions (invoked from `/upgrade`) |
+| `make refresh-agent-sentinel` | Update agent-sentinel HEAD and refresh generated config |
 | `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
 | `make test` | Run the test suite |
 | `make diff-config` | Show differences between repo and local config |
@@ -214,7 +217,7 @@ export OPENAI_API_KEY=sk-...
 
 ### iTerm2
 
-- Primary terminal for shell work and Claude Code; tab title shows the current directory basename, and tab color flips green on Claude Code completion / orange while it's awaiting input / purple while `claude-sentinel` is running a slow LLM-backed permission judgment (managed by zsh hooks + Claude Code Stop/Notification/PreToolUse hooks)
+- Primary terminal for shell work and Claude Code; tab title shows the current directory basename, and tab color flips green on Claude Code completion / orange while it's awaiting input / purple while `agent-sentinel` is running a slow LLM-backed permission judgment (managed by zsh hooks + Claude Code Stop/Notification/PreToolUse hooks)
 - Managed via Dynamic Profile (`config/iterm2/profile.json`), synced by `make sync-config`
 - After first sync: **Profiles → oh-my-mac → Other Actions… → Set as Default** to apply
 
