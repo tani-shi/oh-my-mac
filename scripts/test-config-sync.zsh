@@ -134,6 +134,26 @@ t_sync_is_idempotent() {
   check_contains "second sync changes nothing" "$(sync_config)" "Already up to date."
 }
 
+t_claude_script_orphans_are_removed() {
+  local scripts="$HOME/.claude/scripts" orphan="$HOME/.claude/scripts/check-docs.zsh" output
+  mkdir -p "$scripts"
+  print -r -- "stale" > "$orphan"
+
+  output="$(diff_config)"
+  check_contains "diff reports the removed Claude script" "$output" \
+    "Orphan: $orphan (no config/claude/scripts/check-docs.zsh)"
+  check_equals "diff preserves the removed Claude script" \
+    "$([[ -f "$orphan" ]] && print yes || print no)" "yes"
+
+  sync_config > /dev/null
+  check_equals "sync removes the Claude script orphan" \
+    "$([[ ! -e "$orphan" ]] && print yes || print no)" "yes"
+  check_lacks "the synced hook no longer calls check-docs" \
+    "$(<"$scripts/claude-hook.zsh")" "check-docs"
+  check_contains "Claude script orphan removal is idempotent" \
+    "$(sync_config)" "Already up to date."
+}
+
 t_codex_skills_are_synced() {
   sync_config > /dev/null
   local source rel expected="$tmp/expected-codex-skills-manifest"
@@ -300,6 +320,7 @@ t_project_instructions_reach_each_agent() {
 run "diff writes nothing"                    t_diff_writes_nothing
 run "diff after sync is clean"               t_diff_after_sync_is_clean
 run "sync is idempotent"                     t_sync_is_idempotent
+run "Claude script orphans are removed"       t_claude_script_orphans_are_removed
 run "codex skills are synced"                t_codex_skills_are_synced
 run "codex skill name collisions are rejected" t_codex_skill_name_collisions_are_rejected
 run "codex skill file collisions are rejected" t_codex_skill_file_collisions_are_rejected

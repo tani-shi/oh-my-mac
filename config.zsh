@@ -205,11 +205,12 @@ prepare_codex_skills() {
   fi
 }
 
-# Claude Code loads any file present in ~/.claude/agents/ and ~/.claude/skills/
-# regardless of repo state, so orphans must be deleted, not merely left unsynced.
+# Claude Code can keep using removed agents, scripts, and skills from ~/.claude,
+# so orphans must be deleted, not merely left unsynced.
 remove_claude_orphans() {
   local orphan_file orphan_dir rel
-  for orphan_file in "$HOME"/.claude/agents/*.md(.N) "$HOME"/.claude/skills/**/*(.N); do
+  for orphan_file in "$HOME"/.claude/agents/*.md(.N) "$HOME"/.claude/scripts/*(.N) \
+    "$HOME"/.claude/skills/**/*(.N); do
     rel="${orphan_file#$HOME/.claude/}"
     if [[ ! -f "$SCRIPT_DIR/config/claude/$rel" ]]; then
       if [[ "$MODE" == "diff" ]]; then

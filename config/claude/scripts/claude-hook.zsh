@@ -83,7 +83,6 @@ case "$EVENT" in
     _write_state "$EVENT"
     ;;
   stop)
-    [[ -x "$HOME/.claude/scripts/check-docs.zsh" ]] && zsh "$HOME/.claude/scripts/check-docs.zsh"
     "$SCRIPT_DIR/iterm2-tab-color.zsh" green
     transcript=$(jq -r '.transcript_path // ""' <<<"$INPUT" 2>/dev/null)
     # Wait for the final assistant text to flush to the transcript file.
