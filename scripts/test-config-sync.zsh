@@ -81,8 +81,12 @@ if [[ "${1:-}" == "install" ]]; then
       print -r -- '{"hooks":{"PreToolUse":[]}}' > "$config_path"
     else
       [[ -f "$config_path" ]] || print -r -- '{}' > "$config_path"
+      sentinel='{"matcher":"*","hooks":[{"type":"command","command":"agent-sentinel --host codex"}]}'
+      if [[ -f "$STUB_STATE/agent-sentinel-changed-codex-hook" ]]; then
+        sentinel='{"matcher":"Bash","hooks":[{"type":"command","command":"agent-sentinel --host codex","timeout":30}]}'
+      fi
       jq --arg command 'agent-sentinel --host codex' \
-        --argjson sentinel '{"matcher":"*","hooks":[{"type":"command","command":"agent-sentinel --host codex"}]}' '
+        --argjson sentinel "$sentinel" '
         .hooks = (.hooks // {}) |
         .hooks.PreToolUse = (
           [(.hooks.PreToolUse // [])[]
@@ -101,11 +105,22 @@ if [[ "${1:-}" == "install" ]]; then
     elif [[ -f "$STUB_STATE/agent-sentinel-explicit-allow-rule" ]]; then
       print -r -- $'prefix_rule(\n    pattern = ["ssh"],\n    decision="allow",\n)' \
         > "$rules_path"
+    elif [[ -f "$STUB_STATE/agent-sentinel-changed-codex-rules" ]]; then
+      print -r -- $'prefix_rule(\n    pattern = ["ssh"],\n    decision = "forbidden",\n)' \
+        > "$rules_path"
     else
       print -r -- $'prefix_rule(\n    pattern = ["ssh"],\n    decision = "prompt",\n)' \
         > "$rules_path"
     fi
   fi
+fi
+exit 0
+STUB
+
+stub codex <<'STUB'
+#!/bin/zsh
+if [[ "${1:-}" == "execpolicy" && "${2:-}" == "check" ]]; then
+  print -r -- '{"decision":"prompt"}'
 fi
 exit 0
 STUB
@@ -207,6 +222,7 @@ run() {
 sync_config() { "$REPO/config.zsh" sync 2>&1 }
 diff_config() { "$REPO/config.zsh" diff 2>&1 }
 make_update() { make -s -C "$REPO" update INSTALL_STEPS= 2>&1 }
+refresh_agent_sentinel() { "$REPO/scripts/refresh-agent-sentinel.zsh" 2>&1 }
 make_refresh_install() {
   make -s -C "$REPO" install-uv-tools AGENT_SENTINEL_UPGRADE=1 2>&1
 }
@@ -321,6 +337,84 @@ t_agent_sentinel_config_is_synced() {
     "yes"
 }
 
+t_codex_hook_trust_notice_tracks_definition_changes() {
+  local first_output second_output changed_output unchanged_output
+
+  first_output="$(sync_config)"
+  check_contains "a new Codex hook requires trust" "$first_output" \
+    "Codex hook trust is required."
+  check_contains "the trust notice identifies the app workflow" "$first_output" \
+    "GUI: Open Settings > Hooks."
+  check_contains "the trust notice identifies the CLI workflow" "$first_output" \
+    "CLI: Run /hooks."
+
+  second_output="$(sync_config)"
+  check_lacks "an identical sync repeats no trust notice" "$second_output" \
+    "Codex hook trust is required."
+
+  : > "$STUB_STATE/agent-sentinel-changed-codex-hook"
+  changed_output="$(sync_config)"
+  check_contains "a changed Codex hook requires trust again" "$changed_output" \
+    "Codex hook trust is required."
+
+  unchanged_output="$(sync_config)"
+  check_lacks "the changed definition is reported only once" "$unchanged_output" \
+    "Codex hook trust is required."
+}
+
+t_codex_hook_trust_notice_ignores_rule_changes() {
+  sync_config > /dev/null
+  : > "$STUB_STATE/agent-sentinel-changed-codex-rules"
+
+  local output
+  output="$(sync_config)"
+  check_contains "changed execution rules are synced" "$output" \
+    "Synced: $HOME/.codex/rules/agent-sentinel.rules"
+  check_lacks "execution rules do not require hook trust" "$output" \
+    "Codex hook trust is required."
+}
+
+t_codex_hook_trust_notice_precedes_later_failures() {
+  mkdir -p "$HOME/.codex"
+  print -r -- 'sandbox_mode = "unterminated' > "$HOME/.codex/config.toml"
+
+  local failed_output exit_status retry_output
+  failed_output="$(sync_config)"
+  exit_status=$?
+  check_equals "a later merge failure fails the sync" "$exit_status" "1"
+  check_contains "a written hook is reported before the later failure" "$failed_output" \
+    "Codex hook trust is required."
+
+  print -r -- 'sandbox_mode = "workspace-write"' > "$HOME/.codex/config.toml"
+  retry_output="$(sync_config)"
+  check_lacks "the retry does not repeat the delivered trust notice" "$retry_output" \
+    "Codex hook trust is required."
+}
+
+t_refresh_reports_only_pending_hook_changes() {
+  sync_config > /dev/null
+
+  local unchanged_output changed_output repeated_output
+  unchanged_output="$(refresh_agent_sentinel)"
+  check_lacks "a refresh with no pending change reports no trust notice" "$unchanged_output" \
+    "The generated Codex hook definition changed."
+
+  : > "$STUB_STATE/agent-sentinel-changed-codex-hook"
+  changed_output="$(refresh_agent_sentinel)"
+  check_contains "refresh reports a pending hook definition change" "$changed_output" \
+    "The generated Codex hook definition changed."
+  check_contains "refresh asks for sync before trust" "$changed_output" \
+    "Run 'make sync-config', then review and trust the agent-sentinel hook:"
+  check_contains "the pending notice identifies the app workflow" "$changed_output" \
+    "GUI: Open Settings > Hooks."
+  check_contains "the pending notice identifies the CLI workflow" "$changed_output" \
+    "CLI: Run /hooks."
+
+  repeated_output="$(refresh_agent_sentinel)"
+  check_contains "refresh repeats the notice while the change remains pending" \
+    "$repeated_output" "The generated Codex hook definition changed."
+}
+
 assert_agent_sentinel_generation_fails() {
   local state_file=$1 expected_error=$2 output exit_status
   print -r -- "existing config" > "$HOME/.zshrc"
@@ -398,10 +492,14 @@ EOF
     "$(<$HOME/.claude/settings.json)" "agent-sentinel-wrapper.zsh"
   check_contains "Codex switches to agent-sentinel" \
     "$(<$HOME/.codex/hooks.json)" "agent-sentinel --host codex"
+  check_contains "the first update requests Codex hook trust" "$first_output" \
+    "Codex hook trust is required."
 
   second_output="$(make_update)"
   check_contains "the second update leaves config unchanged" "$second_output" \
     "Already up to date."
+  check_lacks "the second update repeats no trust notice" "$second_output" \
+    "Codex hook trust is required."
   installs="$(<$STUB_STATE/uv-tool-installs)"
   check_equals "force is used only for the first migration" \
     "$(print -r -- "$installs" | grep -c -- '--force')" "1"
@@ -666,6 +764,10 @@ run "sync is idempotent"                     t_sync_is_idempotent
 run "Claude script orphans are removed"       t_claude_script_orphans_are_removed
 run "sync requires agent-sentinel"           t_sync_requires_agent_sentinel
 run "agent-sentinel config is synced"        t_agent_sentinel_config_is_synced
+run "Codex hook trust follows definitions"   t_codex_hook_trust_notice_tracks_definition_changes
+run "Codex rule changes need no hook trust"  t_codex_hook_trust_notice_ignores_rule_changes
+run "Codex hook trust precedes later failures" t_codex_hook_trust_notice_precedes_later_failures
+run "refresh reports pending hook changes"   t_refresh_reports_only_pending_hook_changes
 run "sync rejects a missing sentinel hook"   t_sync_rejects_missing_sentinel_hook
 run "sync rejects default-allow rules"       t_sync_rejects_default_allow_rule
 run "sync rejects explicit allow rules"       t_sync_rejects_explicit_allow_rule

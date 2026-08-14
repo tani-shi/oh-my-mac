@@ -3,6 +3,7 @@ set -eu
 
 REPO="${0:A:h}/.."
 CLAUDE_SETTINGS="$REPO/config/claude/settings.json"
+CODEX_HOOKS="$HOME/.codex/hooks.json"
 source "$REPO/scripts/agent-sentinel.zsh"
 
 for command_name in agent-sentinel codex jq; do
@@ -28,6 +29,10 @@ jq -e --arg command 'zsh ~/.claude/scripts/agent-sentinel-wrapper.zsh' \
   '[.hooks.PreToolUse[].hooks[].command] | index($command) != null' \
   "$generated_claude" >/dev/null
 validate_agent_sentinel_codex_config "$generated_codex" "$generated_rules"
+codex_hook_changed=0
+if agent_sentinel_codex_hook_changed "$CODEX_HOOKS" "$generated_codex"; then
+  codex_hook_changed=1
+fi
 
 policy=$(codex execpolicy check --pretty --rules "$generated_rules" -- ssh host)
 if ! print -r -- "$policy" | jq -e '.decision == "prompt"' >/dev/null; then
@@ -44,3 +49,6 @@ else
 fi
 
 echo "Validated generated Codex hooks and execution rules."
+if [[ $codex_hook_changed -eq 1 ]]; then
+  print_codex_hook_trust_instructions pending
+fi
