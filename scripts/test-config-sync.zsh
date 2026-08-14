@@ -3,6 +3,8 @@ set -u
 
 REPO="${0:A:h}/.."
 [[ -f "$REPO/config.zsh" ]] || { print -u2 "missing $REPO/config.zsh"; exit 1 }
+REAL_UV=$(command -v uv)
+export REAL_UV
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT INT TERM
@@ -57,6 +59,92 @@ case "$1" in
   --list-extensions) [[ -f "$store" ]] && cat "$store" ;;
   --install-extension) print -r -- "$2" >> "$store" ;;
 esac
+exit 0
+STUB
+
+stub agent-sentinel <<'STUB'
+#!/bin/zsh
+[[ -f "$STUB_STATE/agent-sentinel-unavailable" ]] && exit 127
+[[ "${1:-}" == "--help" ]] && exit 0
+if [[ "${1:-}" == "install" ]]; then
+  target="" config_path=""
+  while (( $# > 0 )); do
+    case "$1" in
+      --target) target="$2"; shift 2 ;;
+      --path) config_path="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+  if [[ "$target" == "codex" ]]; then
+    mkdir -p "${config_path:h}" "${config_path:h}/rules"
+    if [[ -f "$STUB_STATE/agent-sentinel-invalid-codex-hook" ]]; then
+      print -r -- '{"hooks":{"PreToolUse":[]}}' > "$config_path"
+    else
+      [[ -f "$config_path" ]] || print -r -- '{}' > "$config_path"
+      jq --arg command 'agent-sentinel --host codex' \
+        --argjson sentinel '{"matcher":"*","hooks":[{"type":"command","command":"agent-sentinel --host codex"}]}' '
+        .hooks = (.hooks // {}) |
+        .hooks.PreToolUse = (
+          [(.hooks.PreToolUse // [])[]
+            | select([.hooks[]?.command] | index($command) == null)]
+          + [$sentinel]
+        )
+      ' "$config_path" > "$config_path.new"
+      mv "$config_path.new" "$config_path"
+    fi
+
+    rules_path="${config_path:h}/rules/agent-sentinel.rules"
+    if [[ -f "$STUB_STATE/agent-sentinel-missing-codex-rules" ]]; then
+      rm -f "$rules_path"
+    elif [[ -f "$STUB_STATE/agent-sentinel-default-allow-rule" ]]; then
+      print -r -- $'prefix_rule(\n    pattern = ["ssh"],\n)' > "$rules_path"
+    elif [[ -f "$STUB_STATE/agent-sentinel-explicit-allow-rule" ]]; then
+      print -r -- $'prefix_rule(\n    pattern = ["ssh"],\n    decision="allow",\n)' \
+        > "$rules_path"
+    else
+      print -r -- $'prefix_rule(\n    pattern = ["ssh"],\n    decision = "prompt",\n)' \
+        > "$rules_path"
+    fi
+  fi
+fi
+exit 0
+STUB
+
+stub uv <<'STUB'
+#!/bin/zsh
+case "$1" in
+  run)
+    exec "$REAL_UV" "$@"
+    ;;
+  tool)
+    case "$2" in
+      list)
+        [[ -f "$STUB_STATE/claude-sentinel-tool" ]] && print 'claude-sentinel v0.1.0'
+        [[ -f "$STUB_STATE/agent-sentinel-tool" ]] && print 'agent-sentinel v2026.08.12.5'
+        exit 0
+        ;;
+      install)
+        print -r -- "${*:3}" >> "$STUB_STATE/uv-tool-installs"
+        if [[ "${*:3}" == *agent-sentinel* ]]; then
+          [[ -f "$STUB_STATE/agent-sentinel-install-fails" ]] && exit 2
+          : > "$STUB_STATE/agent-sentinel-tool"
+          rm -f "$STUB_STATE/agent-sentinel-unavailable"
+        fi
+        exit 0
+        ;;
+    esac
+    ;;
+  *)
+    exec "$REAL_UV" "$@"
+    ;;
+esac
+STUB
+
+stub brew <<'STUB'
+#!/bin/zsh
+if [[ "$1" == "trust" && "${2:-}" == "--json" ]]; then
+  print '[]'
+fi
 exit 0
 STUB
 
@@ -118,6 +206,10 @@ run() {
 
 sync_config() { "$REPO/config.zsh" sync 2>&1 }
 diff_config() { "$REPO/config.zsh" diff 2>&1 }
+make_update() { make -s -C "$REPO" update INSTALL_STEPS= 2>&1 }
+make_refresh_install() {
+  make -s -C "$REPO" install-uv-tools AGENT_SENTINEL_UPGRADE=1 2>&1
+}
 
 t_diff_writes_nothing() {
   diff_config > /dev/null
@@ -152,6 +244,167 @@ t_claude_script_orphans_are_removed() {
     "$(<"$scripts/claude-hook.zsh")" "check-docs"
   check_contains "Claude script orphan removal is idempotent" \
     "$(sync_config)" "Already up to date."
+}
+
+t_sync_requires_agent_sentinel() {
+  : > "$STUB_STATE/agent-sentinel-unavailable"
+  local output exit_status
+  output="$(sync_config)"
+  exit_status=$?
+  check_equals "a missing agent-sentinel fails before writing config" "$exit_status" "1"
+  check_contains "the preflight explains the missing tool" "$output" \
+    "agent-sentinel must be installed before syncing its configuration"
+  check_equals "the failed preflight leaves HOME untouched" \
+    "$(find "$HOME" -mindepth 1 | wc -l | tr -d ' ')" "0"
+}
+
+t_agent_sentinel_config_is_synced() {
+  mkdir -p "$HOME/.claude/scripts" "$HOME/.codex/rules"
+  print -r -- "legacy wrapper" > "$HOME/.claude/scripts/claude-sentinel-wrapper.zsh"
+  print -r -- '{"hooks":{"PreToolUse":[{"matcher":"custom","hooks":[{"type":"command","command":"custom-pre-tool-hook"}]}],"Stop":[{"hooks":[{"type":"command","command":"custom-stop-hook"}]}]}}' \
+    > "$HOME/.codex/hooks.json"
+  print -r -- 'prefix_rule(pattern = ["custom"], decision = "prompt")' \
+    > "$HOME/.codex/rules/default.rules"
+
+  sync_config > /dev/null
+
+  check_contains "Codex hooks are generated and synced" \
+    "$(<$HOME/.codex/hooks.json)" 'agent-sentinel --host codex'
+  check_contains "unrelated Codex PreToolUse hooks are preserved" \
+    "$(<$HOME/.codex/hooks.json)" 'custom-pre-tool-hook'
+  check_contains "unrelated Codex hook events are preserved" \
+    "$(<$HOME/.codex/hooks.json)" 'custom-stop-hook'
+  check_contains "agent-sentinel execution rules are generated and synced" \
+    "$(<$HOME/.codex/rules/agent-sentinel.rules)" 'decision = "prompt"'
+  check_equals "Codex default rules remain application-owned" \
+    "$(<$HOME/.codex/rules/default.rules)" \
+    'prefix_rule(pattern = ["custom"], decision = "prompt")'
+  check_lacks "agent-sentinel rules never allow sandbox bypass" \
+    "$(<$HOME/.codex/rules/agent-sentinel.rules)" 'decision = "allow"'
+  check_contains "Codex runs the dedicated host protocol" \
+    "$(<$HOME/.codex/hooks.json)" 'agent-sentinel --host codex'
+  check_contains "Codex keeps on-request approvals" \
+    "$(<$HOME/.codex/config.toml)" 'approval_policy = "on-request"'
+  check_contains "Codex keeps the workspace-write sandbox" \
+    "$(<$HOME/.codex/config.toml)" 'sandbox_mode = "workspace-write"'
+  check_files_equal "the renamed Claude wrapper is synced" \
+    "$HOME/.claude/scripts/agent-sentinel-wrapper.zsh" \
+    "$REPO/config/claude/scripts/agent-sentinel-wrapper.zsh"
+  check_equals "the old Claude wrapper is removed" \
+    "$([[ ! -e "$HOME/.claude/scripts/claude-sentinel-wrapper.zsh" ]] && print yes || print no)" \
+    "yes"
+}
+
+assert_agent_sentinel_generation_fails() {
+  local state_file=$1 expected_error=$2 output exit_status
+  print -r -- "existing config" > "$HOME/.zshrc"
+  : > "$STUB_STATE/$state_file"
+
+  output="$(sync_config)"
+  exit_status=$?
+
+  check_equals "invalid generated config fails before sync" "$exit_status" "1"
+  check_contains "the validation error identifies the generated config" \
+    "$output" "$expected_error"
+  check_equals "the failed validation preserves existing config" \
+    "$(<$HOME/.zshrc)" "existing config"
+  check_equals "the failed validation creates no Codex config" \
+    "$([[ ! -e "$HOME/.codex" ]] && print yes || print no)" "yes"
+}
+
+t_sync_rejects_missing_sentinel_hook() {
+  assert_agent_sentinel_generation_fails \
+    "agent-sentinel-invalid-codex-hook" \
+    "agent-sentinel did not generate its Codex PreToolUse hook"
+}
+
+t_sync_rejects_default_allow_rule() {
+  assert_agent_sentinel_generation_fails \
+    "agent-sentinel-default-allow-rule" \
+    "every agent-sentinel Codex rule must explicitly use prompt or forbidden"
+}
+
+t_sync_rejects_explicit_allow_rule() {
+  assert_agent_sentinel_generation_fails \
+    "agent-sentinel-explicit-allow-rule" \
+    "every agent-sentinel Codex rule must explicitly use prompt or forbidden"
+}
+
+t_sync_rejects_missing_sentinel_rules() {
+  assert_agent_sentinel_generation_fails \
+    "agent-sentinel-missing-codex-rules" \
+    "agent-sentinel did not generate Codex execution rules"
+}
+
+t_update_migrates_legacy_sentinel_once() {
+  mkdir -p "$HOME/.claude/scripts" "$HOME/.codex/rules"
+  cat > "$HOME/.claude/settings.json" <<'EOF'
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "zsh ~/.claude/scripts/claude-sentinel-wrapper.zsh"
+          }
+        ]
+      }
+    ]
+  }
+}
+EOF
+  print -r -- "legacy wrapper" > "$HOME/.claude/scripts/claude-sentinel-wrapper.zsh"
+  : > "$STUB_STATE/claude-sentinel-tool"
+  : > "$STUB_STATE/agent-sentinel-unavailable"
+
+  local first_output second_output installs
+  first_output="$(make_update)"
+  check_contains "the first update completes the config sync" "$first_output" \
+    "Synced: $HOME/.codex/hooks.json"
+  installs="$(<$STUB_STATE/uv-tool-installs)"
+  check_contains "the legacy executable collision uses force once" "$installs" \
+    "--force agent-sentinel[claude] @ git+https://github.com/tani-shi/agent-sentinel.git"
+  check_equals "the standalone legacy tool environment remains" \
+    "$([[ -f "$STUB_STATE/claude-sentinel-tool" ]] && print yes || print no)" "yes"
+  check_contains "Claude switches to the renamed wrapper" \
+    "$(<$HOME/.claude/settings.json)" "agent-sentinel-wrapper.zsh"
+  check_contains "Codex switches to agent-sentinel" \
+    "$(<$HOME/.codex/hooks.json)" "agent-sentinel --host codex"
+
+  second_output="$(make_update)"
+  check_contains "the second update leaves config unchanged" "$second_output" \
+    "Already up to date."
+  installs="$(<$STUB_STATE/uv-tool-installs)"
+  check_equals "force is used only for the first migration" \
+    "$(print -r -- "$installs" | grep -c -- '--force')" "1"
+}
+
+t_update_stops_before_sync_when_sentinel_install_fails() {
+  mkdir -p "$HOME/.claude"
+  print -r -- '{"legacy":"claude-sentinel"}' > "$HOME/.claude/settings.json"
+  local before="$tmp/legacy-settings.json" output exit_status
+  cp "$HOME/.claude/settings.json" "$before"
+  : > "$STUB_STATE/claude-sentinel-tool"
+  : > "$STUB_STATE/agent-sentinel-unavailable"
+  : > "$STUB_STATE/agent-sentinel-install-fails"
+
+  output="$(make_update)"
+  exit_status=$?
+  check_equals "an agent-sentinel install failure fails make update" "$exit_status" "2"
+  check_files_equal "the failed install preserves Claude settings" \
+    "$HOME/.claude/settings.json" "$before"
+  check_equals "the failed install creates no Codex hook" \
+    "$([[ ! -e "$HOME/.codex/hooks.json" ]] && print yes || print no)" "yes"
+  check_lacks "config sync never starts after the failed install" "$output" "Synced:"
+}
+
+t_refresh_requests_agent_sentinel_upgrade() {
+  make_refresh_install > /dev/null
+  check_contains "refresh explicitly upgrades the HEAD-tracking tool" \
+    "$(<$STUB_STATE/uv-tool-installs)" \
+    "--upgrade agent-sentinel[claude] @ git+https://github.com/tani-shi/agent-sentinel.git"
 }
 
 t_codex_skills_are_synced() {
@@ -384,6 +637,15 @@ run "diff writes nothing"                    t_diff_writes_nothing
 run "diff after sync is clean"               t_diff_after_sync_is_clean
 run "sync is idempotent"                     t_sync_is_idempotent
 run "Claude script orphans are removed"       t_claude_script_orphans_are_removed
+run "sync requires agent-sentinel"           t_sync_requires_agent_sentinel
+run "agent-sentinel config is synced"        t_agent_sentinel_config_is_synced
+run "sync rejects a missing sentinel hook"   t_sync_rejects_missing_sentinel_hook
+run "sync rejects default-allow rules"       t_sync_rejects_default_allow_rule
+run "sync rejects explicit allow rules"       t_sync_rejects_explicit_allow_rule
+run "sync rejects missing sentinel rules"    t_sync_rejects_missing_sentinel_rules
+run "update migrates legacy sentinel once"   t_update_migrates_legacy_sentinel_once
+run "failed sentinel install stops update"   t_update_stops_before_sync_when_sentinel_install_fails
+run "refresh upgrades agent-sentinel"        t_refresh_requests_agent_sentinel_upgrade
 run "codex skills are synced"                t_codex_skills_are_synced
 run "codex skill name collisions are rejected" t_codex_skill_name_collisions_are_rejected
 run "codex skill file collisions are rejected" t_codex_skill_file_collisions_are_rejected

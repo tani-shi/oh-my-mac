@@ -46,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "zsh ~/.claude/scripts/claude-sentinel-wrapper.zsh"
+            "command": "zsh ~/.claude/scripts/agent-sentinel-wrapper.zsh"
           }
         ]
       }
