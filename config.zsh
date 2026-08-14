@@ -1,7 +1,11 @@
 #!/bin/zsh
 set -eu
 
-MODE="${1:?Usage: $0 diff|sync}"
+if (( $# != 1 )) || [[ "$1" != "diff" && "$1" != "sync" ]]; then
+  print -u2 "Usage: $0 diff|sync"
+  exit 1
+fi
+MODE="$1"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CODEX_SKILLS_SRC="$SCRIPT_DIR/config/codex/skills"
 CODEX_SKILLS_DST="$HOME/.agents/skills"
