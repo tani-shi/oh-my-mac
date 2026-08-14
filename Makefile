@@ -63,6 +63,7 @@ trust-taps:
 
 test: ## Run the test suite
 	@./scripts/test-discard.zsh
+	@./scripts/test-commit-upgrade.zsh
 	@./scripts/test-config-sync.zsh
 
 CLAUDE_VERSION := $(shell cat config/claude/version 2>/dev/null)
