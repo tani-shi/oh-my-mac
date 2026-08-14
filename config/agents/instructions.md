@@ -22,6 +22,7 @@ Comments, commit messages, and docs reach a reader who was not part of the conve
 - Use `--force-with-lease` instead of `--force` when force pushing.
 - Finishing a task is not a request to commit. Commit only when the user asks for it in that turn.
 - Bundle all related changes (code, config, generated files) into a single commit.
+- After merging a branch, delete the merged branch locally and from its remote.
 - Switch branches with `git switch` and unstage with `git restore --staged`.
 - Discard working-tree changes, untracked files (`--untracked`), commits (`--hard`), or everything since a revision (`--source=<rev>`) with `git discard`, which snapshots to `refs/discard/*` first; recover with `git discard --undo`.
 
