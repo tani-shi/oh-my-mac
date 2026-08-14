@@ -134,6 +134,94 @@ t_sync_is_idempotent() {
   check_contains "second sync changes nothing" "$(sync_config)" "Already up to date."
 }
 
+t_codex_skills_are_synced() {
+  sync_config > /dev/null
+  local source rel expected="$tmp/expected-codex-skills-manifest"
+  : > "$expected"
+  for source in "$REPO"/config/codex/skills/**/*(.N); do
+    rel="${source#$REPO/config/codex/skills/}"
+    check_files_equal "$rel is synced into the user skill directory" \
+      "$HOME/.agents/skills/$rel" "$source"
+    print -r -- "$rel" >> "$expected"
+  done
+  check_files_equal "the manifest lists repository-managed skill files" \
+    "$HOME/.agents/skills/.oh-my-mac-managed" "$expected"
+  check_contains "the skill requires explicit invocation" \
+    "$(<$HOME/.agents/skills/refactor-review/agents/openai.yaml)" \
+    "allow_implicit_invocation: false"
+  check_contains "review mode is read-only" \
+    "$(<$HOME/.agents/skills/refactor-review/SKILL.md)" "Do not modify files."
+  check_contains "apply mode uses only the preceding review" \
+    "$(<$HOME/.agents/skills/refactor-review/SKILL.md)" \
+    "immediately preceding Refactor Review"
+}
+
+t_codex_skill_name_collisions_are_rejected() {
+  local skill="$HOME/.agents/skills/refactor-review" output exit_status
+  mkdir -p "$skill"
+  print -r -- "personal skill" > "$skill/SKILL.md"
+
+  output="$(sync_config)"
+  exit_status=$?
+  check_equals "an unmanaged same-name skill fails the sync" "$exit_status" "1"
+  check_contains "the collision identifies the unmanaged skill" "$output" \
+    "Unmanaged Codex skill already exists: $skill"
+  check_equals "the personal skill remains unchanged" "$(<$skill/SKILL.md)" "personal skill"
+  check_equals "the collision aborts before other config is written" \
+    "$([[ ! -e "$HOME/.zshrc" ]] && print yes || print no)" "yes"
+}
+
+t_codex_skill_file_collisions_are_rejected() {
+  local skill="$HOME/.agents/skills/refactor-review" output exit_status
+  mkdir -p "$skill/agents"
+  cp "$REPO/config/codex/skills/refactor-review/SKILL.md" "$skill/SKILL.md"
+  print -r -- "refactor-review/SKILL.md" > "$HOME/.agents/skills/.oh-my-mac-managed"
+  print -r -- "personal metadata" > "$skill/agents/openai.yaml"
+
+  output="$(sync_config)"
+  exit_status=$?
+  check_equals "an unmanaged file in a managed skill fails the sync" "$exit_status" "1"
+  check_contains "the collision identifies the unmanaged file" "$output" \
+    "Unmanaged Codex skill file already exists: $skill/agents/openai.yaml"
+  check_equals "the personal skill file remains unchanged" \
+    "$(<$skill/agents/openai.yaml)" "personal metadata"
+  check_equals "the file collision aborts before other config is written" \
+    "$([[ ! -e "$HOME/.zshrc" ]] && print yes || print no)" "yes"
+}
+
+t_codex_skill_orphans_are_scoped() {
+  local skills="$HOME/.agents/skills" output
+  mkdir -p "$skills/refactor-review/agents" "$skills/removed-skill" \
+    "$skills/personal-skill" "$HOME/.agents/outside-skill"
+  print -r -- "stale" > "$skills/refactor-review/agents/removed.yaml"
+  print -r -- "stale" > "$skills/removed-skill/SKILL.md"
+  print -r -- "personal" > "$skills/personal-skill/SKILL.md"
+  print -r -- "outside" > "$HOME/.agents/outside-skill/SKILL.md"
+  print -rl -- "refactor-review/agents/removed.yaml" "removed-skill/SKILL.md" \
+    "../outside-skill/SKILL.md" > "$skills/.oh-my-mac-managed"
+
+  output="$(diff_config)"
+  check_contains "diff reports a removed file in a current skill" "$output" \
+    "Orphan: $skills/refactor-review/agents/removed.yaml"
+  check_contains "diff reports a file in a removed skill" "$output" \
+    "Orphan: $skills/removed-skill/SKILL.md"
+  check_equals "diff preserves the removed skill" \
+    "$([[ -d "$skills/removed-skill" ]] && print yes || print no)" "yes"
+  check_equals "diff preserves the removed file" \
+    "$([[ -f "$skills/refactor-review/agents/removed.yaml" ]] && print yes || print no)" "yes"
+
+  sync_config > /dev/null
+  check_equals "sync removes the previously managed skill" \
+    "$([[ ! -e "$skills/removed-skill" ]] && print yes || print no)" "yes"
+  check_equals "sync removes a deleted file from a current skill" \
+    "$([[ ! -e "$skills/refactor-review/agents/removed.yaml" ]] && print yes || print no)" "yes"
+  check_equals "sync preserves an unmanaged personal skill" \
+    "$([[ -d "$skills/personal-skill" ]] && print yes || print no)" "yes"
+  check_equals "sync ignores a manifest path outside the skill directory" \
+    "$([[ -d "$HOME/.agents/outside-skill" ]] && print yes || print no)" "yes"
+  check_contains "orphan reconciliation is idempotent" "$(sync_config)" "Already up to date."
+}
+
 t_codex_config_merges_declared_keys() {
   mkdir -p "$HOME/.codex"
   cat > "$HOME/.codex/config.toml" <<'EOF'
@@ -212,6 +300,10 @@ t_project_instructions_reach_each_agent() {
 run "diff writes nothing"                    t_diff_writes_nothing
 run "diff after sync is clean"               t_diff_after_sync_is_clean
 run "sync is idempotent"                     t_sync_is_idempotent
+run "codex skills are synced"                t_codex_skills_are_synced
+run "codex skill name collisions are rejected" t_codex_skill_name_collisions_are_rejected
+run "codex skill file collisions are rejected" t_codex_skill_file_collisions_are_rejected
+run "codex skill orphans are scoped"         t_codex_skill_orphans_are_scoped
 run "codex config merges declared keys"      t_codex_config_merges_declared_keys
 run "codex config rejects invalid TOML"      t_codex_config_rejects_invalid_toml
 run "codex config rejects a table conflict"  t_codex_config_rejects_a_table_conflict

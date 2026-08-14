@@ -41,7 +41,7 @@ Claude Code and Codex both work in this repository, and both read their instruct
 
 `.claude/` and `.codex/` at the repository root are the per-agent project scopes, holding what only one agent needs while working here. Codex reads `.codex/config.toml` once the directory is trusted.
 
-The `config/` entries are a different scope again: `make sync-config` concatenates the shared `instructions.md` with each agent's own into `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`, so they apply in every repository rather than this one.
+The `config/` entries are a different scope again: `make sync-config` concatenates the shared `instructions.md` with each agent's own into `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`, and syncs Codex skills into `~/.agents/skills/`, so they apply in every repository rather than this one.
 
 ## What's Included
 
@@ -82,7 +82,14 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | `config/claude/scripts/*.zsh` | `~/.claude/scripts/` |
 | `config/claude/agents/*.md` | `~/.claude/agents/` |
 | `config/claude/skills/*/SKILL.md` | `~/.claude/skills/` |
+| `config/codex/skills/*/` | `~/.agents/skills/` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
+
+### Codex Skills
+
+`config/codex/skills/refactor-review/` は、現在の実装目的と作業差分を対象に構造的なリファクタリング候補を最大3件まで提示します。`$refactor-review` で読み取り専用レビューを実行し、同一セッションで `$refactor-review apply` を実行すると、直前に `APPLY` と判定された候補だけを適用して関連テストを実行します。暗黙起動は無効で、通常の不具合レビューは Codex 標準の `/review` を使用します。
+
+`make sync-config` は、このリポジトリが同期した Codex skill の相対ファイルパスを `~/.agents/skills/.oh-my-mac-managed` に記録します。配布元から削除されたファイルだけをこの記録に基づいて削除し、ほかの方法で追加された skill やファイルは保持します。未管理の同名 skill が既に存在する場合は、上書きせず同期を中止します。
 
 ### git discard (`config/git/discard.zsh`)
 
