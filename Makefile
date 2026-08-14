@@ -61,12 +61,18 @@ install-claude:
 	@if [ -z "$(CLAUDE_VERSION)" ]; then \
 		echo "Error: config/claude/version not found"; exit 1; \
 	fi
-	@current=$$(claude --version 2>/dev/null | awk '{print $$1}') || true; \
-	if [ "$$current" = "$(CLAUDE_VERSION)" ]; then \
-		echo "Claude Code $(CLAUDE_VERSION) already installed"; \
+	@version="$(CLAUDE_VERSION)"; \
+	current=$$(claude --version 2>/dev/null | awk '{print $$1}') || true; \
+	if [ "$$current" = "$$version" ]; then \
+		echo "Claude Code $$version already installed"; \
 	else \
-		echo "Installing Claude Code $(CLAUDE_VERSION)..."; \
-		claude install "$(CLAUDE_VERSION)" 2>&1 || curl -fsSL https://claude.ai/install.sh | bash; \
+		echo "Installing Claude Code $$version..."; \
+		claude install "$$version" 2>&1 || curl -fsSL https://claude.ai/install.sh | bash -s -- "$$version"; \
+		installed=$$(claude --version 2>/dev/null | awk '{print $$1}') || true; \
+		if [ "$$installed" != "$$version" ]; then \
+			echo "Error: installed Claude Code version $${installed:-not found}, expected $$version" >&2; \
+			exit 1; \
+		fi; \
 	fi
 
 sync-claude-plugins:
