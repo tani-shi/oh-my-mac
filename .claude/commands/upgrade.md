@@ -1,6 +1,6 @@
 ---
 description: Investigate dependency upgrades, apply the approved ones, and commit
-allowed-tools: Read, Glob, Grep, Edit, WebSearch, WebFetch, Bash(brew outdated:*), Bash(npm view:*), Bash(gh api:*), Bash(git diff:*), Bash(git status:*), Bash(make upgrade-apply)
+allowed-tools: Read, Glob, Grep, Edit, WebSearch, WebFetch, Bash(brew outdated:*), Bash(npm view:*), Bash(gh api:*), Bash(git diff:*), Bash(git status:*), Bash(make upgrade-apply), Bash(./scripts/commit-upgrade.zsh:*)
 ---
 
 Investigate available upgrades for this repository's pinned dependencies, apply
@@ -71,5 +71,11 @@ tools / ntn / codex. Read its output and report any step that failed.
 
 ## 4. Commit
 
-Show `git diff`, and on the user's approval run `./scripts/commit-upgrade.zsh`,
-which derives the commit message from the changed pin files.
+Run `./scripts/commit-upgrade.zsh prepare`. It refuses changes outside the pin
+files, stages only those files, and prints the exact `git diff --cached` proposed
+for the commit. Show that diff and get the user's approval. Once approved, run
+`./scripts/commit-upgrade.zsh commit`, which verifies that the prepared state has
+not changed and derives the commit message from the staged pin files. If the user
+does not approve the commit, run `./scripts/commit-upgrade.zsh abort` to unstage
+the pin files and discard the prepared state while preserving their working-tree
+changes.
