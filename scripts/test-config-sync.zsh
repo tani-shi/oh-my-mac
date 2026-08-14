@@ -12,7 +12,7 @@ export PATH="$tmp/bin:$PATH"
 export GIT_CONFIG_GLOBAL="$tmp/gitconfig"
 export GIT_CONFIG_SYSTEM=/dev/null
 export STUB_STATE="$tmp/stub-state"
-export UV_CACHE_DIR="${UV_CACHE_DIR:-$(uv cache dir)}"
+export UV_CACHE_DIR="$tmp/uv-cache"
 export UV_NO_PROGRESS=1
 mkdir -p "$STUB_STATE"
 
