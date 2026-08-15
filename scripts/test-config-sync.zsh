@@ -116,6 +116,16 @@ if [[ "${1:-}" == "install" ]]; then
       print -r -- $'prefix_rule(\n    pattern = ["ssh"],\n    decision = "prompt",\n)' \
         > "$rules_path"
     fi
+
+    codex_config="${config_path:h}/config.toml"
+    if [[ -f "$codex_config" ]]; then
+      if grep -Eq '^approval_policy[[:space:]]*=[[:space:]]*"never"' "$codex_config"; then
+        print -r -- 'Warning: approval_policy="never" disables approval prompts. Codex GUI may run commands matched by agent-sentinel prompt rules without approval, so ASK enforcement is not guaranteed. Native approvals and auto-review are also unavailable. Use on-request for the supported configuration.'
+      fi
+      if grep -Eq '^[[:space:]]*hooks[[:space:]]*=[[:space:]]*false' "$codex_config"; then
+        print -r -- "Warning: Codex hooks are disabled in config.toml; agent-sentinel's hook DENY rules will not run."
+      fi
+    fi
   fi
 fi
 exit 0
@@ -743,6 +753,49 @@ EOF
     "$HOME/.codex/config.toml" "$first_merge"
 }
 
+t_codex_config_warns_when_approval_policy_is_never() {
+  mkdir -p "$HOME/.codex"
+  print -r -- 'approval_policy = "never"' > "$HOME/.codex/config.toml"
+  local before="$tmp/codex-config-before-warning.toml" diff_output refresh_output
+  cp "$HOME/.codex/config.toml" "$before"
+
+  diff_output="$(diff_config)"
+  check_contains "never warns about the Codex GUI behavior" "$diff_output" "Codex GUI"
+  check_contains "never identifies the unenforced boundary" "$diff_output" \
+    "ASK enforcement is not guaranteed"
+  check_contains "never recommends the supported policy" "$diff_output" \
+    "Use on-request for the supported configuration."
+  check_files_equal "the diagnostic leaves Codex config unchanged" \
+    "$HOME/.codex/config.toml" "$before"
+
+  refresh_output="$(refresh_agent_sentinel)"
+  check_contains "refresh uses the same Codex policy diagnostic" "$refresh_output" \
+    "ASK enforcement is not guaranteed"
+  check_files_equal "refresh leaves Codex config unchanged" \
+    "$HOME/.codex/config.toml" "$before"
+}
+
+t_codex_config_accepts_on_request_approval_policy() {
+  mkdir -p "$HOME/.codex"
+  print -r -- 'approval_policy = "on-request"' > "$HOME/.codex/config.toml"
+
+  local output
+  output="$(diff_config)"
+  check_lacks "on-request needs no ASK enforcement warning" "$output" \
+    "ASK enforcement is not guaranteed"
+}
+
+t_codex_config_warns_when_hooks_are_disabled() {
+  mkdir -p "$HOME/.codex"
+  print -r -- $'approval_policy = "on-request"\n\n[features]\nhooks = false' \
+    > "$HOME/.codex/config.toml"
+
+  local output
+  output="$(diff_config)"
+  check_contains "disabled hooks use the Codex configuration diagnostic" "$output" \
+    "Codex hooks are disabled in config.toml"
+}
+
 t_codex_config_rejects_invalid_toml() {
   mkdir -p "$HOME/.codex"
   print -r -- 'sandbox_mode = "unterminated' > "$HOME/.codex/config.toml"
@@ -1005,6 +1058,9 @@ run "codex skill name collisions are rejected" t_codex_skill_name_collisions_are
 run "codex skill file collisions are rejected" t_codex_skill_file_collisions_are_rejected
 run "codex skill orphans are scoped"         t_codex_skill_orphans_are_scoped
 run "codex config merges declared keys"      t_codex_config_merges_declared_keys
+run "codex config warns for never approvals" t_codex_config_warns_when_approval_policy_is_never
+run "codex config accepts on-request"         t_codex_config_accepts_on_request_approval_policy
+run "codex config warns for disabled hooks"   t_codex_config_warns_when_hooks_are_disabled
 run "codex config rejects invalid TOML"      t_codex_config_rejects_invalid_toml
 run "codex config rejects a table conflict"  t_codex_config_rejects_a_table_conflict
 run "instructions are shared then specific"  t_instructions_are_shared_then_specific

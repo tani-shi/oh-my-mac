@@ -3,6 +3,7 @@ set -eu
 
 REPO="${0:A:h}/.."
 CLAUDE_SETTINGS="$REPO/config/claude/settings.json"
+CODEX_CONFIG="$HOME/.codex/config.toml"
 CODEX_HOOKS="$HOME/.codex/hooks.json"
 source "$REPO/scripts/agent-sentinel.zsh"
 
@@ -23,12 +24,11 @@ mkdir -p "${generated_claude:h}" "${generated_codex:h}"
 cp "$CLAUDE_SETTINGS" "$generated_claude"
 
 agent-sentinel install --target claude --path "$generated_claude" >/dev/null
-agent-sentinel install --target codex --path "$generated_codex" >/dev/null
+generate_agent_sentinel_codex_config "$generated_codex" "$generated_rules" "$CODEX_CONFIG"
 
 jq -e --arg command 'zsh ~/.claude/scripts/agent-sentinel-wrapper.zsh' \
   '[.hooks.PreToolUse[].hooks[].command] | index($command) != null' \
   "$generated_claude" >/dev/null
-validate_agent_sentinel_codex_config "$generated_codex" "$generated_rules"
 codex_hook_changed=0
 if agent_sentinel_codex_hook_changed "$CODEX_HOOKS" "$generated_codex"; then
   codex_hook_changed=1
