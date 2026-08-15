@@ -3,7 +3,8 @@
 ## Language
 
 - Write code, config files, code comments, and commit messages in English, regardless of the prompt's language.
-- Write pull request and issue title summaries, their descriptions, code review comments, README files, guides, release notes, and other human-facing documentation in Japanese, regardless of the prompt's language.
+- Write README files in English for public repositories and in Japanese for non-public repositories, regardless of the prompt's language.
+- Write pull request and issue title summaries, their descriptions, code review comments, guides, release notes, and human-facing documentation other than README files in Japanese, regardless of the prompt's language.
 - Reply to the user in Japanese, regardless of the language used in the prompt.
 
 ## Wording
