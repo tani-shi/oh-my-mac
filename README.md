@@ -87,9 +87,9 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 
 ### Codex Skills
 
-`config/codex/skills/refactor-review/` は、現在の実装目的と作業差分を対象に構造的なリファクタリング候補を最大3件まで提示します。`$refactor-review` で読み取り専用レビューを実行し、同一セッションで `$refactor-review apply` を実行すると、直前に `APPLY` と判定された候補だけを適用して関連テストを実行します。暗黙起動は無効で、通常の不具合レビューは Codex 標準の `/review` を使用します。
+`config/codex/skills/refactor-review/` identifies up to three structural refactoring candidates based on the current implementation goals and working changes. Run `$refactor-review` for a read-only review, then run `$refactor-review apply` in the same session to apply only the candidates previously marked `APPLY` and run the relevant tests. Implicit invocation is disabled; use Codex's standard `/review` command for regular bug reviews.
 
-`make sync-config` は、このリポジトリが同期した Codex skill の相対ファイルパスを `~/.agents/skills/.oh-my-mac-managed` に記録します。配布元から削除されたファイルだけをこの記録に基づいて削除し、ほかの方法で追加された skill やファイルは保持します。未管理の同名 skill が既に存在する場合は、上書きせず同期を中止します。
+`make sync-config` records the relative paths of Codex skill files synced by this repository in `~/.agents/skills/.oh-my-mac-managed`. It uses this record to remove only files that have been deleted from the source while preserving skills and files added by other means. If an unmanaged skill with the same name already exists, the sync stops without overwriting it.
 
 ### git discard (`config/git/discard.zsh`)
 
