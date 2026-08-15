@@ -2,9 +2,9 @@
 
 ## Language
 
-- Write code, config files, and commit messages in English, regardless of the prompt's language.
+- Write code, config files, code comments, and commit messages in English, regardless of the prompt's language.
+- Write pull request and issue title summaries, their descriptions, code review comments, README files, guides, release notes, and other human-facing documentation in Japanese, regardless of the prompt's language.
 - Reply to the user in Japanese, regardless of the language used in the prompt.
-- For human-facing documentation (README, guides, and similar prose meant for readers), match the language of the prompt.
 
 ## Wording
 
@@ -18,6 +18,7 @@ Comments, commit messages, and docs reach a reader who was not part of the conve
 ## Git
 
 - Use conventional commit style (e.g., `feat:`, `fix:`, `docs:`, `refactor:`).
+- Format pull request and issue titles as `<type>: <Japanese summary>`, using a suitable conventional commit type.
 - A commit message states the rationale for the change, not just a conventional-commit type prefix.
 - Use `--force-with-lease` instead of `--force` when force pushing.
 - Finishing a task is not a request to commit. Commit only when the user asks for it in that turn.
