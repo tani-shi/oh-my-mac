@@ -213,7 +213,8 @@ codex_skill_path_has_unsafe_parent() {
 
 prepare_codex_skills() {
   local skill_dir skill_name source rel destination managed_path orphan
-  : > "$CODEX_SKILLS_DESIRED"
+  local discovered="$tmpdir/codex-skills-discovered"
+  : > "$discovered"
   for skill_dir in "$CODEX_SKILLS_SRC"/*(/N); do
     skill_name="${skill_dir:t}"
     destination="$CODEX_SKILLS_DST/$skill_name"
@@ -244,9 +245,10 @@ prepare_codex_skills() {
         print -u2 "Unmanaged Codex skill file already exists: $destination"
         return 1
       fi
-      print -r -- "$rel" >> "$CODEX_SKILLS_DESIRED"
+      print -r -- "$rel" >> "$discovered"
     done
   done
+  LC_ALL=C sort "$discovered" > "$CODEX_SKILLS_DESIRED"
 
   if [[ -f "$CODEX_SKILLS_MANIFEST" ]]; then
     while IFS= read -r managed_path || [[ -n "$managed_path" ]]; do
