@@ -16,12 +16,25 @@ Add to `~/.zshrc`:
 eval "$(/opt/homebrew/bin/brew shellenv)"
 ```
 
-## Quick Start
+## クイックスタート
+
+既存の環境へ導入する場合は、最初に `make diff-config` で変更予定を確認してください。`make install` は確認なしで `make sync-config` まで実行し、`~/.claude/agents/`、`~/.claude/scripts/`、`~/.claude/skills/` にあるリポジトリ未管理の項目を恒久削除します。残したいデータは、実行前にこれらのディレクトリ外へコピーするか、対応する相対パスで `config/claude/` に追加します。詳しい所有範囲と副作用は[設定同期の変更範囲](#設定同期の変更範囲)を参照してください。
 
 ```bash
 git clone git@github.com:tani-shi/oh-my-mac.git ~/dev/oh-my-mac
 cd ~/dev/oh-my-mac
+make diff-config
 make install
+```
+
+たとえば、既存のClaude設定をリポジトリ外へ退避するには次のようにします。
+
+```bash
+backup_dir="$HOME/claude-config-backup-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$backup_dir"
+for name in agents scripts skills; do
+  [[ -e "$HOME/.claude/$name" ]] && cp -R "$HOME/.claude/$name" "$backup_dir/"
+done
 ```
 
 ## Agent Instructions
@@ -84,6 +97,27 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 | `config/claude/skills/*/SKILL.md` | `~/.claude/skills/` |
 | `config/codex/skills/*/` | `~/.agents/skills/` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
+
+### 設定同期の変更範囲
+
+`make diff-config` は次の差分と不足項目を表示するだけで、ファイルや外部状態を変更しません。内容を確認してから `make sync-config` を実行してください。`make install` と `make update` も処理の途中で `make sync-config` を実行します。
+
+| 区分 | `make sync-config` の動作 |
+| --- | --- |
+| ファイルコピー | `config/` の通常ファイル、共有・CLI別の指示を連結したファイル、agent-sentinelから生成したCodex設定を、内容が異なる場合だけ所定のパスへコピーします。コピー先の既存内容はリポジトリの内容で置き換わります。 |
+| マージ | Claude Codeのsettings/keybindings、Codexのリポジトリ宣言済みトップレベルキー、VS Code settingsを既存設定へマージします。iTerm2 Dynamic Profileは前回同期時のリポジトリ内容を基準に3-way mergeし、ローカル変更を保持します。 |
+| 管理集合の調整 | Claude Codeのagent・script・skillとCodex skillsについて、下記の所有規則に従って追加・更新・削除を行います。 |
+| 外部状態の変更 | 不足しているVS Code extensionのインストール、global Git configの更新、`duti`によるdefault applicationの変更、`defaults write`によるmacOS preferencesの変更を行います。`config/sheldon/plugins.toml`を更新した場合は `sheldon lock --update` も実行します。 |
+
+Claude Codeについては、次のパスをリポジトリが集合全体として所有します。
+
+- `~/.claude/agents/*.md`
+- `~/.claude/scripts/` 直下のファイル
+- `~/.claude/skills/` 以下のファイルとディレクトリ
+
+対応する相対パスが `config/claude/` に存在しないファイルは恒久削除され、リポジトリに存在しない `~/.claude/skills/` 以下のディレクトリも再帰的に削除されます。個人用のagent・script・skillを残す場合は、同期前に対象ディレクトリ外へ退避するか、継続して利用するものを `config/claude/` に追加してください。`~/.claude/CLAUDE.md` は共有指示とClaude固有指示から生成し直されますが、settingsとkeybindingsは上表のとおり既存内容へマージされます。
+
+Codex skillsの扱いは異なります。リポジトリが同期した相対ファイルパスを `~/.agents/skills/.oh-my-mac-managed` に記録し、その記録に含まれるファイルだけを削除対象にします。別の方法で追加したskillやファイルは保持し、同名の未管理skillがある場合は上書きせず同期を中止します。
 
 ### Codex Skills
 
@@ -173,7 +207,9 @@ Add extensions as `publisher.extension-name` per line. Config sync is the single
 
 `make install` / `make update` install plugins listed here and uninstall user-scope plugins that are not. Marketplaces are not managed by this repository; remove an unused one with `claude plugin marketplace remove <name>`.
 
-## Usage
+## 使い方
+
+設定を反映する前に `make diff-config` を実行し、コピー・マージ内容、削除対象、外部状態の変更を確認してください。Claude Codeの削除対象に残したいデータが含まれる場合は、[設定同期の変更範囲](#設定同期の変更範囲)に従って退避またはリポジトリへ追加してから同期します。
 
 | Command | Description |
 | --- | --- |
@@ -185,8 +221,8 @@ Add extensions as `publisher.extension-name` per line. Config sync is the single
 | `make refresh-agent-sentinel` | Update agent-sentinel HEAD and refresh generated config |
 | `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
 | `make test` | Run the test suite |
-| `make diff-config` | Show differences between repo and local config |
-| `make sync-config` | Sync config files only |
+| `make diff-config` | ファイル、管理集合、外部状態の変更予定を表示する（変更は行わない） |
+| `make sync-config` | リポジトリ管理の設定、管理集合、外部状態を同期する |
 
 ## Post-install Setup
 
