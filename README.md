@@ -46,6 +46,28 @@ done
 
 Add any agents, scripts, and skills you want to retain under `config/claude/` at their corresponding relative paths. See [Config Sync Scope](#config-sync-scope) for ownership details and side effects.
 
+## Dependency Version Guarantees
+
+This repository pins selected direct tool versions; it does not provide a complete dependency lock or byte-for-byte environment reproduction. It records no artifact hashes and does not lock Homebrew packages, npm transitive dependencies, installer or bootstrap code, extension marketplaces, or plugin marketplaces. An exact pin therefore constrains the named direct version, not every input used to install it.
+
+The table below is the complete inventory of versioning guarantees and exceptions for dependencies managed by this repository.
+
+| Dependency | Repository declaration | `make install` / `make update` | Approved `make upgrade` | Reproducibility boundary |
+| --- | --- | --- | --- | --- |
+| Homebrew formulae, casks, and taps | `Brewfile` and `config/homebrew/trusted-taps.txt` declare membership only. | Trusts declared taps and runs `brew bundle --no-upgrade`. Missing entries resolve from the repositories available at run time; the command does not request upgrades for already-installed `Brewfile` entries. | `brew bundle` runs without `--no-upgrade`, so every outdated `Brewfile` entry can advance to the version available at apply time. | Package versions, tap revisions, Homebrew itself, and transitive dependencies are not locked by this repository. |
+| Claude Code | `config/claude/version` contains an exact version. | Installs that version and verifies the installed version, including after the fallback installer. | The reviewed version replaces the pin and is then installed and verified. | The direct installed version is fixed. The downloaded installer and artifacts are not hashed or vendored here. |
+| Node.js global default | `config/fnm/version` contains an exact version. | `fnm` installs and selects that version as the global default. | The routine upgrade workflow does not investigate or change this pin. | The Node.js version is fixed, but the Homebrew-installed `fnm`, downloaded artifacts, and project-local `.node-version` / `.nvmrc` overrides are outside that guarantee. |
+| Notion CLI and Codex CLI | `config/ntn/version` and `config/codex/version` contain exact npm package versions. | Installs the declared direct package versions globally. | Reviewed versions replace the pins and are installed. | The direct npm package versions are fixed; npm transitive resolution and artifacts are not locked here. The Codex pin does not govern the copy bundled with the ChatGPT desktop app. |
+| Codex config tools | `config/uv/config-tools.txt` pins direct Python packages with `==`; the virtual environment requests Python `>=3.11`. | Rebuilds the environment when Python is unsuitable or a declared direct package version differs. | The routine upgrade workflow does not investigate or change these pins. | Direct package versions are fixed. The Python minor/patch version, transitive dependencies, and artifacts are not locked here. |
+| Sheldon plugins | Each remote plugin in `config/sheldon/plugins.toml` uses a `tag` or `rev`; the generated Sheldon lock stays under the user's home directory. | A changed synced config runs `sheldon lock --update`, resolving the declared references. | The workflow may change approved references, but `make upgrade-apply` does not run config sync; the local Sheldon checkout changes on the next `make install` or `make update`. | A commit `rev` identifies a commit, while a tag can be moved upstream. No Sheldon lock is committed, so fresh installations are not locked to recorded commits. |
+| uv tools | Entries normally require an `@tag` or `@commit`. The current `agent-sentinel` and `claude-sessions` entries intentionally reference Git HEAD. | Installs missing tools but does not request upgrades for an unchanged installed requirement. A fresh install of either exception resolves the then-current HEAD. | `make upgrade-apply` likewise does not advance unchanged HEAD requirements. `make refresh-agent-sentinel` explicitly upgrades `agent-sentinel`; no repository workflow refreshes an existing `claude-sessions` installation. | The two HEAD sources and their dependency graphs are unpinned. |
+| VS Code extensions | `config/vscode/extensions.txt` declares extension IDs only. | Config sync installs missing IDs from the marketplace without a version and leaves installed extensions untouched. | The upgrade workflow does not manage extension versions. | Extension versions are not recorded or controlled after installation. |
+| Claude Code plugins | `config/claude/plugins.txt` declares user-scope membership only; marketplaces are external. | Installs missing declarations and removes undeclared user-scope plugins without requesting updates for installed declarations. | Explicitly updates every declared plugin to the marketplace version available at apply time. | Plugin versions and marketplace definitions are not recorded in this repository. |
+
+`make update` is a convergence command, not a frozen reinstall: a newer checkout can move explicitly pinned tools to its declared versions, while missing unpinned dependencies resolve at run time. Its “no upgrade” behavior is limited to using Homebrew's `--no-upgrade` mode and not requesting updates for existing Claude Code plugins, existing VS Code extensions, or unchanged uv tool requirements.
+
+`make upgrade` opens the interactive `/upgrade` workflow. After approval, it updates the version sources that workflow owns, upgrades all outdated `Brewfile` entries and all declared Claude Code plugins at apply time, installs the approved direct pins, and asks for approval before committing the version-source changes. Node.js and the Codex config-tools environment are outside that routine investigation; Sheldon reference changes take effect through the next config sync.
+
 ## Agent Instructions
 
 Claude Code and Codex both work in this repository, and both read their instructions from one place per scope.
@@ -155,7 +177,7 @@ The point is the permission layer: an operation that can always be undone is saf
 
 ### Node (`config/fnm/version`)
 
-[fnm](https://github.com/Schniz/fnm) manages Node.js. `fnm env --use-on-cd` (in `config/zshrc`) switches versions per project from a `.node-version` / `.nvmrc` file, while `config/fnm/version` pins the global default that `make install` / `make update` install via `fnm install` + `fnm default`. The step is skipped when the pinned version is already installed and set as default. The default is held below 24.17 pending [nodejs/node#63989](https://github.com/nodejs/node/issues/63989) — an `http.Agent` keep-alive regression that breaks node-fetch-based tooling.
+[fnm](https://github.com/Schniz/fnm) manages Node.js. `fnm env --use-on-cd` (in `config/zshrc`) switches versions per project from a `.node-version` / `.nvmrc` file, while `config/fnm/version` records the global default. The default is held below 24.17 pending [nodejs/node#63989](https://github.com/nodejs/node/issues/63989) — an `http.Agent` keep-alive regression that breaks node-fetch-based tooling. See [Dependency Version Guarantees](#dependency-version-guarantees) for installation and reproducibility boundaries.
 
 | Tool | Version |
 | --- | --- |
@@ -163,7 +185,7 @@ The point is the permission layer: an operation that can always be undone is saf
 
 ### Notion CLI (`config/ntn/version`)
 
-[ntn](https://developers.notion.com/cli) is Notion's official CLI, published on npm by Notion. It gives scripts and coding agents session-independent, idempotent access to the Notion API (the Notion MCP server covers interactive use). `make install` / `make update` install the pinned version globally with npm using the fnm-managed Node, reinstalling only when `ntn --version` differs from the pin.
+[ntn](https://developers.notion.com/cli) is Notion's official CLI, published on npm by Notion. It gives scripts and coding agents session-independent, idempotent access to the Notion API (the Notion MCP server covers interactive use). Its direct package version is recorded in `config/ntn/version`; see [Dependency Version Guarantees](#dependency-version-guarantees) for the scope of that pin.
 
 | Tool | Version |
 | --- | --- |
@@ -171,7 +193,7 @@ The point is the permission layer: an operation that can always be undone is saf
 
 ### Codex CLI (`config/codex/version`)
 
-[Codex CLI](https://developers.openai.com/codex/cli) is OpenAI's coding agent, published on npm as `@openai/codex`. It runs alongside Claude Code and reads the same rules — see [Agent Instructions](#agent-instructions). `make install` / `make update` install the pinned version globally with npm using the fnm-managed Node, reinstalling only when the globally installed `@openai/codex` differs from the pin. A missing prerequisite or failed required installer stops the parent command with a nonzero exit status. Homebrew's `codex` cask carries no version pin and is not used.
+[Codex CLI](https://developers.openai.com/codex/cli) is OpenAI's coding agent, published on npm as `@openai/codex`. It runs alongside Claude Code and reads the same rules — see [Agent Instructions](#agent-instructions). Its direct package version is recorded in `config/codex/version`; see [Dependency Version Guarantees](#dependency-version-guarantees) for the scope of that pin. A missing prerequisite or failed required installer stops the parent command with a nonzero exit status. Homebrew's `codex` cask is not used.
 
 `config/codex/config.toml` declares the global defaults this repository manages. The supported configuration uses `approval_policy = "on-request"` with `sandbox_mode = "workspace-write"`. The sync uses a pinned TOML parser to update those top-level keys while preserving project trust entries, plugins, MCP servers, and other values written by Codex or the ChatGPT desktop app. Invalid TOML aborts the sync without changing the installed file.
 
@@ -214,7 +236,7 @@ Add extensions as `publisher.extension-name` per line. Config sync is the single
 | context7 | claude-plugins-official |
 | playwright | claude-plugins-official |
 
-`make install` / `make update` install plugins listed here and uninstall user-scope plugins that are not, without updating plugins that are already installed. After approval in the interactive upgrade workflow, `make upgrade` updates every listed plugin, including enabled plugins. Marketplaces are not managed by this repository; remove an unused one with `claude plugin marketplace remove <name>`.
+This file owns user-scope plugin membership, while marketplaces remain external. Version behavior is summarized in [Dependency Version Guarantees](#dependency-version-guarantees). Remove an unused marketplace with `claude plugin marketplace remove <name>`.
 
 ## Usage
 
@@ -224,7 +246,7 @@ On an existing machine with the sync dependencies installed, run `make install-c
 | --- | --- |
 | `make` / `make help` | Show available targets |
 | `make install` | Install packages + sync config + install plugins |
-| `make update` | Sync config + install missing packages (no upgrades) |
+| `make update` | Sync config and converge declared dependencies without requesting opportunistic updates |
 | `make upgrade` | Open a Claude Code session that investigates upgrades, applies them, and commits |
 | `make upgrade-apply` | Apply approved package and Claude Code plugin upgrades (invoked from `/upgrade`) |
 | `make refresh-agent-sentinel` | Update agent-sentinel HEAD and refresh generated config |

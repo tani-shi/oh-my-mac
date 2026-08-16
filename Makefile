@@ -20,7 +20,7 @@ install: ## Install packages + sync config + install plugins
 	brew bundle --no-upgrade --file=Brewfile
 	$(MAKE) converge
 
-update: ## Sync config + install missing packages (no upgrades)
+update: ## Sync config and converge declared dependencies
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
 	$(MAKE) converge
