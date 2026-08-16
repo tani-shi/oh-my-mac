@@ -78,6 +78,35 @@ JQ_KEYBINDINGS_MERGE='
   ]
 '
 
+JQ_ITERM_PROFILE_MERGE='
+  def merge($base; $local; $repo):
+    reduce (((($base | keys) + ($local | keys) + ($repo | keys)) | unique)[]) as $key
+      ({};
+        ($base | has($key)) as $base_has |
+        ($local | has($key)) as $local_has |
+        ($repo | has($key)) as $repo_has |
+        if $local_has and $repo_has
+          and ($local[$key] | type) == "object"
+          and ($repo[$key] | type) == "object"
+          and (($base_has | not) or ($base[$key] | type) == "object")
+        then .[$key] = merge(
+          (if $base_has then $base[$key] else {} end);
+          $local[$key];
+          $repo[$key]
+        )
+        elif ($local_has == $base_has)
+          and (($local_has | not) or $local[$key] == $base[$key])
+        then if $repo_has then .[$key] = $repo[$key] else . end
+        else if $local_has then .[$key] = $local[$key] else . end
+        end
+      );
+
+  (.[0].Profiles[0] // {}) as $base |
+  (.[1].Profiles[0] // {}) as $local |
+  (.[2].Profiles[0] // {}) as $repo |
+  {Profiles: [merge($base; $local; $repo)]}
+'
+
 SHARED_INSTRUCTIONS="$SCRIPT_DIR/config/agents/instructions.md"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 REPO_SETTINGS="$SCRIPT_DIR/config/claude/settings.json"
@@ -85,6 +114,7 @@ CLAUDE_KEYBINDINGS="$HOME/.claude/keybindings.json"
 REPO_KEYBINDINGS="$SCRIPT_DIR/config/claude/keybindings.json"
 ITERM_PROFILE_SRC="$SCRIPT_DIR/config/iterm2/profile.json"
 ITERM_PROFILE_DST="$HOME/Library/Application Support/iTerm2/DynamicProfiles/profile.json"
+ITERM_PROFILE_BASE="$HOME/Library/Application Support/oh-my-mac/iterm2-profile-baseline.json"
 VSCODE_SETTINGS="$HOME/Library/Application Support/Code/User/settings.json"
 REPO_VSCODE_SETTINGS="$SCRIPT_DIR/config/vscode/settings.json"
 CODEX_CONFIG="$HOME/.codex/config.toml"
@@ -367,40 +397,48 @@ sync_iterm_profile() {
   if [[ ! -f "$ITERM_PROFILE_SRC" ]]; then
     return 0
   fi
+  local empty_profile="$tmpdir/empty-iterm-profile.json"
+  local base_profile="$ITERM_PROFILE_BASE"
+  local local_profile="$ITERM_PROFILE_DST"
+  local merged_profile="$tmpdir/merged-iterm-profile.json"
   local strip_machine_specific_guid='del(.Profiles[].Guid)'
-  local src_sans_guid dst_sans_guid guid
-  src_sans_guid=$(jq "$strip_machine_specific_guid" "$ITERM_PROFILE_SRC")
-  dst_sans_guid=""
+  local desired_sans_guid current_sans_guid guid
+  print -r -- '{"Profiles":[{}]}' > "$empty_profile"
+  [[ -f "$base_profile" ]] || base_profile="$empty_profile"
+  [[ -f "$local_profile" ]] || local_profile="$empty_profile"
+  jq -s "$JQ_ITERM_PROFILE_MERGE" \
+    "$base_profile" "$local_profile" "$ITERM_PROFILE_SRC" > "$merged_profile"
+
+  desired_sans_guid=$(jq -S "$strip_machine_specific_guid" "$merged_profile")
+  current_sans_guid=""
   if [[ -f "$ITERM_PROFILE_DST" ]]; then
-    dst_sans_guid=$(jq "$strip_machine_specific_guid" "$ITERM_PROFILE_DST")
+    current_sans_guid=$(jq -S "$strip_machine_specific_guid" "$ITERM_PROFILE_DST")
   fi
-  if [[ "$src_sans_guid" == "$dst_sans_guid" ]]; then
-    return 0
-  fi
-  if [[ "$MODE" == "diff" ]]; then
-    echo ""
-    echo "iTerm2 Dynamic Profile:"
-    if [[ -f "$ITERM_PROFILE_DST" ]]; then
-      diff <(echo "$dst_sans_guid") <(echo "$src_sans_guid") | head -50 || true
+  if [[ "$desired_sans_guid" != "$current_sans_guid" ]]; then
+    if [[ "$MODE" == "diff" ]]; then
+      echo ""
+      echo "iTerm2 Dynamic Profile:"
+      if [[ -f "$ITERM_PROFILE_DST" ]]; then
+        diff <(echo "$current_sans_guid") <(echo "$desired_sans_guid") | head -50 || true
+      else
+        echo "  current:  <not installed>"
+        echo "  expected: $ITERM_PROFILE_SRC"
+      fi
+      diffs=$((diffs + 1))
     else
-      echo "  current:  <not installed>"
-      echo "  expected: $ITERM_PROFILE_SRC"
+      mkdir -p "$(dirname "$ITERM_PROFILE_DST")"
+      # iTerm2 identifies dynamic profiles by Guid; reusing the installed Guid
+      # updates the profile in place instead of adding a duplicate.
+      guid=$(jq -r '.Profiles[0].Guid // empty' "$merged_profile")
+      [[ -n "$guid" ]] || guid=$(uuidgen)
+      jq --arg guid "$guid" '.Profiles[0].Guid = $guid' "$merged_profile" \
+        > "$ITERM_PROFILE_DST.tmp" && mv "$ITERM_PROFILE_DST.tmp" "$ITERM_PROFILE_DST"
+      echo "Synced iTerm2 Dynamic Profile."
+      changes=$((changes + 1))
     fi
-    diffs=$((diffs + 1))
-  else
-    mkdir -p "$(dirname "$ITERM_PROFILE_DST")"
-    # iTerm2 identifies dynamic profiles by Guid; reusing the installed Guid
-    # updates the profile in place instead of adding a duplicate.
-    guid=""
-    if [[ -f "$ITERM_PROFILE_DST" ]]; then
-      guid=$(jq -r '.Profiles[0].Guid // empty' "$ITERM_PROFILE_DST" 2>/dev/null || true)
-    fi
-    [[ -n "$guid" ]] || guid=$(uuidgen)
-    jq --arg guid "$guid" '.Profiles[0].Guid = $guid' "$ITERM_PROFILE_SRC" \
-      > "$ITERM_PROFILE_DST.tmp" && mv "$ITERM_PROFILE_DST.tmp" "$ITERM_PROFILE_DST"
-    echo "Synced iTerm2 Dynamic Profile."
-    changes=$((changes + 1))
   fi
+  sync_file "$ITERM_PROFILE_SRC" "$ITERM_PROFILE_BASE" \
+    "iTerm2 profile merge baseline"
 }
 
 install_vscode_extensions() {

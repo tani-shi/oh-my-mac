@@ -2,6 +2,7 @@
   "Profiles": [
     {
       "Name": "oh-my-mac",
+      "Rewritable": true,
 
       "Normal Font": "JetBrainsMonoNFM-Regular 12",
 

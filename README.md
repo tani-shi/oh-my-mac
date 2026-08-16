@@ -225,7 +225,7 @@ export OPENAI_API_KEY=sk-...
 ### iTerm2
 
 - Primary terminal for shell work and Claude Code; tab title shows the current directory basename, and tab color flips green on Claude Code completion / orange while it's awaiting input / purple while `agent-sentinel` is running a slow LLM-backed permission judgment (managed by zsh hooks + Claude Code Stop/Notification/PreToolUse hooks)
-- Managed via Dynamic Profile (`config/iterm2/profile.json`), synced by `make sync-config`
+- Managed via a rewritable Dynamic Profile (`config/iterm2/profile.json`), synced by `make sync-config`; repository additions and updates apply to settings left unchanged locally, while changes made in iTerm2 are preserved
 - After first sync: **Profiles → oh-my-mac → Other Actions… → Set as Default** to apply
 
   ![Set as Default](docs/iterm2-set-as-default.png)

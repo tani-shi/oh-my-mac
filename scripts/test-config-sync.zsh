@@ -240,6 +240,8 @@ run() {
 
 sync_config() { "$REPO/config.zsh" sync 2>&1 }
 diff_config() { "$REPO/config.zsh" diff 2>&1 }
+sync_config_from() { "$1/config.zsh" sync 2>&1 }
+diff_config_from() { "$1/config.zsh" diff 2>&1 }
 make_update() { make -s -C "$REPO" update INSTALL_STEPS= 2>&1 }
 make_update_with_steps() { make -s -C "$REPO" update "INSTALL_STEPS=$1" 2>&1 }
 refresh_agent_sentinel() { "$REPO/scripts/refresh-agent-sentinel.zsh" 2>&1 }
@@ -286,6 +288,82 @@ t_diff_after_sync_is_clean() {
 t_sync_is_idempotent() {
   sync_config > /dev/null
   check_contains "second sync changes nothing" "$(sync_config)" "Already up to date."
+}
+
+t_iterm_profile_migrates_without_overwriting_local_values() {
+  local profile="$HOME/Library/Application Support/iTerm2/DynamicProfiles/profile.json"
+  local baseline="$HOME/Library/Application Support/oh-my-mac/iterm2-profile-baseline.json"
+  mkdir -p "${profile:h}"
+  jq '
+    .Profiles[0].Guid = "existing-guid" |
+    .Profiles[0]["Normal Font"] = "Local Font 14" |
+    del(.Profiles[0].Rewritable)
+  ' "$REPO/config/iterm2/profile.json" > "$profile"
+
+  sync_config > /dev/null
+
+  check_equals "an existing profile keeps its local value during migration" \
+    "$(jq -r '.Profiles[0]["Normal Font"]' "$profile")" "Local Font 14"
+  check_equals "the migrated profile keeps its Guid" \
+    "$(jq -r '.Profiles[0].Guid' "$profile")" "existing-guid"
+  check_equals "the migrated profile becomes rewritable" \
+    "$(jq -r '.Profiles[0].Rewritable' "$profile")" "true"
+  check_files_equal "migration records the repository baseline" \
+    "$baseline" "$REPO/config/iterm2/profile.json"
+}
+
+t_iterm_profile_three_way_merge_preserves_local_changes() {
+  local profile="$HOME/Library/Application Support/iTerm2/DynamicProfiles/profile.json"
+  local baseline="$HOME/Library/Application Support/oh-my-mac/iterm2-profile-baseline.json"
+  local repo_copy="$tmp/iterm-repo-$home_n" guid output
+  sync_config > /dev/null
+  guid=$(jq -r '.Profiles[0].Guid' "$profile")
+  cp -R "$REPO" "$repo_copy"
+
+  jq '
+    .Profiles[0]["Normal Font"] = "Repository Font 13" |
+    .Profiles[0]["Scrollback Lines"] = 200000 |
+    .Profiles[0]["Keyboard Map"]["repo-new"] = {"Text":"r","Action":10} |
+    del(.Profiles[0]["Mouse Reporting"])
+  ' "$repo_copy/config/iterm2/profile.json" > "$repo_copy/config/iterm2/profile.json.new"
+  mv "$repo_copy/config/iterm2/profile.json.new" "$repo_copy/config/iterm2/profile.json"
+  jq '
+    .Profiles[0]["Normal Font"] = "Local Font 14" |
+    .Profiles[0]["Silence Bell"] = false |
+    .Profiles[0]["Keyboard Map"]["0xf728-0x80000"].Text = "local" |
+    .Profiles[0]["Local Setting"] = "kept" |
+    del(.Profiles[0]["Prompt Before Closing 2"])
+  ' "$profile" > "$profile.new"
+  mv "$profile.new" "$profile"
+
+  output="$(sync_config_from "$repo_copy")"
+
+  check_contains "the profile is updated after repository changes" \
+    "$output" "Synced iTerm2 Dynamic Profile."
+  check_equals "a conflicting local scalar wins" \
+    "$(jq -r '.Profiles[0]["Normal Font"]' "$profile")" "Local Font 14"
+  check_equals "an untouched scalar receives the repository update" \
+    "$(jq -r '.Profiles[0]["Scrollback Lines"]' "$profile")" "200000"
+  check_equals "a local scalar remains changed" \
+    "$(jq -r '.Profiles[0]["Silence Bell"]' "$profile")" "false"
+  check_equals "a repository key is added inside a local object" \
+    "$(jq -r '.Profiles[0]["Keyboard Map"]["repo-new"].Text' "$profile")" "r"
+  check_equals "a local key remains changed inside an updated object" \
+    "$(jq -r '.Profiles[0]["Keyboard Map"]["0xf728-0x80000"].Text' "$profile")" "local"
+  check_equals "a local-only key is preserved" \
+    "$(jq -r '.Profiles[0]["Local Setting"]' "$profile")" "kept"
+  check_equals "a locally removed key stays removed" \
+    "$(jq -r '.Profiles[0] | has("Prompt Before Closing 2")' "$profile")" "false"
+  check_equals "a repository removal applies to an untouched key" \
+    "$(jq -r '.Profiles[0] | has("Mouse Reporting")' "$profile")" "false"
+  check_equals "the profile Guid remains stable" \
+    "$(jq -r '.Profiles[0].Guid' "$profile")" "$guid"
+  check_files_equal "the new repository values become the next baseline" \
+    "$baseline" "$repo_copy/config/iterm2/profile.json"
+  check_contains "the merged profile has a clean diff" \
+    "$(diff_config_from "$repo_copy")" "No differences found."
+  check_contains "the merged profile is idempotent" \
+    "$(sync_config_from "$repo_copy")" "Already up to date."
 }
 
 t_claude_script_orphans_are_removed() {
@@ -906,6 +984,8 @@ run "invalid modes are rejected"             t_invalid_modes_are_rejected
 run "diff writes nothing"                    t_diff_writes_nothing
 run "diff after sync is clean"               t_diff_after_sync_is_clean
 run "sync is idempotent"                     t_sync_is_idempotent
+run "iTerm profile migration preserves local values" t_iterm_profile_migrates_without_overwriting_local_values
+run "iTerm profile changes are three-way merged" t_iterm_profile_three_way_merge_preserves_local_changes
 run "Claude script orphans are removed"       t_claude_script_orphans_are_removed
 run "sync requires agent-sentinel"           t_sync_requires_agent_sentinel
 run "agent-sentinel config is synced"        t_agent_sentinel_config_is_synced
