@@ -2,14 +2,14 @@
 
 My Mac setup, managed declaratively.
 
-## Prerequisites
+## 前提条件
 
-This repository supports only Apple Silicon (arm64) Macs. Homebrew and the synced
-`~/.zshrc` use `/opt/homebrew`, the standard Homebrew prefix on Apple Silicon.
+このリポジトリはApple Silicon（arm64）搭載Mac専用です。Homebrewと同期後の
+`~/.zshrc`は、Apple Siliconの標準prefixである`/opt/homebrew`を前提としています。
 
-### Homebrew
+### Homebrewの導入
 
-Install Homebrew and initialize the current shell so the following commands can use it:
+Homebrewをインストールし、後続のコマンドで利用できるように現在のシェルへ設定を反映します。
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
