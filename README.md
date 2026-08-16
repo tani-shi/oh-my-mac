@@ -152,7 +152,9 @@ Codex skill ownership is different. The repository records the relative file pat
 
 ### Codex Skills
 
-`config/codex/skills/refactor-review/` identifies up to three structural refactoring candidates based on the current implementation goals and working changes. Run `$refactor-review` for a read-only review, then run `$refactor-review apply` in the same session to apply only the candidates previously marked `APPLY` and run the relevant tests. Implicit invocation is disabled; use Codex's standard `/review` command for regular bug reviews.
+`config/codex/skills/architecture-review/` performs a read-only diagnosis of repository structure and reports up to three high-value follow-up candidates. Run `$architecture-review` for the whole repository or `$architecture-review path <path>` to limit candidate discovery to one area. It first maps entry points, responsibility boundaries, and dependencies, then verifies possible simplifications against repository references, tests, and history. Use it for occasional architecture diagnosis; it never applies its findings.
+
+`config/codex/skills/refactor-review/` instead reviews the current implementation goals and working changes. Run `$refactor-review` for a read-only review, then run `$refactor-review apply` in the same session to apply only the candidates previously marked `APPLY` and run the relevant tests. Use Codex's standard `/review` command for regular bug reviews. Implicit invocation is disabled for both skills.
 
 `make sync-config` records the relative paths of Codex skill files synced by this repository in `~/.agents/skills/.oh-my-mac-managed`. It uses this record to remove only files that have been deleted from the source while preserving skills and files added by other means. If an unmanaged skill with the same name already exists, the sync stops without overwriting it.
 

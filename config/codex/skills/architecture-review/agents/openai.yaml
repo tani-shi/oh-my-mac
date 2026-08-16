@@ -1,0 +1,7 @@
+interface:
+  display_name: "Architecture Review"
+  short_description: "Diagnose high-value repository architecture issues"
+  default_prompt: "Use $architecture-review to diagnose the repository’s highest-value architectural simplification opportunities."
+
+policy:
+  allow_implicit_invocation: false
