@@ -53,7 +53,7 @@ upgrade-apply: ## Apply approved upgrades (invoked from /upgrade)
 		$(MAKE) "$$step" || exit 1; \
 	done
 
-trust-taps:
+trust-taps: ## Trust non-official Homebrew taps
 	@if [ -f config/homebrew/trusted-taps.txt ]; then \
 		trusted=$$(brew trust --json v1 2>/dev/null) || exit 1; \
 		failed=0; \
@@ -78,6 +78,7 @@ trust-taps:
 test: ## Run the test suite
 	@./scripts/test-discard.zsh
 	@./scripts/test-commit-upgrade.zsh
+	@./scripts/test-documentation.zsh
 	@./scripts/test-config-sync.zsh
 
 CLAUDE_VERSION := $(shell cat config/claude/version 2>/dev/null)

@@ -67,7 +67,7 @@ repository rather than this one.
 
 ## Tests
 
-- `make test` runs `scripts/test-discard.zsh` and `scripts/test-config-sync.zsh`. Add cases to the first when changing `config/git/discard.zsh`, and to the second when changing `config.zsh`.
+- `make test` runs `scripts/test-discard.zsh`, `scripts/test-commit-upgrade.zsh`, `scripts/test-documentation.zsh`, and `scripts/test-config-sync.zsh`. Add `config/git/discard.zsh` cases to the first, upgrade commit workflow cases to the second, Brewfile/README package and README/public `make` target consistency cases to the third, and `config.zsh` cases to the fourth.
 - Tests run against the repository copy of a script, never the synced copy under `$HOME`, so a change is verified before `make sync-config`.
 - Each case runs in a throwaway directory under `mktemp -d` with `HOME`, `GIT_CONFIG_GLOBAL`, and `GIT_CONFIG_SYSTEM` redirected, and with stubs earlier in `PATH`. Keep that isolation: a test must not reach the real Trash, the real git config, a real repository, or the real macOS preferences.
 - `make test` does not install config tools. `test-config-sync.zsh` injects the managed config Python into a marked temporary root; set `OH_MY_MAC_TEST_CONFIG_PYTHON` to inject another prepared interpreter without writing to the test runner's home directory. The installer accepts `OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT` only for a marked directory below the OS temporary directory and rejects the former arbitrary-path override.
