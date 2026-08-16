@@ -167,14 +167,13 @@ verify_agent_sentinel() {
   fi
 }
 
-generate_agent_sentinel_codex_config() {
-  mkdir -p "${GENERATED_CODEX_HOOKS:h}"
+prepare_agent_sentinel_codex_config() {
   if [[ -f "$CODEX_HOOKS" ]]; then
+    mkdir -p "${GENERATED_CODEX_HOOKS:h}"
     cp "$CODEX_HOOKS" "$GENERATED_CODEX_HOOKS"
   fi
-  agent-sentinel install --target codex --path "$GENERATED_CODEX_HOOKS" >/dev/null
-  validate_agent_sentinel_codex_config \
-    "$GENERATED_CODEX_HOOKS" "$GENERATED_CODEX_AGENT_SENTINEL_RULES"
+  generate_agent_sentinel_codex_config \
+    "$GENERATED_CODEX_HOOKS" "$GENERATED_CODEX_AGENT_SENTINEL_RULES" "$CODEX_CONFIG"
 }
 
 sync_instructions() {
@@ -588,7 +587,7 @@ apply_macos_defaults() {
 }
 
 verify_agent_sentinel
-generate_agent_sentinel_codex_config
+prepare_agent_sentinel_codex_config
 prepare_codex_skills
 sync_files
 codex_hook_changed=0

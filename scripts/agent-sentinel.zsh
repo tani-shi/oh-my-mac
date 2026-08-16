@@ -31,6 +31,23 @@ validate_agent_sentinel_codex_config() {
   fi
 }
 
+generate_agent_sentinel_codex_config() {
+  local hooks_path=$1 rules_path=$2 installed_config_path=$3
+  local install_output line
+
+  mkdir -p "${hooks_path:h}"
+  if [[ -f "$installed_config_path" ]]; then
+    cp "$installed_config_path" "${hooks_path:h}/config.toml"
+  fi
+
+  install_output=$(agent-sentinel install --target codex --path "$hooks_path")
+  while IFS= read -r line; do
+    [[ "$line" == Warning:* ]] && print -u2 -r -- "$line"
+  done <<< "$install_output"
+
+  validate_agent_sentinel_codex_config "$hooks_path" "$rules_path"
+}
+
 agent_sentinel_codex_hook_definition() {
   local hooks_path=$1
 
