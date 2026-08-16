@@ -95,10 +95,10 @@ The `config/` entries are a different scope again: `make sync-config` concatenat
 | --- | --- |
 | Shell | starship, sheldon, fzf, ripgrep, shellcheck, shfmt |
 | Modern CLI replacements | bat, eza, fd, delta, zoxide |
-| Terminal multiplexer | tmux |
+| Terminal | iterm2, tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, uv, terraform, awscli, gcloud-cli, visual-studio-code |
+| Development | fnm, uv, ruff, terraform, awscli, gcloud-cli, visual-studio-code |
 | Git / GitHub | gh, git-lfs |
 
 ### Trusted Homebrew Taps (`config/homebrew/trusted-taps.txt`)
