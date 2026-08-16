@@ -28,6 +28,15 @@ stub_file() {
 
 stub() { stub_file "$tmp/bin/$1" }
 
+export REAL_SORT="$(command -v sort)"
+stub sort <<'STUB'
+#!/bin/zsh
+if [[ -f "$STUB_STATE/capture-sort-locale" ]]; then
+  print -r -- "${LC_ALL-}" >> "$STUB_STATE/sort-locales"
+fi
+exec "$REAL_SORT" "$@"
+STUB
+
 select_config_tools_test_root() {
   export OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT=$1
   mkdir -p "$OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT"
@@ -795,13 +804,15 @@ t_refresh_requests_agent_sentinel_upgrade() {
 t_codex_skills_are_synced() {
   sync_config > /dev/null
   local source rel expected="$tmp/expected-codex-skills-manifest"
-  : > "$expected"
+  local discovered="$tmp/discovered-codex-skills-manifest"
+  : > "$discovered"
   for source in "$REPO"/config/codex/skills/**/*(.N); do
     rel="${source#$REPO/config/codex/skills/}"
     check_files_equal "$rel is synced into the user skill directory" \
       "$HOME/.agents/skills/$rel" "$source"
-    print -r -- "$rel" >> "$expected"
+    print -r -- "$rel" >> "$discovered"
   done
+  LC_ALL=C sort "$discovered" > "$expected"
   check_files_equal "the manifest lists repository-managed skill files" \
     "$HOME/.agents/skills/.oh-my-mac-managed" "$expected"
   check_contains "the skill requires explicit invocation" \
@@ -812,6 +823,47 @@ t_codex_skills_are_synced() {
   check_contains "apply mode uses only the preceding review" \
     "$(<$HOME/.agents/skills/refactor-review/SKILL.md)" \
     "immediately preceding Refactor Review"
+}
+
+codex_skill_test_locales() {
+  local candidate
+  print -r -- C
+  for candidate in C.UTF-8 ja_JP.UTF-8 en_US.UTF-8; do
+    LC_ALL="$candidate" locale charmap > /dev/null 2>&1 && print -r -- "$candidate"
+  done
+}
+
+t_codex_skill_manifest_is_locale_independent() {
+  local manifest="$HOME/.agents/skills/.oh-my-mac-managed"
+  local expected="$tmp/expected-codex-skills-manifest"
+  local discovered="$tmp/discovered-codex-skills-manifest"
+  local source rel locale_name output captured_count forced_count
+  local -a test_locales
+
+  : > "$discovered"
+  for source in "$REPO"/config/codex/skills/**/*(.N); do
+    rel="${source#$REPO/config/codex/skills/}"
+    print -r -- "$rel" >> "$discovered"
+  done
+  LC_ALL=C sort "$discovered" > "$expected"
+  test_locales=("${(@f)$(codex_skill_test_locales)}")
+  : > "$STUB_STATE/capture-sort-locale"
+
+  LC_ALL="${test_locales[1]}" sync_config > /dev/null
+  for locale_name in "${test_locales[@]}"; do
+    check_files_equal "$locale_name produces the deterministic skill manifest" \
+      "$manifest" "$expected"
+    output="$(LC_ALL="$locale_name" diff_config)"
+    check_contains "$locale_name reports no diff after a sync in another locale" \
+      "$output" "No differences found."
+    check_contains "$locale_name leaves the manifest unchanged during sync" \
+      "$(LC_ALL="$locale_name" sync_config)" "Already up to date."
+  done
+
+  captured_count=$(wc -l < "$STUB_STATE/sort-locales" | tr -d ' ')
+  forced_count=$(grep -c '^C$' "$STUB_STATE/sort-locales")
+  check_nonzero "manifest sorting runs on every locale set" "$captured_count"
+  check_equals "manifest sorting always forces C collation" "$forced_count" "$captured_count"
 }
 
 t_codex_skill_name_collisions_are_rejected() {
@@ -1411,6 +1463,7 @@ run "update migrates legacy sentinel once"   t_update_migrates_legacy_sentinel_o
 run "failed sentinel install stops update"   t_update_stops_before_sync_when_sentinel_install_fails
 run "refresh upgrades agent-sentinel"        t_refresh_requests_agent_sentinel_upgrade
 run "codex skills are synced"                t_codex_skills_are_synced
+run "codex skill manifest ignores locale"    t_codex_skill_manifest_is_locale_independent
 run "codex skill name collisions are rejected" t_codex_skill_name_collisions_are_rejected
 run "codex skill file collisions are rejected" t_codex_skill_file_collisions_are_rejected
 run "codex skill orphans are scoped"         t_codex_skill_orphans_are_scoped
