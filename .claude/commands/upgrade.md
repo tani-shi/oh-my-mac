@@ -8,13 +8,16 @@ the ones the user approves, and commit the result.
 
 ## Scope
 
-Only these files record a pinned version, and they are the only files you may edit:
+Only these upgrade-managed version sources may be edited in this workflow:
 
 - `config/claude/version` — Claude Code
 - `config/ntn/version` — Notion CLI (ntn)
 - `config/codex/version` — Codex CLI
 - `config/sheldon/plugins.toml` — zsh plugins
 - `config/uv/tools.txt` — uv tools
+
+`config/fnm/version` and `config/uv/config-tools.txt` also contain pins, but the
+routine upgrade workflow does not investigate or change them.
 
 Homebrew formulae and casks carry no pin: `make upgrade-apply` upgrades every
 `Brewfile` entry. Report what `brew outdated` lists so the user can decide, but
@@ -63,7 +66,10 @@ Run these in parallel where you can:
   and global npm install).
 - **Sheldon plugins**: pin by tag, or by rev when the repository has no tags.
 - **uv tools**: pin with an `@tag`/`@commit` suffix, except `agent-sentinel`
-  and `claude-sessions`, which the user owns and which track HEAD.
+  and `claude-sessions`, which the user owns and whose source requirements
+  reference HEAD. `make upgrade-apply` does not pass `--upgrade`, so it does not
+  advance an existing installation when an unchanged requirement still points
+  to HEAD.
   Refresh agent-sentinel separately with `make refresh-agent-sentinel` because
   its generated Claude configuration is part of the repository.
 - **Claude Code plugins**: update every declaration in
@@ -77,9 +83,11 @@ Present the findings as a table — package, current, latest, verdict, reason �
 and get the user's approval before editing any pin.
 
 Once approved, write the pins, then run `make upgrade-apply` without asking again.
-It trusts the taps, runs `brew bundle`, installs the pinned Claude Code / uv tools
-/ ntn / codex, reconciles the declared plugin set, and explicitly updates every
-declared plugin. Read its output and stop if any step fails; a plugin update
+It trusts the taps, runs `brew bundle`, installs the pinned Claude Code / changed
+uv requirements / ntn / codex, reconciles the declared plugin set, and explicitly
+updates every declared plugin. It does not run `sync-config`, so an approved
+Sheldon reference change reaches the local checkout on the next `make install`
+or `make update`. Read its output and stop if any step fails; a plugin update
 failure prevents the later tools from being installed.
 
 ## 4. Commit
