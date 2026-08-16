@@ -823,6 +823,18 @@ t_codex_skills_are_synced() {
   check_contains "apply mode uses only the preceding review" \
     "$(<$HOME/.agents/skills/refactor-review/SKILL.md)" \
     "immediately preceding Refactor Review"
+  check_contains "the architecture skill requires explicit invocation" \
+    "$(<$HOME/.agents/skills/architecture-review/agents/openai.yaml)" \
+    "allow_implicit_invocation: false"
+  check_contains "architecture diagnosis is read-only" \
+    "$(<$HOME/.agents/skills/architecture-review/SKILL.md)" \
+    "Do not modify files"
+  check_contains "architecture diagnosis accepts a path scope" \
+    "$(<$HOME/.agents/skills/architecture-review/SKILL.md)" \
+    '$architecture-review path <path>'
+  check_contains "architecture diagnosis limits findings" \
+    "$(<$HOME/.agents/skills/architecture-review/SKILL.md)" \
+    "return at most three"
 }
 
 codex_skill_test_locales() {
