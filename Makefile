@@ -11,7 +11,7 @@ help: ## Show this help message
 diff-config: ## Show differences between repo and local config
 	@./config.zsh diff
 
-sync-config: ## Sync config files only
+sync-config: ## Reconcile managed config and system state
 	@./config.zsh sync
 
 install: ## Install packages + sync config + install plugins
