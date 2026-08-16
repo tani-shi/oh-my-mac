@@ -98,7 +98,7 @@ The `config/` entries are a different scope again: `make sync-config` concatenat
 | Terminal | iterm2, tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, uv, ruff, terraform, awscli, gcloud-cli, visual-studio-code |
+| Development | fnm, uv, ruff, terraform, awscli, gcloud-cli, visual-studio-code, chatgpt |
 | Git / GitHub | gh, git-lfs |
 
 ### Trusted Homebrew Taps (`config/homebrew/trusted-taps.txt`)
@@ -195,7 +195,9 @@ The point is the permission layer: an operation that can always be undone is saf
 
 ### Codex CLI (`config/codex/version`)
 
-[Codex CLI](https://developers.openai.com/codex/cli) is OpenAI's coding agent, published on npm as `@openai/codex`. It runs alongside Claude Code and reads the same rules — see [Agent Instructions](#agent-instructions). Its direct package version is recorded in `config/codex/version`; see [Dependency Version Guarantees](#dependency-version-guarantees) for the scope of that pin. A missing prerequisite or failed required installer stops the parent command with a nonzero exit status. Homebrew's `codex` cask is not used.
+[Codex CLI](https://developers.openai.com/codex/cli) is OpenAI's coding agent, published on npm as `@openai/codex`. It runs alongside Claude Code and reads the same rules — see [Agent Instructions](#agent-instructions). Its direct package version is recorded in `config/codex/version`; see [Dependency Version Guarantees](#dependency-version-guarantees) for the scope of that pin. A missing prerequisite or failed required installer stops the parent command with a nonzero exit status. Homebrew's `codex` cask is not used because it also installs the CLI.
+
+[ChatGPT desktop app](https://learn.chatgpt.com/docs/app) provides the Codex GUI and is installed through the `chatgpt` cask in `Brewfile`. Its version follows the Homebrew cask policy described in [Dependency Version Guarantees](#dependency-version-guarantees), independently of the pinned npm CLI version.
 
 `config/codex/config.toml` declares the global defaults this repository manages. The supported configuration uses `approval_policy = "on-request"` with `sandbox_mode = "workspace-write"`. The sync uses a pinned TOML parser to update those top-level keys while preserving project trust entries, plugins, MCP servers, and other values written by Codex or the ChatGPT desktop app. Invalid TOML aborts the sync without changing the installed file.
 
