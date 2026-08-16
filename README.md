@@ -214,7 +214,7 @@ Add extensions as `publisher.extension-name` per line. Config sync is the single
 | context7 | claude-plugins-official |
 | playwright | claude-plugins-official |
 
-`make install` / `make update` install plugins listed here and uninstall user-scope plugins that are not. Marketplaces are not managed by this repository; remove an unused one with `claude plugin marketplace remove <name>`.
+`make install` / `make update` install plugins listed here and uninstall user-scope plugins that are not, without updating plugins that are already installed. After approval in the interactive upgrade workflow, `make upgrade` updates every listed plugin, including enabled plugins. Marketplaces are not managed by this repository; remove an unused one with `claude plugin marketplace remove <name>`.
 
 ## Usage
 
@@ -226,7 +226,7 @@ On an existing machine with the sync dependencies installed, run `make install-c
 | `make install` | Install packages + sync config + install plugins |
 | `make update` | Sync config + install missing packages (no upgrades) |
 | `make upgrade` | Open a Claude Code session that investigates upgrades, applies them, and commits |
-| `make upgrade-apply` | Apply the pinned versions (invoked from `/upgrade`) |
+| `make upgrade-apply` | Apply approved package and Claude Code plugin upgrades (invoked from `/upgrade`) |
 | `make refresh-agent-sentinel` | Update agent-sentinel HEAD and refresh generated config |
 | `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
 | `make test` | Run the test suite |

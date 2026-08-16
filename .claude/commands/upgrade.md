@@ -1,6 +1,6 @@
 ---
 description: Investigate dependency upgrades, apply the approved ones, and commit
-allowed-tools: Read, Glob, Grep, Edit, WebSearch, WebFetch, Bash(brew outdated:*), Bash(npm view:*), Bash(gh api:*), Bash(git diff:*), Bash(git status:*), Bash(make upgrade-apply), Bash(./scripts/commit-upgrade.zsh:*)
+allowed-tools: Read, Glob, Grep, Edit, WebSearch, WebFetch, Bash(brew outdated:*), Bash(npm view:*), Bash(gh api:*), Bash(claude plugin list:*), Bash(git diff:*), Bash(git status:*), Bash(make upgrade-apply), Bash(./scripts/commit-upgrade.zsh:*)
 ---
 
 Investigate available upgrades for this repository's pinned dependencies, apply
@@ -20,6 +20,11 @@ Homebrew formulae and casks carry no pin: `make upgrade-apply` upgrades every
 `Brewfile` entry. Report what `brew outdated` lists so the user can decide, but
 there is nothing to edit for them.
 
+Claude Code plugins also carry no repository pin. `config/claude/plugins.txt`
+declares membership only and must not be edited for a routine plugin update.
+Approval of the upgrade plan authorizes `make upgrade-apply` to update every
+declared plugin to the latest version available from its marketplace.
+
 ## 1. Investigate
 
 Run these in parallel where you can:
@@ -31,7 +36,10 @@ Run these in parallel where you can:
 4. `npm view ntn version` — the latest Notion CLI.
 5. `npm view @openai/codex version` — the latest Codex CLI.
 6. `config/uv/tools.txt` — tools that carry an `@tag`/`@commit` suffix.
-7. Research changelogs, security advisories, and incident reports for every
+7. `claude plugin list --json` — installed versions of the Claude Code plugins
+   declared in `config/claude/plugins.txt`. The CLI resolves their latest
+   marketplace versions only when `claude plugin update` runs.
+8. Research changelogs, security advisories, and incident reports for every
    candidate.
 
 ## 2. Decide
@@ -58,16 +66,21 @@ Run these in parallel where you can:
   and `claude-sessions`, which the user owns and which track HEAD.
   Refresh agent-sentinel separately with `make refresh-agent-sentinel` because
   its generated Claude configuration is part of the repository.
+- **Claude Code plugins**: update every declaration in
+  `config/claude/plugins.txt`, regardless of whether it is already enabled.
+  Record the installed version in the report and describe the latest version as
+  resolved at apply time when the marketplace does not expose it beforehand.
 
 ## 3. Report and apply
 
 Present the findings as a table — package, current, latest, verdict, reason —
 and get the user's approval before editing any pin.
 
-Once approved, write the pins, then run `make upgrade-apply` without asking again
-— it converges on whatever the pins say, so a repeat run costs nothing. It trusts
-the taps, runs `brew bundle`, and installs the pinned Claude Code / plugins / uv
-tools / ntn / codex. Read its output and report any step that failed.
+Once approved, write the pins, then run `make upgrade-apply` without asking again.
+It trusts the taps, runs `brew bundle`, installs the pinned Claude Code / uv tools
+/ ntn / codex, reconciles the declared plugin set, and explicitly updates every
+declared plugin. Read its output and stop if any step fails; a plugin update
+failure prevents the later tools from being installed.
 
 ## 4. Commit
 
