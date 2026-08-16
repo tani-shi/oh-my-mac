@@ -57,7 +57,11 @@ stub code <<'STUB'
 store="$STUB_STATE/vscode-extensions"
 case "$1" in
   --list-extensions) [[ -f "$store" ]] && cat "$store" ;;
-  --install-extension) print -r -- "$2" >> "$store" ;;
+  --install-extension)
+    print -r -- "$2" >> "$STUB_STATE/vscode-extension-attempts"
+    [[ -f "$STUB_STATE/vscode-extension-install-fails" ]] && exit 2
+    print -r -- "$2" >> "$store"
+    ;;
 esac
 exit 0
 STUB
@@ -144,6 +148,8 @@ case "$1" in
           [[ -f "$STUB_STATE/agent-sentinel-install-fails" ]] && exit 2
           : > "$STUB_STATE/agent-sentinel-tool"
           rm -f "$STUB_STATE/agent-sentinel-unavailable"
+        elif [[ -f "$STUB_STATE/uv-tool-install-fails" ]]; then
+          exit 2
         fi
         exit 0
         ;;
@@ -159,6 +165,8 @@ stub brew <<'STUB'
 #!/bin/zsh
 if [[ "$1" == "trust" && "${2:-}" == "--json" ]]; then
   print '[]'
+elif [[ "$1" == "trust" && -f "$STUB_STATE/brew-trust-fails" ]]; then
+  exit 2
 fi
 exit 0
 STUB
@@ -172,6 +180,17 @@ check_equals() {
     fail=$(( fail + 1 ))
     print -u2 "FAIL $current: $1"
     print -u2 "  expected: $3"
+    print -u2 "  actual:   $2"
+  fi
+}
+
+check_nonzero() {
+  if [[ "$2" != "0" ]]; then
+    pass=$(( pass + 1 ))
+  else
+    fail=$(( fail + 1 ))
+    print -u2 "FAIL $current: $1"
+    print -u2 "  expected: nonzero"
     print -u2 "  actual:   $2"
   fi
 }
@@ -222,6 +241,7 @@ run() {
 sync_config() { "$REPO/config.zsh" sync 2>&1 }
 diff_config() { "$REPO/config.zsh" diff 2>&1 }
 make_update() { make -s -C "$REPO" update INSTALL_STEPS= 2>&1 }
+make_update_with_steps() { make -s -C "$REPO" update "INSTALL_STEPS=$1" 2>&1 }
 refresh_agent_sentinel() { "$REPO/scripts/refresh-agent-sentinel.zsh" 2>&1 }
 make_refresh_install() {
   make -s -C "$REPO" install-uv-tools AGENT_SENTINEL_UPGRADE=1 2>&1
@@ -757,6 +777,131 @@ STUB
     "Error: installed Claude Code version 9.9.9, expected $version"
 }
 
+t_tap_trust_failure_stops_update() {
+  : > "$STUB_STATE/brew-trust-fails"
+  local output exit_status
+
+  output="$(make_update_with_steps "")"
+  exit_status=$?
+
+  check_nonzero "a tap trust failure fails make update" "$exit_status"
+  check_contains "the failed tap is identified" "$output" \
+    "Error: failed to trust hashicorp/tap"
+  check_lacks "Homebrew bundle does not run after failed trust" "$output" \
+    "Installing uv tool:"
+}
+
+t_uv_tool_failure_stops_update() {
+  : > "$STUB_STATE/uv-tool-install-fails"
+  local output exit_status
+
+  output="$(make_update_with_steps "")"
+  exit_status=$?
+
+  check_nonzero "a uv tool failure fails make update" "$exit_status"
+  check_lacks "config sync does not run after a failed uv tool" "$output" "Synced:"
+}
+
+t_claude_plugin_install_failure_stops_update() {
+  stub claude <<'STUB'
+#!/bin/zsh
+case "$1 $2" in
+  "plugin install") exit 2 ;;
+  "plugin list") print '[]' ;;
+esac
+exit 0
+STUB
+  local output exit_status
+
+  output="$(make_update_with_steps "sync-claude-plugins")"
+  exit_status=$?
+
+  check_nonzero "a Claude plugin install failure fails make update" "$exit_status"
+  check_contains "the failed plugin was attempted" "$output" \
+    "Installing plugin: code-review@claude-plugins-official"
+}
+
+t_claude_plugin_uninstall_failure_stops_update() {
+  mkdir -p "$HOME/.claude"
+  print -r -- '{"enabledPlugins":{"code-review@claude-plugins-official":true,"context7@claude-plugins-official":true,"playwright@claude-plugins-official":true}}' \
+    > "$HOME/.claude/settings.json"
+  stub claude <<'STUB'
+#!/bin/zsh
+case "$1 $2" in
+  "plugin list") print '[{"scope":"user","id":"orphan@example"}]' ;;
+  "plugin uninstall") exit 2 ;;
+esac
+exit 0
+STUB
+  local output exit_status
+
+  output="$(make_update_with_steps "sync-claude-plugins")"
+  exit_status=$?
+
+  check_nonzero "a Claude plugin uninstall failure fails make update" "$exit_status"
+  check_contains "the orphaned plugin was attempted" "$output" \
+    "Uninstalling plugin: orphan@example"
+}
+
+t_node_failure_stops_update() {
+  stub fnm <<'STUB'
+#!/bin/zsh
+case "$1" in
+  env) exit 0 ;;
+  list) exit 0 ;;
+  install) exit 2 ;;
+esac
+exit 0
+STUB
+  local output exit_status
+
+  output="$(make_update_with_steps "install-node")"
+  exit_status=$?
+
+  check_nonzero "a Node install failure fails make update" "$exit_status"
+  check_contains "the failed Node installation was attempted" "$output" \
+    "Installing Node v$(<"$REPO/config/fnm/version")"
+}
+
+t_ntn_failure_stops_update() {
+  stub fnm <<'STUB'
+#!/bin/zsh
+[[ "$1" == "env" ]] && exit 0
+exit 0
+STUB
+  stub ntn <<'STUB'
+#!/bin/zsh
+print 0.0.0
+STUB
+  stub npm <<'STUB'
+#!/bin/zsh
+[[ "$1" == "install" ]] && exit 2
+exit 0
+STUB
+  local output exit_status
+
+  output="$(make_update_with_steps "install-ntn")"
+  exit_status=$?
+
+  check_nonzero "an ntn install failure fails make update" "$exit_status"
+  check_contains "the failed ntn installation was attempted" "$output" \
+    "Installing Notion CLI (ntn) $(<"$REPO/config/ntn/version")"
+}
+
+t_vscode_extension_failure_stops_update_once() {
+  : > "$STUB_STATE/vscode-extension-install-fails"
+  local output exit_status attempts
+
+  output="$(make_update_with_steps "")"
+  exit_status=$?
+  attempts=$(wc -l < "$STUB_STATE/vscode-extension-attempts" | tr -d ' ')
+
+  check_nonzero "a VSCode extension failure fails make update" "$exit_status"
+  check_equals "the failed extension is attempted once" "$attempts" "1"
+  check_contains "the failed extension is identified" "$output" \
+    "Installing VSCode extension: kaiwood.center-editor-window"
+}
+
 run "invalid modes are rejected"             t_invalid_modes_are_rejected
 run "diff writes nothing"                    t_diff_writes_nothing
 run "diff after sync is clean"               t_diff_after_sync_is_clean
@@ -786,6 +931,13 @@ run "instructions are shared then specific"  t_instructions_are_shared_then_spec
 run "project instructions reach each agent"  t_project_instructions_reach_each_agent
 run "Claude fallback uses the pin"            t_claude_installer_fallback_uses_the_pin
 run "Claude install verifies the pin"         t_claude_installer_rejects_a_version_mismatch
+run "failed tap trust stops update"           t_tap_trust_failure_stops_update
+run "failed uv tool stops update"             t_uv_tool_failure_stops_update
+run "failed plugin install stops update"      t_claude_plugin_install_failure_stops_update
+run "failed plugin uninstall stops update"    t_claude_plugin_uninstall_failure_stops_update
+run "failed Node install stops update"        t_node_failure_stops_update
+run "failed ntn install stops update"         t_ntn_failure_stops_update
+run "failed VSCode extension stops once"      t_vscode_extension_failure_stops_update_once
 
 print
 print "$pass passed, $fail failed"

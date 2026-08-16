@@ -1,4 +1,4 @@
-INSTALL_STEPS := install-claude sync-claude-plugins install-vscode-extensions install-node install-ntn install-codex
+INSTALL_STEPS := install-claude sync-claude-plugins install-node install-ntn install-codex
 
 .PHONY: help diff-config sync-config install update upgrade upgrade-apply refresh-agent-sentinel trust-taps test install-uv-tools $(INSTALL_STEPS)
 
@@ -47,7 +47,8 @@ upgrade-apply: ## Apply the pinned versions (invoked from /upgrade)
 
 trust-taps:
 	@if [ -f config/homebrew/trusted-taps.txt ]; then \
-		trusted=$$(brew trust --json v1 2>/dev/null); \
+		trusted=$$(brew trust --json v1 2>/dev/null) || exit 1; \
+		failed=0; \
 		while IFS= read -r tap || [ -n "$$tap" ]; do \
 			[ -z "$$tap" ] && continue; \
 			case "$$tap" in \#*) continue ;; esac; \
@@ -55,10 +56,15 @@ trust-taps:
 				continue; \
 			fi; \
 			echo "Trusting Homebrew tap: $$tap"; \
-			brew trust "$$tap" 2>&1 || echo "Warning: Failed to trust $$tap"; \
+			if ! brew trust "$$tap" 2>&1; then \
+				echo "Error: failed to trust $$tap" >&2; \
+				failed=1; \
+			fi; \
 		done < config/homebrew/trusted-taps.txt; \
+		[ "$$failed" -eq 0 ] || exit 1; \
 	else \
-		echo "Skipping tap trust (trusted-taps.txt missing)"; \
+		echo "Error: config/homebrew/trusted-taps.txt missing" >&2; \
+		exit 1; \
 	fi
 
 test: ## Run the test suite
@@ -89,83 +95,85 @@ install-claude:
 	fi
 
 sync-claude-plugins:
-	@if command -v claude >/dev/null 2>&1 && [ -f config/claude/plugins.txt ]; then \
-		settings="$$HOME/.claude/settings.json"; \
-		while IFS= read -r plugin || [ -n "$$plugin" ]; do \
-			[ -z "$$plugin" ] && continue; \
-			if [ -f "$$settings" ] && jq -e --arg p "$$plugin" '.enabledPlugins[$$p]' "$$settings" >/dev/null 2>&1; then \
-				continue; \
-			fi; \
-			echo "Installing plugin: $$plugin"; \
-			claude plugin install "$$plugin" 2>/dev/null || echo "Warning: Failed to install $$plugin"; \
-		done < config/claude/plugins.txt; \
-		claude plugin list --json 2>/dev/null | jq -r '.[] | select(.scope == "user") | .id' | \
-		while IFS= read -r plugin; do \
-			[ -z "$$plugin" ] && continue; \
-			if grep -qxF "$$plugin" config/claude/plugins.txt; then \
-				continue; \
-			fi; \
-			echo "Uninstalling plugin: $$plugin"; \
-			claude plugin uninstall "$$plugin" -y 2>/dev/null || echo "Warning: Failed to uninstall $$plugin"; \
-		done; \
-	else \
-		echo "Skipping Claude Code plugins (claude not found or plugins.txt missing)"; \
+	@if ! command -v claude >/dev/null 2>&1; then \
+		echo "Error: claude not found" >&2; exit 1; \
 	fi
-
-install-vscode-extensions:
-	@if command -v code >/dev/null 2>&1 && [ -f config/vscode/extensions.txt ]; then \
-		installed=$$(code --list-extensions 2>/dev/null); \
-		while IFS= read -r ext || [ -n "$$ext" ]; do \
-			[ -z "$$ext" ] && continue; \
-			case "$$ext" in \#*) continue ;; esac; \
-			if ! echo "$$installed" | grep -qix "$$ext"; then \
-				echo "Installing VSCode extension: $$ext"; \
-				code --install-extension "$$ext" 2>/dev/null || echo "Warning: Failed to install $$ext"; \
-			fi; \
-		done < config/vscode/extensions.txt; \
-	else \
-		echo "Skipping VSCode extensions (code not found or extensions.txt missing)"; \
+	@if [ ! -f config/claude/plugins.txt ]; then \
+		echo "Error: config/claude/plugins.txt missing" >&2; exit 1; \
 	fi
+	@settings="$$HOME/.claude/settings.json"; \
+	while IFS= read -r plugin || [ -n "$$plugin" ]; do \
+		[ -z "$$plugin" ] && continue; \
+		if [ -f "$$settings" ] && jq -e --arg p "$$plugin" '.enabledPlugins[$$p]' "$$settings" >/dev/null 2>&1; then \
+			continue; \
+		fi; \
+		echo "Installing plugin: $$plugin"; \
+		claude plugin install "$$plugin" || exit 1; \
+	done < config/claude/plugins.txt; \
+	installed_json=$$(claude plugin list --json) || exit 1; \
+	installed=$$(printf '%s\n' "$$installed_json" | jq -r '.[] | select(.scope == "user") | .id') || exit 1; \
+	printf '%s\n' "$$installed" | while IFS= read -r plugin; do \
+		[ -z "$$plugin" ] && continue; \
+		if grep -qxF "$$plugin" config/claude/plugins.txt; then \
+			continue; \
+		fi; \
+		echo "Uninstalling plugin: $$plugin"; \
+		claude plugin uninstall "$$plugin" -y || exit 1; \
+	done
 
 install-node:
-	@if command -v fnm >/dev/null 2>&1 && [ -f config/fnm/version ]; then \
-		version=$$(cat config/fnm/version); \
-		eval "$$(fnm env)"; \
-		if fnm list 2>/dev/null | grep -q "v$$version default"; then \
-			echo "Node v$$version already installed and set as default"; \
-		else \
-			echo "Installing Node v$$version (fnm)..."; \
-			fnm install "$$version" 2>&1 && fnm default "$$version" 2>&1 || echo "Warning: fnm install failed"; \
-		fi; \
+	@if ! command -v fnm >/dev/null 2>&1; then \
+		echo "Error: fnm not found" >&2; exit 1; \
+	fi
+	@if [ ! -f config/fnm/version ]; then \
+		echo "Error: config/fnm/version missing" >&2; exit 1; \
+	fi
+	@version=$$(cat config/fnm/version); \
+	environment=$$(fnm env) || exit 1; \
+	eval "$$environment" || exit 1; \
+	if fnm list 2>/dev/null | grep -q "v$$version default"; then \
+		echo "Node v$$version already installed and set as default"; \
 	else \
-		echo "Skipping Node install (fnm not found or config/fnm/version missing)"; \
+		echo "Installing Node v$$version (fnm)..."; \
+		fnm install "$$version" || exit 1; \
+		fnm default "$$version" || exit 1; \
 	fi
 
 install-ntn:
 	@if [ -z "$(NTN_VERSION)" ]; then \
-		echo "Skipping Notion CLI (config/ntn/version missing)"; \
+		echo "Error: config/ntn/version missing" >&2; \
+		exit 1; \
 	else \
-		command -v fnm >/dev/null 2>&1 && eval "$$(fnm env)"; \
+		if command -v fnm >/dev/null 2>&1; then \
+			environment=$$(fnm env) || exit 1; \
+			eval "$$environment" || exit 1; \
+		fi; \
 		if ! command -v npm >/dev/null 2>&1; then \
-			echo "Skipping Notion CLI (npm not found)"; \
+			echo "Error: npm not found" >&2; \
+			exit 1; \
 		else \
 			current=$$(ntn --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1) || true; \
 			if [ "$$current" = "$(NTN_VERSION)" ]; then \
 				echo "Notion CLI (ntn) $(NTN_VERSION) already installed"; \
 			else \
 				echo "Installing Notion CLI (ntn) $(NTN_VERSION)..."; \
-				npm install -g "ntn@$(NTN_VERSION)" 2>&1 || echo "Warning: Failed to install ntn"; \
+				npm install -g "ntn@$(NTN_VERSION)"; \
 			fi; \
 		fi; \
 	fi
 
 install-codex:
 	@if [ -z "$(CODEX_VERSION)" ]; then \
-		echo "Skipping Codex CLI (config/codex/version missing)"; \
+		echo "Error: config/codex/version missing" >&2; \
+		exit 1; \
 	else \
-		command -v fnm >/dev/null 2>&1 && eval "$$(fnm env)"; \
+		if command -v fnm >/dev/null 2>&1; then \
+			environment=$$(fnm env) || exit 1; \
+			eval "$$environment" || exit 1; \
+		fi; \
 		if ! command -v npm >/dev/null 2>&1; then \
-			echo "Skipping Codex CLI (npm not found)"; \
+			echo "Error: npm not found" >&2; \
+			exit 1; \
 		else \
 			current=$$(npm ls -g --depth=0 --json @openai/codex 2>/dev/null | jq -r '.dependencies["@openai/codex"].version // empty'); \
 			if [ "$$current" = "$(CODEX_VERSION)" ]; then \
@@ -196,7 +204,7 @@ install-uv-tools:
 					command -v agent-sentinel >/dev/null 2>&1 || { echo "Error: agent-sentinel executable not found after install"; exit 1; }; \
 					agent-sentinel --help >/dev/null 2>&1 || { echo "Error: agent-sentinel executable check failed"; exit 1; }; \
 					;; \
-				*) uv tool install "$$tool" 2>&1 || echo "Warning: Failed to install $$tool" ;; \
+				*) uv tool install "$$tool" 2>&1 || exit 1 ;; \
 			esac; \
 		done < config/uv/tools.txt; \
 	else \

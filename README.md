@@ -128,7 +128,7 @@ The point is the permission layer: an operation that can always be undone is saf
 
 ### Codex CLI (`config/codex/version`)
 
-[Codex CLI](https://developers.openai.com/codex/cli) is OpenAI's coding agent, published on npm as `@openai/codex`. It runs alongside Claude Code and reads the same rules — see [Agent Instructions](#agent-instructions). `make install` / `make update` install the pinned version globally with npm using the fnm-managed Node, reinstalling only when the globally installed `@openai/codex` differs from the pin; the step is skipped when npm is unavailable. Homebrew's `codex` cask carries no version pin and is not used.
+[Codex CLI](https://developers.openai.com/codex/cli) is OpenAI's coding agent, published on npm as `@openai/codex`. It runs alongside Claude Code and reads the same rules — see [Agent Instructions](#agent-instructions). `make install` / `make update` install the pinned version globally with npm using the fnm-managed Node, reinstalling only when the globally installed `@openai/codex` differs from the pin. A missing prerequisite or failed required installer stops the parent command with a nonzero exit status. Homebrew's `codex` cask carries no version pin and is not used.
 
 `config/codex/config.toml` declares the global defaults this repository manages. The sync uses a pinned TOML parser to update those top-level keys while preserving project trust entries, plugins, MCP servers, and other values written by Codex or the ChatGPT desktop app. Invalid TOML aborts the sync without changing the installed file.
 
@@ -159,7 +159,7 @@ Trust is recorded for the current hook-definition hash. The same definition rema
 | ms-dotnettools.csharp | C# language support (Roslyn) |
 | ms-dotnettools.csdevkit | C# Dev Kit — .NET IntelliSense, project/solution navigation |
 
-Add extensions as `publisher.extension-name` per line.
+Add extensions as `publisher.extension-name` per line. Config sync is the single owner of extension installation, and an installation failure stops the sync.
 
 ### Claude Code Plugins (`config/claude/plugins.txt`)
 
