@@ -405,8 +405,18 @@ sync_iterm_profile() {
 
 install_vscode_extensions() {
   local extensions_file="$SCRIPT_DIR/config/vscode/extensions.txt"
-  if ! command -v code &>/dev/null || [[ ! -f "$extensions_file" ]]; then
+  if [[ ! -f "$extensions_file" ]]; then
     return 0
+  fi
+  if ! command -v code &>/dev/null; then
+    if [[ "$MODE" == "diff" ]]; then
+      echo ""
+      echo "VSCode extensions: code command not found"
+      diffs=$((diffs + 1))
+      return 0
+    fi
+    print -u2 "Error: code not found while config/vscode/extensions.txt declares required extensions"
+    return 1
   fi
   local installed ext
   local -a missing
@@ -432,7 +442,7 @@ install_vscode_extensions() {
   else
     for ext in "${missing[@]}"; do
       echo "Installing VSCode extension: $ext"
-      code --install-extension "$ext" 2>/dev/null || echo "Warning: failed to install $ext"
+      code --install-extension "$ext"
       changes=$((changes + 1))
     done
   fi
