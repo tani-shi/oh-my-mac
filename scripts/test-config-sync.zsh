@@ -13,6 +13,7 @@ mkdir -p "$tmp/bin"
 export PATH="$tmp/bin:$PATH"
 export GIT_CONFIG_GLOBAL="$tmp/gitconfig"
 export GIT_CONFIG_SYSTEM=/dev/null
+export STUB_BIN="$tmp/bin"
 export STUB_STATE="$tmp/stub-state"
 export UV_CACHE_DIR="$tmp/uv-cache"
 export UV_NO_PROGRESS=1
@@ -56,7 +57,10 @@ stub code <<'STUB'
 #!/bin/zsh
 store="$STUB_STATE/vscode-extensions"
 case "$1" in
-  --list-extensions) [[ -f "$store" ]] && cat "$store" ;;
+  --list-extensions)
+    [[ -f "$STUB_STATE/update-order-enabled" ]] && print code >> "$STUB_STATE/update-order"
+    [[ -f "$store" ]] && cat "$store"
+    ;;
   --install-extension)
     print -r -- "$2" >> "$STUB_STATE/vscode-extension-attempts"
     [[ -f "$STUB_STATE/vscode-extension-install-fails" ]] && exit 2
@@ -146,6 +150,8 @@ case "$1" in
     exec "$REAL_UV" "$@"
     ;;
   tool)
+    [[ -f "$STUB_STATE/update-order-enabled" && "$2" == "list" ]] && \
+      print uv-tools >> "$STUB_STATE/update-order"
     case "$2" in
       list)
         [[ -f "$STUB_STATE/claude-sentinel-tool" ]] && print 'claude-sentinel v0.1.0'
@@ -908,6 +914,117 @@ STUB
     "Error: installed Claude Code version 9.9.9, expected $version"
 }
 
+t_update_converges_after_homebrew_installs_prerequisites() {
+  local original_path="$PATH" staged="$STUB_STATE/homebrew-stubs"
+  local jq_path="$(command -v jq)" output exit_status expected_order actual_order
+  mkdir -p "$staged"
+  cp "$STUB_BIN/brew" "$staged/original-brew"
+  cp "$STUB_BIN/uv" "$staged/uv"
+  cp "$STUB_BIN/code" "$staged/code"
+
+  stub fnm <<'STUB'
+#!/bin/zsh
+case "$1" in
+  env) exit 0 ;;
+  list)
+    [[ -f "$STUB_STATE/node-default" ]] && \
+      print "v$(<$STUB_STATE/node-default) default"
+    ;;
+  install)
+    print fnm >> "$STUB_STATE/update-order"
+    print -r -- "$2" > "$STUB_STATE/node-version"
+    cp "$STUB_STATE/homebrew-stubs/npm" "$STUB_BIN/npm"
+    chmod +x "$STUB_BIN/npm"
+    ;;
+  default) print -r -- "$2" > "$STUB_STATE/node-default" ;;
+esac
+exit 0
+STUB
+  stub npm <<'STUB'
+#!/bin/zsh
+[[ -f "$STUB_STATE/node-default" ]] || exit 2
+case "$1" in
+  ls) print '{}' ;;
+  install)
+    case "$3" in
+      ntn@*) print ntn >> "$STUB_STATE/update-order" ;;
+      @openai/codex@*) print codex >> "$STUB_STATE/update-order" ;;
+    esac
+    ;;
+esac
+exit 0
+STUB
+  stub sheldon <<'STUB'
+#!/bin/zsh
+exit 0
+STUB
+  cp "$STUB_BIN/fnm" "$staged/fnm"
+  cp "$STUB_BIN/npm" "$staged/npm"
+  cp "$STUB_BIN/sheldon" "$staged/sheldon"
+  rm -f "$STUB_BIN/fnm" "$STUB_BIN/npm" "$STUB_BIN/uv" "$STUB_BIN/code" \
+    "$STUB_BIN/sheldon"
+
+  stub brew <<'STUB'
+#!/bin/zsh
+case "$1" in
+  trust)
+    if [[ "${2:-}" == "--json" ]]; then
+      print '[]'
+    else
+      print brew-trust >> "$STUB_STATE/update-order"
+    fi
+    ;;
+  bundle)
+    print brew-bundle >> "$STUB_STATE/update-order"
+    for command in fnm uv code sheldon; do
+      cp "$STUB_STATE/homebrew-stubs/$command" "$STUB_BIN/$command"
+      chmod +x "$STUB_BIN/$command"
+    done
+    ;;
+  cleanup) print brew-cleanup >> "$STUB_STATE/update-order" ;;
+esac
+exit 0
+STUB
+  ln -sf "$jq_path" "$STUB_BIN/jq"
+  : > "$STUB_STATE/update-order-enabled"
+  PATH="$STUB_BIN:/usr/bin:/bin"
+  hash -r
+
+  check_nonzero "fnm is unavailable before Homebrew bundle" \
+    "$(command -v fnm >/dev/null 2>&1; print $?)"
+  check_nonzero "uv is unavailable before Homebrew bundle" \
+    "$(command -v uv >/dev/null 2>&1; print $?)"
+  check_nonzero "code is unavailable before Homebrew bundle" \
+    "$(command -v code >/dev/null 2>&1; print $?)"
+
+  output="$(make -s -j4 -C "$REPO" update \
+    "INSTALL_STEPS=install-node install-ntn install-codex" 2>&1)"
+  exit_status=$?
+
+  PATH="$original_path"
+  hash -r
+  cp "$staged/original-brew" "$STUB_BIN/brew"
+  cp "$staged/uv" "$STUB_BIN/uv"
+  cp "$staged/code" "$STUB_BIN/code"
+  rm -f "$STUB_BIN/fnm" "$STUB_BIN/npm" "$STUB_BIN/sheldon"
+
+  expected_order=$'brew-trust\nbrew-bundle\nuv-tools\ncode\nfnm\nntn\ncodex\nbrew-cleanup'
+  actual_order="$(<$STUB_STATE/update-order)"
+  check_equals "one parallel update succeeds" "$exit_status" "0"
+  check_equals "update preserves prerequisite order under parallel make" \
+    "$actual_order" "$expected_order"
+  check_equals "the pinned Node version is installed" \
+    "$(<$STUB_STATE/node-version)" "$(<$REPO/config/fnm/version)"
+  check_equals "the pinned Node version becomes the default" \
+    "$(<$STUB_STATE/node-default)" "$(<$REPO/config/fnm/version)"
+  check_equals "uv tools are installed after uv becomes available" \
+    "$([[ -s "$STUB_STATE/uv-tool-installs" ]] && print yes || print no)" "yes"
+  check_equals "VSCode extensions are installed after code becomes available" \
+    "$(sort -u "$STUB_STATE/vscode-extensions" | wc -l | tr -d ' ')" \
+    "$(grep -Ev '^[[:space:]]*(#|$)' "$REPO/config/vscode/extensions.txt" | wc -l | tr -d ' ')"
+  check_lacks "update reports no missing Homebrew prerequisite" "$output" "not found"
+}
+
 t_tap_trust_failure_stops_update() {
   : > "$STUB_STATE/brew-trust-fails"
   local output exit_status
@@ -1067,6 +1184,7 @@ run "instructions are shared then specific"  t_instructions_are_shared_then_spec
 run "project instructions reach each agent"  t_project_instructions_reach_each_agent
 run "Claude fallback uses the pin"            t_claude_installer_fallback_uses_the_pin
 run "Claude install verifies the pin"         t_claude_installer_rejects_a_version_mismatch
+run "update converges after Homebrew bundle"  t_update_converges_after_homebrew_installs_prerequisites
 run "failed tap trust stops update"           t_tap_trust_failure_stops_update
 run "failed uv tool stops update"             t_uv_tool_failure_stops_update
 run "failed plugin install stops update"      t_claude_plugin_install_failure_stops_update

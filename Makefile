@@ -1,6 +1,6 @@
 INSTALL_STEPS := install-claude sync-claude-plugins install-node install-ntn install-codex
 
-.PHONY: help diff-config sync-config install update upgrade upgrade-apply refresh-agent-sentinel trust-taps test install-uv-tools $(INSTALL_STEPS)
+.PHONY: help diff-config sync-config install update converge upgrade upgrade-apply refresh-agent-sentinel trust-taps test install-uv-tools $(INSTALL_STEPS)
 
 .DEFAULT_GOAL := help
 
@@ -17,17 +17,20 @@ sync-config: ## Sync config files only
 install: ## Install packages + sync config + install plugins
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
-	$(MAKE) install-uv-tools
-	$(MAKE) sync-config
-	$(MAKE) $(INSTALL_STEPS)
+	$(MAKE) converge
 
 update: ## Sync config + install missing packages (no upgrades)
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
+	$(MAKE) converge
+	brew cleanup
+
+converge:
 	$(MAKE) install-uv-tools
 	$(MAKE) sync-config
-	$(MAKE) $(INSTALL_STEPS)
-	brew cleanup
+	@for step in $(INSTALL_STEPS); do \
+		$(MAKE) "$$step" || exit 1; \
+	done
 
 upgrade: ## Investigate upgrades in a Claude Code session, apply them, and commit
 	claude "/upgrade"
