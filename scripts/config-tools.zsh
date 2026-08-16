@@ -1,0 +1,7 @@
+CONFIG_TOOLS_TEST_ROOT="${OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT:-}"
+if [[ -n "$CONFIG_TOOLS_TEST_ROOT" ]]; then
+  CONFIG_TOOLS_DIR="$CONFIG_TOOLS_TEST_ROOT/config-tools"
+else
+  CONFIG_TOOLS_DIR="$HOME/.local/share/oh-my-mac/config-tools"
+fi
+CONFIG_TOOLS_PYTHON="$CONFIG_TOOLS_DIR/bin/python"

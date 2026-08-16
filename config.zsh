@@ -8,6 +8,7 @@ fi
 MODE="$1"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/scripts/agent-sentinel.zsh"
+source "$SCRIPT_DIR/scripts/config-tools.zsh"
 CODEX_SKILLS_SRC="$SCRIPT_DIR/config/codex/skills"
 CODEX_SKILLS_DST="$HOME/.agents/skills"
 CODEX_SKILLS_MANIFEST="$CODEX_SKILLS_DST/.oh-my-mac-managed"
@@ -388,7 +389,12 @@ merge_codex_config() {
     installed="$tmpdir/codex-config-installed.toml"
     : > "$installed"
   fi
-  uv run "$SCRIPT_DIR/scripts/merge-codex-config.py" "$installed" "$REPO_CODEX_CONFIG" > "$merged"
+  if [[ ! -x "$CONFIG_TOOLS_PYTHON" ]]; then
+    print -u2 "Error: $CONFIG_TOOLS_PYTHON not found; run make install-config-tools"
+    return 1
+  fi
+  PYTHONDONTWRITEBYTECODE=1 "$CONFIG_TOOLS_PYTHON" \
+    "$SCRIPT_DIR/scripts/merge-codex-config.py" "$installed" "$REPO_CODEX_CONFIG" > "$merged"
   sync_file "$merged" "$CODEX_CONFIG" "config/codex/config.toml"
 }
 

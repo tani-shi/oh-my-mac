@@ -1,6 +1,6 @@
 INSTALL_STEPS := install-claude sync-claude-plugins install-node install-ntn install-codex
 
-.PHONY: help diff-config sync-config install update converge upgrade upgrade-apply refresh-agent-sentinel trust-taps test install-uv-tools $(INSTALL_STEPS)
+.PHONY: help diff-config sync-config install update converge upgrade upgrade-apply refresh-agent-sentinel trust-taps test install-config-tools install-uv-tools $(INSTALL_STEPS)
 
 .DEFAULT_GOAL := help
 
@@ -27,6 +27,7 @@ update: ## Sync config + install missing packages (no upgrades)
 
 converge:
 	$(MAKE) install-uv-tools
+	$(MAKE) install-config-tools
 	$(MAKE) sync-config
 	@for step in $(INSTALL_STEPS); do \
 		$(MAKE) "$$step" || exit 1; \
@@ -46,6 +47,7 @@ upgrade-apply: ## Apply the pinned versions (invoked from /upgrade)
 	HOMEBREW_NO_INTERACTIVE=1 brew bundle --file=Brewfile
 	brew cleanup
 	$(MAKE) install-uv-tools
+	$(MAKE) install-config-tools
 	$(MAKE) install-claude sync-claude-plugins install-ntn install-codex
 
 trust-taps:
@@ -214,3 +216,6 @@ install-uv-tools:
 		echo "Error: uv not found or config/uv/tools.txt missing"; \
 		exit 1; \
 	fi
+
+install-config-tools: ## Prepare the Python environment used for config merging
+	@./scripts/install-config-tools.zsh

@@ -27,9 +27,10 @@ cd ~/dev/oh-my-mac
 make install
 ```
 
-Before installing on an existing machine, review the pending changes and your Claude configuration before running `make install`. `make diff-config` requires sync dependencies such as `agent-sentinel`, `jq`, and `uv`. If they are already installed, run this first:
+Before installing on an existing machine, review the pending changes and your Claude configuration before running `make install`. `make diff-config` requires sync dependencies such as `agent-sentinel` and `jq`, plus the pinned Python environment prepared by `make install-config-tools`; preparing that environment requires `uv`. If the sync dependencies are already installed, run these commands first:
 
 ```bash
+make install-config-tools
 make diff-config
 ```
 
@@ -108,7 +109,7 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 
 ### Config Sync Scope
 
-`make diff-config` shows differences and missing items without applying changes to the managed configuration files, managed sets, or OS/global state described below. Dependency resolution by `uv run` may still write to `~/.cache/uv`, so the operation is not entirely read-only ([#12](https://github.com/tani-shi/oh-my-mac/issues/12)). Review the output before running `make sync-config`. Both `make install` and `make update` also run `make sync-config` during their workflows.
+`make diff-config` shows differences and missing items without applying changes to the managed configuration files, managed sets, or OS/global state described below. The Codex configuration merge uses a dedicated Python environment prepared by `make install` / `make update`, so the diff does not resolve dependencies, access the network or uv cache, or write under `HOME`. Review the output before running `make sync-config`. Both `make install` and `make update` also run `make sync-config` during their workflows.
 
 | Category | `make sync-config` behavior |
 | --- | --- |
@@ -217,7 +218,7 @@ Add extensions as `publisher.extension-name` per line. Config sync is the single
 
 ## Usage
 
-On an existing machine with the sync dependencies installed, run `make diff-config` before applying configuration to review file copies, merges, deletions, and external state changes. If the dependencies are not installed, follow [Quick Start](#quick-start), manually back up your existing Claude configuration, and then run `make install`. If Claude Code's deletion set contains data you want to retain, back it up or add it to the repository as described in [Config Sync Scope](#config-sync-scope) before syncing.
+On an existing machine with the sync dependencies installed, run `make install-config-tools` and then `make diff-config` before applying configuration to review file copies, merges, deletions, and external state changes. If the dependencies are not installed, follow [Quick Start](#quick-start), manually back up your existing Claude configuration, and then run `make install`. If Claude Code's deletion set contains data you want to retain, back it up or add it to the repository as described in [Config Sync Scope](#config-sync-scope) before syncing.
 
 | Command | Description |
 | --- | --- |
@@ -229,7 +230,8 @@ On an existing machine with the sync dependencies installed, run `make diff-conf
 | `make refresh-agent-sentinel` | Update agent-sentinel HEAD and refresh generated config |
 | `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
 | `make test` | Run the test suite |
-| `make diff-config` | Show pending changes to managed configuration, managed sets, and OS/global state without applying them (may write to the uv cache) |
+| `make install-config-tools` | Prepare the pinned Python environment used to merge Codex configuration |
+| `make diff-config` | Show pending changes to managed configuration, managed sets, and OS/global state without changing `HOME` or accessing the network or uv cache |
 | `make sync-config` | Reconcile repository-managed configuration, managed sets, and external state |
 
 ## Post-install Setup
