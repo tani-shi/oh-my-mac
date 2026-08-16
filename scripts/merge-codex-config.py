@@ -1,8 +1,3 @@
-# /// script
-# requires-python = ">=3.11"
-# dependencies = ["tomlkit==0.15.1"]
-# ///
-
 import sys
 from pathlib import Path
 

@@ -3,8 +3,9 @@ set -u
 
 REPO="${0:A:h}/.."
 [[ -f "$REPO/config.zsh" ]] || { print -u2 "missing $REPO/config.zsh"; exit 1 }
-REAL_UV=$(command -v uv)
-export REAL_UV
+REAL_CONFIG_PYTHON="${OH_MY_MAC_TEST_CONFIG_PYTHON:-$HOME/.local/share/oh-my-mac/config-tools/bin/python}"
+[[ -x "$REAL_CONFIG_PYTHON" ]] || { print -u2 "missing oh-my-mac-config-python"; exit 1 }
+export REAL_CONFIG_PYTHON
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT INT TERM
@@ -19,10 +20,26 @@ export UV_CACHE_DIR="$tmp/uv-cache"
 export UV_NO_PROGRESS=1
 mkdir -p "$STUB_STATE"
 
-stub() {
-  cat > "$tmp/bin/$1"
-  chmod +x "$tmp/bin/$1"
+stub_file() {
+  mkdir -p "${1:h}"
+  cat > "$1"
+  chmod +x "$1"
 }
+
+stub() { stub_file "$tmp/bin/$1" }
+
+select_config_tools_test_root() {
+  export OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT=$1
+  mkdir -p "$OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT"
+  : > "$OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT/.oh-my-mac-config-tools-test-root"
+  source "$REPO/scripts/config-tools.zsh"
+}
+
+select_config_tools_test_root "$tmp/config-tools-root"
+stub_file "$CONFIG_TOOLS_PYTHON" <<'STUB'
+#!/bin/zsh
+exec "$REAL_CONFIG_PYTHON" "$@"
+STUB
 
 # An isolated HOME does not redirect these: `defaults` reads and writes through
 # cfprefsd, and duti/code hold state outside the home directory. Each stub keeps
@@ -147,7 +164,8 @@ stub uv <<'STUB'
 #!/bin/zsh
 case "$1" in
   run)
-    exec "$REAL_UV" "$@"
+    print -u2 "unexpected uv run"
+    exit 99
     ;;
   tool)
     [[ -f "$STUB_STATE/update-order-enabled" && "$2" == "list" ]] && \
@@ -171,10 +189,36 @@ case "$1" in
         ;;
     esac
     ;;
+  venv)
+    environment="${@[-1]}"
+    print venv >> "$STUB_STATE/config-tool-commands"
+    mkdir -p "$environment/bin"
+    cat > "$environment/bin/python" <<'PYTHON'
+#!/bin/zsh
+if [[ "$1" == "-c" ]]; then
+  print 0.15.1
+  exit 0
+fi
+exec "$REAL_CONFIG_PYTHON" "$@"
+PYTHON
+    chmod +x "$environment/bin/python"
+    ;;
+  pip)
+    print pip >> "$STUB_STATE/config-tool-commands"
+    [[ -f "$STUB_STATE/update-order-enabled" ]] && print config-tools >> "$STUB_STATE/update-order"
+    ;;
   *)
-    exec "$REAL_UV" "$@"
+    print -u2 "unexpected uv command: $1"
+    exit 99
     ;;
 esac
+exit 0
+STUB
+
+stub oh-my-mac-config-python <<'STUB'
+#!/bin/zsh
+print external-config-python >> "$STUB_STATE/external-config-python"
+exit 88
 STUB
 
 stub brew <<'STUB'
@@ -184,6 +228,11 @@ if [[ "$1" == "trust" && "${2:-}" == "--json" ]]; then
 elif [[ "$1" == "trust" && -f "$STUB_STATE/brew-trust-fails" ]]; then
   exit 2
 fi
+exit 0
+STUB
+
+stub sheldon <<'STUB'
+#!/bin/zsh
 exit 0
 STUB
 
@@ -291,9 +340,95 @@ t_invalid_modes_are_rejected() {
     "$(find "$STUB_STATE" -mindepth 1 | wc -l | tr -d ' ')" "0"
 }
 
-t_diff_writes_nothing() {
-  diff_config > /dev/null
+t_diff_uses_prepared_config_python() {
+  local output exit_status
+
+  output="$(env -u UV_CACHE_DIR make -s -C "$REPO" diff-config 2>&1)"
+  exit_status=$?
+  check_equals "offline diff succeeds without an external uv cache setting" "$exit_status" "0"
   check_equals "HOME untouched" "$(find "$HOME" -mindepth 1 | wc -l | tr -d ' ')" "0"
+  check_lacks "diff does not invoke uv run" "$output" "unexpected uv run"
+}
+
+write_invalid_config_python() {
+  local scenario=$1 python=$2
+  print -r -- '#!/bin/zsh' > "$python"
+  case "$scenario" in
+    broken) print -r -- 'exit 1' >> "$python" ;;
+    wrong-dependency) print -r -- '[[ "$1" == "-c" ]] && print 0.14.0' >> "$python" ;;
+    unsupported-python)
+      print -r -- '[[ "$2" == *sys.version_info* ]] && exit 1' >> "$python"
+      print -r -- 'print 0.15.1' >> "$python"
+      ;;
+  esac
+  chmod +x "$python"
+}
+
+check_config_tools_repair() {
+  local scenario=$1 label=$2 output exit_status commands
+  select_config_tools_test_root "$HOME/$scenario"
+  mkdir -p "$CONFIG_TOOLS_DIR/bin"
+  write_invalid_config_python "$scenario" "$CONFIG_TOOLS_PYTHON"
+  print stale > "$CONFIG_TOOLS_DIR/stale"
+  rm -f "$STUB_STATE/config-tool-commands"
+
+  output="$(make -s -C "$REPO" install-config-tools 2>&1)"
+  exit_status=$?
+  commands="$(<$STUB_STATE/config-tool-commands)"
+
+  check_equals "$label is repaired" "$exit_status" "0"
+  [[ "$exit_status" == "0" ]] || print -u2 -- "$output"
+  check_contains "$label repair starts an installation" "$output" "Installing config tools..."
+  check_contains "$label repair recreates the environment" "$commands" "venv"
+  check_contains "$label repair installs the dependency" "$commands" "pip"
+  check_equals "$label repair replaces the old environment" \
+    "$([[ ! -e "$CONFIG_TOOLS_DIR/stale" ]] && print yes || print no)" "yes"
+  check_equals "$label repair installs a validated environment" \
+    "$("$CONFIG_TOOLS_PYTHON" -c ignored)" "0.15.1"
+}
+
+t_config_tools_repair_invalid_environments() {
+  local original_test_root="$OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT"
+  check_config_tools_repair broken "a broken config environment"
+  check_config_tools_repair wrong-dependency "a mismatched dependency"
+  check_config_tools_repair unsupported-python "an unsupported Python"
+  select_config_tools_test_root "$original_test_root"
+}
+
+t_config_tools_reject_unmanaged_directory() {
+  local unsafe="$HOME/Documents/config-tools" output exit_status
+  local original_test_root="$OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT"
+  mkdir -p "$unsafe"
+  print preserve > "$unsafe/personal-data"
+  export OH_MY_MAC_CONFIG_TOOLS_DIR="$unsafe"
+
+  output="$(make -s -C "$REPO" install-config-tools 2>&1)"
+  exit_status=$?
+
+  check_nonzero "an unmanaged config tools directory is rejected" "$exit_status"
+  check_contains "the rejected override is identified" "$output" \
+    "OH_MY_MAC_CONFIG_TOOLS_DIR is not supported"
+  check_equals "rejection preserves the unmanaged directory" \
+    "$(<$unsafe/personal-data)" "preserve"
+  check_equals "rejection does not invoke uv" \
+    "$([[ ! -e "$STUB_STATE/config-tool-commands" ]] && print yes || print no)" "yes"
+
+  unset OH_MY_MAC_CONFIG_TOOLS_DIR
+  export OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT="$HOME/Documents"
+  source "$REPO/scripts/config-tools.zsh"
+
+  output="$(make -s -C "$REPO" install-config-tools 2>&1)"
+  exit_status=$?
+
+  check_nonzero "an unmarked test directory is rejected" "$exit_status"
+  check_contains "the unsafe test root is identified" "$output" \
+    "unsafe config tools test root"
+  check_equals "unsafe test root rejection preserves user data" \
+    "$(<$unsafe/personal-data)" "preserve"
+  check_equals "unsafe test root rejection does not invoke uv" \
+    "$([[ ! -e "$STUB_STATE/config-tool-commands" ]] && print yes || print no)" "yes"
+
+  select_config_tools_test_root "$original_test_root"
 }
 
 t_diff_after_sync_is_clean() {
@@ -916,6 +1051,7 @@ STUB
 
 t_update_converges_after_homebrew_installs_prerequisites() {
   local original_path="$PATH" staged="$STUB_STATE/homebrew-stubs"
+  local original_test_root="$OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT"
   local jq_path="$(command -v jq)" output exit_status expected_order actual_order
   mkdir -p "$staged"
   cp "$STUB_BIN/brew" "$staged/original-brew"
@@ -988,6 +1124,7 @@ STUB
   ln -sf "$jq_path" "$STUB_BIN/jq"
   : > "$STUB_STATE/update-order-enabled"
   PATH="$STUB_BIN:/usr/bin:/bin"
+  select_config_tools_test_root "$HOME/config-tools-root"
   hash -r
 
   check_nonzero "fnm is unavailable before Homebrew bundle" \
@@ -1002,13 +1139,14 @@ STUB
   exit_status=$?
 
   PATH="$original_path"
+  select_config_tools_test_root "$original_test_root"
   hash -r
   cp "$staged/original-brew" "$STUB_BIN/brew"
   cp "$staged/uv" "$STUB_BIN/uv"
   cp "$staged/code" "$STUB_BIN/code"
-  rm -f "$STUB_BIN/fnm" "$STUB_BIN/npm" "$STUB_BIN/sheldon"
+  rm -f "$STUB_BIN/fnm" "$STUB_BIN/npm"
 
-  expected_order=$'brew-trust\nbrew-bundle\nuv-tools\ncode\nfnm\nntn\ncodex\nbrew-cleanup'
+  expected_order=$'brew-trust\nbrew-bundle\nuv-tools\nconfig-tools\ncode\nfnm\nntn\ncodex\nbrew-cleanup'
   actual_order="$(<$STUB_STATE/update-order)"
   check_equals "one parallel update succeeds" "$exit_status" "0"
   check_equals "update preserves prerequisite order under parallel make" \
@@ -1019,6 +1157,8 @@ STUB
     "$(<$STUB_STATE/node-default)" "$(<$REPO/config/fnm/version)"
   check_equals "uv tools are installed after uv becomes available" \
     "$([[ -s "$STUB_STATE/uv-tool-installs" ]] && print yes || print no)" "yes"
+  check_equals "fresh convergence ignores a same-named PATH command" \
+    "$([[ ! -e "$STUB_STATE/external-config-python" ]] && print yes || print no)" "yes"
   check_equals "VSCode extensions are installed after code becomes available" \
     "$(sort -u "$STUB_STATE/vscode-extensions" | wc -l | tr -d ' ')" \
     "$(grep -Ev '^[[:space:]]*(#|$)' "$REPO/config/vscode/extensions.txt" | wc -l | tr -d ' ')"
@@ -1151,7 +1291,9 @@ t_vscode_extension_failure_stops_update_once() {
 }
 
 run "invalid modes are rejected"             t_invalid_modes_are_rejected
-run "diff writes nothing"                    t_diff_writes_nothing
+run "diff uses prepared config Python"       t_diff_uses_prepared_config_python
+run "unmanaged config tools are rejected"    t_config_tools_reject_unmanaged_directory
+run "invalid config tools are repaired"      t_config_tools_repair_invalid_environments
 run "diff after sync is clean"               t_diff_after_sync_is_clean
 run "sync is idempotent"                     t_sync_is_idempotent
 run "iTerm profile migration preserves local values" t_iterm_profile_migrates_without_overwriting_local_values
