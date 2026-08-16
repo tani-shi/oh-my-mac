@@ -4,15 +4,15 @@ My Mac setup, managed declaratively.
 
 ## Prerequisites
 
+This repository supports only Apple Silicon (arm64) Macs. Homebrew and the synced
+`~/.zshrc` use `/opt/homebrew`, the standard Homebrew prefix on Apple Silicon.
+
 ### Homebrew
+
+Install Homebrew and initialize the current shell so the following commands can use it:
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-Add to `~/.zshrc`:
-
-```bash
 eval "$(/opt/homebrew/bin/brew shellenv)"
 ```
 
@@ -21,7 +21,8 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 新しい環境では、次の手順で必要なツールの導入と設定同期をまとめて行います。
 
 ```bash
-git clone git@github.com:tani-shi/oh-my-mac.git ~/dev/oh-my-mac
+mkdir -p ~/dev
+git clone https://github.com/tani-shi/oh-my-mac.git ~/dev/oh-my-mac
 cd ~/dev/oh-my-mac
 make install
 ```
