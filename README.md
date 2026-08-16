@@ -18,16 +18,21 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 
 ## クイックスタート
 
-既存の環境へ導入する場合は、最初に `make diff-config` で変更予定を確認してください。`make install` は確認なしで `make sync-config` まで実行し、`~/.claude/agents/`、`~/.claude/scripts/`、`~/.claude/skills/` にあるリポジトリ未管理の項目を恒久削除します。残したいデータは、実行前にこれらのディレクトリ外へコピーするか、対応する相対パスで `config/claude/` に追加します。詳しい所有範囲と副作用は[設定同期の変更範囲](#設定同期の変更範囲)を参照してください。
+新しい環境では、次の手順で必要なツールの導入と設定同期をまとめて行います。
 
 ```bash
 git clone git@github.com:tani-shi/oh-my-mac.git ~/dev/oh-my-mac
 cd ~/dev/oh-my-mac
-make diff-config
 make install
 ```
 
-たとえば、既存のClaude設定をリポジトリ外へ退避するには次のようにします。
+既存の環境へ導入する場合は、`make install` の前に変更予定とClaude設定を確認してください。`make diff-config` の実行には `agent-sentinel`、`jq`、`uv`などの同期用依存が必要です。これらが導入済みなら、先に次を実行します。
+
+```bash
+make diff-config
+```
+
+同期用依存が未導入で `make diff-config` を実行できない場合は、`make install` より先にClaude設定を手動で退避してください。`make install` は依存を導入した後、確認なしで `make sync-config` まで実行し、`~/.claude/agents/`、`~/.claude/scripts/`、`~/.claude/skills/` にあるリポジトリ未管理の項目を恒久削除します。たとえば、既存データをリポジトリ外へ退避するには次のようにします。
 
 ```bash
 backup_dir="$HOME/claude-config-backup-$(date +%Y%m%d-%H%M%S)"
@@ -36,6 +41,8 @@ for name in agents scripts skills; do
   [[ -e "$HOME/.claude/$name" ]] && cp -R "$HOME/.claude/$name" "$backup_dir/"
 done
 ```
+
+継続して利用するagent・script・skillは、対応する相対パスで `config/claude/` に追加できます。詳しい所有範囲と副作用は[設定同期の変更範囲](#設定同期の変更範囲)を参照してください。
 
 ## Agent Instructions
 
@@ -100,7 +107,7 @@ Homebrew 6.x refuses to load formulae from non-official taps unless they are exp
 
 ### 設定同期の変更範囲
 
-`make diff-config` は次の差分と不足項目を表示するだけで、ファイルや外部状態を変更しません。内容を確認してから `make sync-config` を実行してください。`make install` と `make update` も処理の途中で `make sync-config` を実行します。
+`make diff-config` は、次の管理対象の設定ファイル、管理集合、OS/global stateへ変更を適用せず、差分と不足項目を表示します。ただし、現状は `uv run` の依存解決により `~/.cache/uv` へ書き込むことがあるため、処理全体がread-onlyという意味ではありません（[#12](https://github.com/tani-shi/oh-my-mac/issues/12)）。内容を確認してから `make sync-config` を実行してください。`make install` と `make update` も処理の途中で `make sync-config` を実行します。
 
 | 区分 | `make sync-config` の動作 |
 | --- | --- |
@@ -209,7 +216,7 @@ Add extensions as `publisher.extension-name` per line. Config sync is the single
 
 ## 使い方
 
-設定を反映する前に `make diff-config` を実行し、コピー・マージ内容、削除対象、外部状態の変更を確認してください。Claude Codeの削除対象に残したいデータが含まれる場合は、[設定同期の変更範囲](#設定同期の変更範囲)に従って退避またはリポジトリへ追加してから同期します。
+同期用依存が導入済みの既存環境では、設定を反映する前に `make diff-config` を実行し、コピー・マージ内容、削除対象、外部状態の変更を確認してください。依存が未導入の場合は、[クイックスタート](#クイックスタート)に従って既存のClaude設定を手動で退避してから `make install` を実行します。Claude Codeの削除対象に残したいデータが含まれる場合は、[設定同期の変更範囲](#設定同期の変更範囲)に従って退避またはリポジトリへ追加してから同期します。
 
 | Command | Description |
 | --- | --- |
@@ -221,7 +228,7 @@ Add extensions as `publisher.extension-name` per line. Config sync is the single
 | `make refresh-agent-sentinel` | Update agent-sentinel HEAD and refresh generated config |
 | `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
 | `make test` | Run the test suite |
-| `make diff-config` | ファイル、管理集合、外部状態の変更予定を表示する（変更は行わない） |
+| `make diff-config` | 管理対象の設定、管理集合、OS/global stateへ反映せず変更予定を表示する（uvキャッシュへは書き込む場合がある） |
 | `make sync-config` | リポジトリ管理の設定、管理集合、外部状態を同期する |
 
 ## Post-install Setup
