@@ -20,9 +20,9 @@ install: ## Install packages + sync config + install plugins
 	brew bundle --no-upgrade --file=Brewfile
 	$(MAKE) converge
 
-update: ## Sync config and converge declared dependencies
+update: ## Upgrade Homebrew packages, sync config, and converge dependencies
 	$(MAKE) trust-taps
-	brew bundle --no-upgrade --file=Brewfile
+	brew bundle --file=Brewfile
 	$(MAKE) converge
 	brew cleanup
 

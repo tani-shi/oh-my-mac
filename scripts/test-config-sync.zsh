@@ -1188,6 +1188,7 @@ case "$1" in
     ;;
   bundle)
     print brew-bundle >> "$STUB_STATE/update-order"
+    print -r -- "$*" > "$STUB_STATE/brew-bundle-args"
     for command in fnm uv code sheldon; do
       cp "$STUB_STATE/homebrew-stubs/$command" "$STUB_BIN/$command"
       chmod +x "$STUB_BIN/$command"
@@ -1227,6 +1228,8 @@ STUB
   check_equals "one parallel update succeeds" "$exit_status" "0"
   check_equals "update preserves prerequisite order under parallel make" \
     "$actual_order" "$expected_order"
+  check_equals "update requests Homebrew upgrades" \
+    "$(<$STUB_STATE/brew-bundle-args)" "bundle --file=Brewfile"
   check_equals "the pinned Node version is installed" \
     "$(<$STUB_STATE/node-version)" "$(<$REPO/config/fnm/version)"
   check_equals "the pinned Node version becomes the default" \

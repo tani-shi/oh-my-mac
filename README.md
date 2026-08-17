@@ -54,7 +54,7 @@ The table below is the complete inventory of versioning guarantees and exception
 
 | Dependency | Repository declaration | `make install` / `make update` | Approved `make upgrade` | Reproducibility boundary |
 | --- | --- | --- | --- | --- |
-| Homebrew formulae, casks, and taps | `Brewfile` and `config/homebrew/trusted-taps.txt` declare membership only. | Trusts declared taps and runs `brew bundle --no-upgrade`. Missing entries resolve from the repositories available at run time; the command does not request upgrades for already-installed `Brewfile` entries. | `brew bundle` runs without `--no-upgrade`, so every outdated `Brewfile` entry can advance to the version available at apply time. | Package versions, tap revisions, Homebrew itself, and transitive dependencies are not locked by this repository. |
+| Homebrew formulae, casks, and taps | `Brewfile` and `config/homebrew/trusted-taps.txt` declare membership only. | `make install` runs `brew bundle --no-upgrade`, while `make update` runs `brew bundle` and advances outdated entries to the versions available at run time. | `brew bundle` likewise advances every outdated `Brewfile` entry to the version available at apply time. | Package versions, tap revisions, Homebrew itself, and transitive dependencies are not locked by this repository. |
 | Claude Code | `config/claude/version` contains an exact version. | Installs that version and verifies the installed version, including after the fallback installer. | The reviewed version replaces the pin and is then installed and verified. | The direct installed version is fixed. The downloaded installer and artifacts are not hashed or vendored here. |
 | Node.js global default | `config/fnm/version` contains an exact version. | `fnm` installs and selects that version as the global default. | The routine upgrade workflow does not investigate or change this pin. | The Node.js version is fixed, but the Homebrew-installed `fnm`, downloaded artifacts, and project-local `.node-version` / `.nvmrc` overrides are outside that guarantee. |
 | Notion CLI and Codex CLI | `config/ntn/version` and `config/codex/version` contain exact npm package versions. | Installs the declared direct package versions globally. | Reviewed versions replace the pins and are installed. | The direct npm package versions are fixed; npm transitive resolution and artifacts are not locked here. The Codex pin does not govern the copy bundled with the ChatGPT desktop app. |
@@ -64,7 +64,7 @@ The table below is the complete inventory of versioning guarantees and exception
 | VS Code extensions | `config/vscode/extensions.txt` declares extension IDs only. | Config sync installs missing IDs from the marketplace without a version and leaves installed extensions untouched. | The upgrade workflow does not manage extension versions. | Extension versions are not recorded or controlled after installation. |
 | Claude Code plugins | `config/claude/plugins.txt` declares user-scope membership only; marketplaces are external. | Installs missing declarations and removes undeclared user-scope plugins without requesting updates for installed declarations. | Explicitly updates every declared plugin to the marketplace version available at apply time. | Plugin versions and marketplace definitions are not recorded in this repository. |
 
-`make update` is a convergence command, not a frozen reinstall: a newer checkout can move explicitly pinned tools to its declared versions, while missing unpinned dependencies resolve at run time. Its “no upgrade” behavior is limited to using Homebrew's `--no-upgrade` mode and not requesting updates for existing Claude Code plugins, existing VS Code extensions, or unchanged uv tool requirements.
+`make update` upgrades Homebrew entries and converges the remaining dependencies: a newer checkout can move explicitly pinned tools to its declared versions, while Homebrew entries advance to the versions available at run time. It does not request updates for existing Claude Code plugins, existing VS Code extensions, or unchanged uv tool requirements.
 
 `make upgrade` opens the interactive `/upgrade` workflow. After approval, it updates the version sources that workflow owns, upgrades all outdated `Brewfile` entries and all declared Claude Code plugins at apply time, installs the approved direct pins, and asks for approval before committing the version-source changes. Node.js and the Codex config-tools environment are outside that routine investigation; Sheldon reference changes take effect through the next config sync.
 
@@ -250,7 +250,7 @@ On an existing machine with the sync dependencies installed, run `make install-c
 | --- | --- |
 | `make` / `make help` | Show available targets |
 | `make install` | Install packages + sync config + install plugins |
-| `make update` | Sync config and converge declared dependencies without requesting opportunistic updates |
+| `make update` | Upgrade Homebrew packages, sync config, and converge declared dependencies |
 | `make upgrade` | Open a Claude Code session that investigates upgrades, applies them, and commits |
 | `make upgrade-apply` | Apply approved package and Claude Code plugin upgrades (invoked from `/upgrade`) |
 | `make refresh-agent-sentinel` | Update agent-sentinel HEAD and refresh generated config |
