@@ -15,6 +15,7 @@ Comments, commit messages, and docs reach a reader who was not part of the conve
 - State what holds. Write a prohibition only where a reader would otherwise take the rejected path; the reason it was rejected is the content, not the ban itself.
 - One point per comment. Words like "so", "therefore", and "which means" carry a derivation that belongs in the commit log.
 - Use words that already appear in this codebase or in plain technical English. A term invented during a discussion stays there.
+- Keep each Markdown prose paragraph on one unwrapped source line; reserve new lines for paragraph boundaries and Markdown structure.
 
 ## Git
 
