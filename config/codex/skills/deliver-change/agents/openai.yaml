@@ -1,7 +1,7 @@
 interface:
   display_name: "Deliver Change"
-  short_description: "Start or resume a supervised change delivery"
-  default_prompt: "Use $deliver-change to start or continue the supervised delivery in this task."
+  short_description: "Deliver one change through PR or merge"
+  default_prompt: "Use $deliver-change with an objective to prepare and merge one change when repository gates allow it."
 
 policy:
   allow_implicit_invocation: false
