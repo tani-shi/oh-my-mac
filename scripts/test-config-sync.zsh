@@ -829,9 +829,15 @@ t_codex_skills_are_synced() {
   check_contains "the delivery skill requires explicit invocation" \
     "$(<$HOME/.agents/skills/deliver-change/agents/openai.yaml)" \
     "allow_implicit_invocation: false"
-  check_contains "delivery pauses for human verification before merge" \
+  check_contains "delivery stops for required human approval" \
     "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "Never merge during the invocation that first reaches this phase."
+    "If required human approval is missing"
+  check_lacks "delivery requires no project-specific opt-in" \
+    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
+    "deliver-change.toml"
+  check_contains "every delivery invocation requires an objective" \
+    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
+    "Require an objective on every invocation."
   check_contains "architecture diagnosis is read-only" \
     "$(<$HOME/.agents/skills/architecture-review/SKILL.md)" \
     "Do not modify files"
