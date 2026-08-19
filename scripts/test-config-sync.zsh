@@ -831,7 +831,13 @@ t_codex_skills_are_synced() {
     "allow_implicit_invocation: false"
   check_contains "delivery stops for required human approval" \
     "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "If required human approval is missing"
+    "if required human approval is missing"
+  check_contains "delivery prepares a pull request by default" \
+    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
+    "Default to prepare mode"
+  check_contains "delivery requires explicit merge authorization" \
+    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
+    "Enter merge mode only when the user explicitly requests merge"
   check_lacks "delivery requires no project-specific opt-in" \
     "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
     "deliver-change.toml"
