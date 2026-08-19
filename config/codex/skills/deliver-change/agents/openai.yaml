@@ -1,7 +1,7 @@
 interface:
   display_name: "Deliver Change"
-  short_description: "Deliver one change through PR or merge"
-  default_prompt: "Use $deliver-change with an objective to prepare and merge one change when repository gates allow it."
+  short_description: "Prepare a reviewed PR; merge only when requested"
+  default_prompt: "Use $deliver-change with an objective to prepare one merge-ready pull request; explicitly request merge when it is intended."
 
 policy:
   allow_implicit_invocation: false

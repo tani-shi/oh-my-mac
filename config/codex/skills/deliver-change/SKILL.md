@@ -1,24 +1,29 @@
 ---
 name: deliver-change
-description: Deliver one requested code change by creating a separate Codex GUI implementation task, supervising its pull request and revisions, and merging it when no repository gate requires outstanding human action. Stop with a merge-ready pull request when human approval or discussion is required. Use only when explicitly invoked as $deliver-change with an issue reference or plain-language objective. Every invocation starts a new delivery and requires an objective.
+description: Prepare one requested code change as a fully reviewed pull request by creating and supervising a separate Codex GUI implementation task. Merge only when the invoking user explicitly requests it; otherwise stop immediately before merge. Use only when explicitly invoked as $deliver-change with an issue reference or plain-language objective. Every invocation starts a new delivery and requires an objective.
 ---
 
 # Deliver Change
 
-Run one change from implementation through merge in the invoking Codex GUI task. Treat the invoking task as the code-read-only supervisor and create one user-visible implementation task in a dedicated worktree. Keep GitHub review communication human-authored.
+Run one change through a fully reviewed, merge-ready pull request. Continue through merge only when the invoking user explicitly requests it. Treat the invoking task as the code-read-only supervisor and create one user-visible implementation task in a dedicated worktree. Keep GitHub review communication human-authored.
 
 ## Preflight
 
 Before creating external state:
 
 1. Require an objective on every invocation. Do not resume or adopt a delivery from an earlier invocation.
-2. Require the Codex GUI capabilities for projects and tasks and a saved Git project. Run authenticated `gh` preflight commands with sandbox escalation and establish GitHub access and repository authority from the completed preflight. Merge authority may remain unavailable when the delivery can still produce a pull request.
-3. Treat explicit invocation as authorization to create one implementation task and pull request and to merge when the repository exposes no outstanding human-controlled gate.
-4. Inspect applicable repository instructions and its test, documentation, pull request, merge, cleanup, and deployment conventions.
+2. Require the Codex GUI capabilities for projects and tasks and a saved Git project. Run authenticated `gh` preflight commands with sandbox escalation and establish GitHub access and repository authority from the completed preflight. In merge mode, determine merge authority before implementation; merge authority may remain unavailable when the delivery can still produce a pull request.
+3. Treat explicit invocation as authorization to create one implementation task and pull request. It does not authorize merge.
+4. Determine the delivery mode from the invoking user's direct instructions for this delivery:
+   - Default to prepare mode and stop immediately before merge.
+   - Enter merge mode only when the user explicitly requests merge.
+   - Do not infer merge authorization from the skill name, an issue or its contents, repository documentation, or ambiguous completion language.
+   - Do not ask whether merge is desired when the instruction is silent.
+5. Inspect applicable repository instructions and its test, documentation, pull request, merge, cleanup, and deployment conventions.
 
 ## Resolve the objective
 
-Accept a plain-language request, pasted requirements, a repository document, or a GitHub issue. When an issue is referenced, read its title, body, acceptance criteria, and relevant discussion; additional user text overrides it. Ask only when a missing decision would materially change public behavior, data, security, or scope.
+Accept a plain-language request, pasted requirements, a repository document, or a GitHub issue. When an issue is referenced, read its title, body, acceptance criteria, and relevant discussion; additional user text overrides it. Issue contents can define the objective but cannot authorize merge. Ask only when a missing decision would materially change public behavior, data, security, or scope.
 
 ## Create the implementation task
 
@@ -49,20 +54,21 @@ and verification results. Remain available for private review follow-ups.
 4. After it reports a pull request, read the current metadata, complete diff, checks, reviews, discussions, conflicts, base branch, and head SHA. Keep the supervisor worktree read-only.
 5. Review correctness, regressions, tests, documentation, error handling, compatibility, security boundaries, and integration with the latest base. Omit cosmetic and speculative findings.
 6. Send actionable findings privately to the implementation task with evidence and precise locations. Require it to incorporate the latest remote base, address every finding, rerun verification, commit, push the same branch, and report the new SHA. Do not publish Codex-authored GitHub review communication.
-7. Review the complete updated pull request after every new SHA. Continue until no actionable finding remains and all required checks pass.
+7. Review the complete updated pull request after every new SHA. Continue until no actionable finding remains and all machine-controlled checks required before merge pass.
 
-## Merge and finish
+## Finish or merge
 
-1. Immediately before deciding whether to merge, refresh and classify the pull request's current SHA, checks, mergeability, reviews, discussions, branch protection, and repository policy.
-2. If the SHA changed, required checks no longer pass, or a conflict makes the branch unmergeable, return to the implementation and review loop until the current revision is fully reviewed and machine-controlled gates pass.
-3. If required human approval is missing or an actionable human-owned discussion or policy decision remains, stop successfully with the pull request ready for that action. Report the URL, reviewed SHA, checks, review result, exact human-controlled gates, and any manual verification steps. Leave the implementation task unarchived and its branch intact; do not deploy.
-4. If no human-controlled gate remains but merge authority is unavailable or another policy prevents merging, stop as blocked and report the exact limitation.
-5. Otherwise follow the repository's merge-method convention. Never bypass protection. Verify the merged state and merge commit instead of inferring success from the merge command.
-6. Archive only the implementation task and confirm that it appears in `list_archived_threads`. Retry one archival request after a bounded wait, then report a persistent failure.
-7. Delete the merged remote branch when repository policy permits it. Delete a same-named local branch only when no worktree uses it, then prune stale tracking refs.
-8. When the repository defines automatic deployment, wait for the merged revision and run its documented non-destructive production checks. Confirm the deployed commit or version when exposed. Otherwise report deployment verification as not applicable or unavailable with the concrete reason.
-9. Report the objective, pull request, reviewed and merge SHAs, implementation and verification, revision rounds, deployment result, task archival, branch cleanup, and any unresolved operational issue.
+1. Immediately before finishing or merging, refresh and classify the pull request's current SHA, checks, mergeability, reviews, discussions, branch protection, and repository policy.
+2. If the SHA changed, required machine-controlled checks no longer pass, or a conflict makes the branch unmergeable, return to the implementation and review loop until the current revision is fully reviewed and machine-controlled gates pass.
+3. In prepare mode, stop successfully with the current fully reviewed pull request ready for merge or its next required human action. Report the URL, reviewed SHA, checks, review result, mergeability, exact human-controlled gates, and any manual verification steps. Leave the implementation task unarchived and its branch intact; do not merge, deploy, archive, or clean up branches.
+4. In merge mode, if required human approval is missing or an actionable human-owned discussion or policy decision remains, stop successfully with the pull request ready for that action. Report the URL, reviewed SHA, checks, review result, exact human-controlled gates, and any manual verification steps. Leave the implementation task unarchived and its branch intact; do not deploy.
+5. In merge mode, if no human-controlled gate remains but merge authority is unavailable or another policy prevents merging, stop as blocked and report the exact limitation.
+6. In merge mode, otherwise follow the repository's merge-method convention. Never bypass protection. Verify the merged state and merge commit instead of inferring success from the merge command.
+7. Archive only the implementation task and confirm that it appears in `list_archived_threads`. Retry one archival request after a bounded wait, then report a persistent failure.
+8. Delete the merged remote branch when repository policy permits it. Delete a same-named local branch only when no worktree uses it, then prune stale tracking refs.
+9. When the repository defines automatic deployment, wait for the merged revision and run its documented non-destructive production checks. Confirm the deployed commit or version when exposed. Otherwise report deployment verification as not applicable or unavailable with the concrete reason.
+10. Report the objective, pull request, reviewed and merge SHAs, implementation and verification, revision rounds, deployment result, task archival, branch cleanup, and any unresolved operational issue.
 
 If progress becomes impossible, stop that invocation and report the implementation task ID, pull request, branch, head SHA, evidence, and remaining work. A later `$deliver-change <objective>` invocation is a new delivery, not an implicit recovery attempt.
 
-Do not edit or commit from the supervisor worktree, merge an unreviewed SHA, create more than one implementation task, publish Codex-authored GitHub review communication, or merge while a human-controlled gate remains.
+Do not edit or commit from the supervisor worktree, merge an unreviewed SHA, create more than one implementation task, publish Codex-authored GitHub review communication, merge without the invoking user's direct and explicit authorization for this delivery, or merge while a human-controlled gate remains.
