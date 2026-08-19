@@ -12,7 +12,7 @@ Run one change from implementation through merge in the invoking Codex GUI task.
 Before creating external state:
 
 1. Require an objective on every invocation. Do not resume or adopt a delivery from an earlier invocation.
-2. Require the Codex GUI capabilities for projects and tasks, a saved Git project, and authenticated GitHub access that can read pull requests and inspect checks, reviews, and discussions. Determine merge authority before implementation, but allow the delivery to produce a pull request when merge authority is unavailable.
+2. Require the Codex GUI capabilities for projects and tasks and a saved Git project. Run authenticated `gh` preflight commands with sandbox escalation and establish GitHub access and repository authority from the completed preflight. Merge authority may remain unavailable when the delivery can still produce a pull request.
 3. Treat explicit invocation as authorization to create one implementation task and pull request and to merge when the repository exposes no outstanding human-controlled gate.
 4. Inspect applicable repository instructions and its test, documentation, pull request, merge, cleanup, and deployment conventions.
 

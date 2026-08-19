@@ -12,7 +12,7 @@
 Comments, commit messages, and docs reach a reader who was not part of the conversation that produced them.
 
 - Write from the code as it stands, not from the discussion that changed it. After a long exchange, read the surrounding lines first and match how they read.
-- State what holds. Write a prohibition only where a reader would otherwise take the rejected path; the reason it was rejected is the content, not the ban itself.
+- State what holds. Agent instructions carry durable outcomes, ownership boundaries, non-obvious constraints, and authorized scope; the agent chooses a workflow that satisfies them. Correct failures at their owning layer, with prompt guidance reserved for durable knowledge that layer cannot enforce.
 - One point per comment. Words like "so", "therefore", and "which means" carry a derivation that belongs in the commit log.
 - Use words that already appear in this codebase or in plain technical English. A term invented during a discussion stays there.
 - Keep each Markdown prose paragraph on one unwrapped source line; reserve new lines for paragraph boundaries and Markdown structure.
