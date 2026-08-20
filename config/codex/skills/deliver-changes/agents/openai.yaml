@@ -1,0 +1,7 @@
+interface:
+  display_name: "Deliver Changes"
+  short_description: "Coordinate separate reviewed pull requests"
+  default_prompt: "Use $deliver-changes when requirements should become separate reviewed pull requests."
+
+policy:
+  allow_implicit_invocation: false

@@ -152,13 +152,17 @@ Codex skill ownership is different. The repository records the relative file pat
 
 ### Codex Skills
 
-`config/codex/skills/architecture-review/` performs a read-only diagnosis of repository structure and reports up to three high-value follow-up candidates. Run `$architecture-review` for the whole repository or `$architecture-review path <path>` to limit candidate discovery to one area. It first maps entry points, responsibility boundaries, and dependencies, then verifies possible simplifications against repository references, tests, and history. Use it for occasional architecture diagnosis; it never applies its findings.
+| Skill | Use when | Invocation | Result |
+| --- | --- | --- | --- |
+| [`architecture-review`](config/codex/skills/architecture-review/SKILL.md) | You want an occasional read-only architecture diagnosis for the whole repository or one path. | `$architecture-review` or `$architecture-review path <path>` | Up to three verified follow-up candidates; no changes are applied. |
+| [`refactor-review`](config/codex/skills/refactor-review/SKILL.md) | You want structural simplification findings for current goals and changes. Use standard `/review` for regular bug review. | `$refactor-review`, then optionally `$refactor-review apply` in the same session | Read-only findings first; apply uses only the preceding `APPLY` candidates. |
+| [`deliver-change`](config/codex/skills/deliver-change/SKILL.md) | The supplied requirements belong in one pull request. | `$deliver-change <requirements>` | One reviewed pull request from one implementation task and branch. |
+| [`deliver-changes`](config/codex/skills/deliver-changes/SKILL.md) | The supplied requirements should become separate pull requests. | `$deliver-changes <requirements>` | One reviewed pull request per delivery unit. |
 
-`config/codex/skills/refactor-review/` instead reviews the current implementation goals and working changes. Run `$refactor-review` for a read-only review, then run `$refactor-review apply` in the same session to apply only the candidates previously marked `APPLY` and run the relevant tests. Use Codex's standard `/review` command for regular bug reviews. Implicit invocation is disabled for both skills.
-
-`config/codex/skills/deliver-change/` supervises one new requested change from implementation through pull request review. Run `$deliver-change <objective>` with either a GitHub issue reference or a plain-language request; no project-specific configuration is required. The invoking Codex GUI task creates a separate worktree task, waits for its pull request, and privately routes review revisions. By default it stops with the fully reviewed pull request ready for merge or its next required human action, leaving the implementation task and branch available. It proceeds through merge, task archival, branch cleanup, and applicable post-deployment verification only when the invoking user directly and explicitly requests merge for that delivery. An issue or repository document can define the objective but does not grant merge authorization. Every invocation requires an objective and starts a new delivery. GitHub review comments and replies remain human-authored, and implicit invocation is disabled.
-
-`make sync-config` records the relative paths of Codex skill files synced by this repository in `~/.agents/skills/.oh-my-mac-managed`. It uses this record to remove only files that have been deleted from the source while preserving skills and files added by other means. If an unmanaged skill with the same name already exists, the sync stops without overwriting it.
+- Invoke these skills explicitly.
+- Delivery skills stop before merge by default.
+- A delivery merges only when the current invocation directly and explicitly requests it.
+- `$deliver-changes resume` continues the same supervisor task's unfinished batch without duplicating implementation tasks, branches, or pull requests; resume alone does not authorize merge.
 
 ### git discard (`config/git/discard.zsh`)
 
