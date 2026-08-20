@@ -829,21 +829,72 @@ t_codex_skills_are_synced() {
   check_contains "the delivery skill requires explicit invocation" \
     "$(<$HOME/.agents/skills/deliver-change/agents/openai.yaml)" \
     "allow_implicit_invocation: false"
-  check_contains "delivery stops for required human approval" \
+  check_contains "single delivery preserves the caller's pull request boundary" \
     "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "if required human approval is missing"
-  check_contains "delivery prepares a pull request by default" \
+    "as one delivery unit with one implementation task, branch, and pull request"
+  check_contains "single delivery keeps the supervisor code read-only" \
     "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "Default to prepare mode"
-  check_contains "delivery requires explicit merge authorization" \
+    "The invoking task is the code-read-only supervisor."
+  check_contains "single delivery keeps review communication human-authored" \
     "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "Enter merge mode only when the user explicitly requests merge"
-  check_lacks "delivery requires no project-specific opt-in" \
+    "keep GitHub review communication human-authored"
+  check_contains "single delivery defaults to prepare and requires current authorization" \
     "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "deliver-change.toml"
-  check_contains "every delivery invocation requires an objective" \
+    "Prepare is the default. Merge only the delivery that the user directly and explicitly authorizes in the current invocation"
+  check_contains "single delivery re-reviews changed revisions" \
     "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "Require an objective on every invocation."
+    "review again whenever either revision changes"
+  check_contains "single delivery requires reviewed revisions and machine gates" \
+    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
+    "current head and base revisions are reviewed and repository-required machine gates pass"
+  check_contains "single delivery retains the merged lifecycle" \
+    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
+    "task archival, branch cleanup, and documented deployment verification"
+  check_contains "batch delivery requires explicit invocation" \
+    "$(<$HOME/.agents/skills/deliver-changes/agents/openai.yaml)" \
+    "allow_implicit_invocation: false"
+  check_contains "batch delivery preserves one pull request per unit" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "each with its own implementation task, worktree, branch, and pull request"
+  check_contains "batch delivery starts independent units in parallel" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "Start independent units in parallel."
+  check_contains "batch delivery waits for merged prerequisites" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "only after every prerequisite pull request is merged into the latest default branch"
+  check_contains "batch delivery rejects unmerged delivery bases" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "never base it on an unmerged delivery branch"
+  check_contains "batch delivery preserves initial parallelism" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "Start every ready unit before waiting"
+  check_contains "batch delivery keeps the supervisor code read-only" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "The invoking task is the code-read-only supervisor."
+  check_contains "batch delivery keeps review communication human-authored" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "keep GitHub review communication human-authored"
+  check_contains "batch delivery defaults to prepare and requires current authorization" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "Prepare is the default. Merge only the units that the user directly and explicitly authorizes in the current invocation"
+  check_contains "batch delivery resumes only the same supervisor's batch" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    'continues only the batch recorded in the same supervisor task'
+  check_contains "batch delivery resume reuses existing state" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "Reuse its implementation tasks, branches, and pull requests; never adopt another task's batch or create duplicates."
+  check_contains "batch delivery re-reviews changed revisions" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "review again whenever either revision changes"
+  check_contains "batch delivery requires reviewed revisions and machine gates" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "current head and base revisions are reviewed and repository-required machine gates pass"
+  check_contains "batch delivery stops prepare mode at explicit unit states" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "stop when every active unit is ready or waiting on human action"
+  check_contains "batch delivery retains the merged lifecycle" \
+    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
+    "task archival, branch cleanup, and documented deployment verification"
   check_contains "architecture diagnosis is read-only" \
     "$(<$HOME/.agents/skills/architecture-review/SKILL.md)" \
     "Do not modify files"
