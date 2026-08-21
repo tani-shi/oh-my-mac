@@ -15,5 +15,5 @@
 
 ## Refactoring reviews
 
-- Treat `codex review` as a read-only selection gate. For structural simplification, return at most three material findings, ranked by value; omit cosmetic, refuted, and low-value candidates.
+- Treat `codex review` as a read-only selection gate. For structural simplification, return at most three repository-backed findings, ranked by material impact and repair value. Prefer shared causes and structural failures over isolated symptoms; omit cosmetic, refuted, low-value, and speculative edge cases whose reachability or impact is not evidenced by the repository.
 - Mark a finding `APPLY` only when repository evidence proves the change behavior-preserving. Mark it `ASK` when an external contract or design choice requires human judgment. Apply neither during review; use a follow-up change task for approved findings and run the relevant tests.
