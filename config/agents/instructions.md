@@ -43,16 +43,15 @@ Comments, commit messages, and docs reach a reader who was not part of the conve
 
 ## Comments
 
-- Each kind of explanation has its home: **code** carries *how*, **tests** carry *what*, **commit logs** carry *why*, and **comments** carry *why-not* — why the code takes this form and not the plausible alternative a reader would otherwise reach for. When a comment states plain *why* that belongs in the commit log, or *what* that belongs in a test, it is misplaced.
-- Code is the primary medium of explanation: design, naming, and small well-bounded units carry the meaning. Default to zero comments — a comment is the exception, earning its place only by carrying why-knowledge the code cannot express.
-- A comment that explains *what* code does is a refactoring signal — rename, extract, or restructure until the comment is unnecessary, then delete it instead of writing it.
-- External-constraint comments are the typical why-not: references to external specs, workarounds for upstream bugs (with links), invariants and concurrency constraints, the rationale behind non-obvious values.
+- Each kind of explanation has its home: **code** carries *how*, **tests** carry *what*, **commit logs** carry *why*, and **comments** carry only *why-not* imposed by constraints the codebase does not own. Plain *why* belongs in the commit log, and *what* belongs in a test.
+- Code is the primary medium of explanation: design, naming, types, and small well-bounded units carry the meaning. Default to zero comments. If code, a test, a benchmark, or a tracked issue can carry the information, use that medium and omit the comment.
+- A comment that explains code or defends internal complexity is a refactoring signal. Rename, extract, restructure, or correct the specification until the comment is unnecessary, then delete it.
+- A remaining comment states an observable external constraint and its evidence, never a conclusion that the current design is correct. Keep it at the affected boundary only when proximity is necessary to prevent a plausible harmful change; typical cases are external specifications, upstream bugs, toolchain requirements, and compatibility constraints, with links where available.
 - Public API doc comments (docstrings, JSDoc) follow the project's existing convention; they document contracts for toolchains, not implementation.
 
 ## Refactoring
 
-- When changing code, restructure within the touched scope instead of appending: prefer renaming, extracting, and deleting over adding branches, flags, and wrapper layers.
-- Existing code has no authority merely because it exists. Reshape the code you touch into the best form for the current requirements rather than deferring to its current shape.
+- Optimize for the smallest final structure that satisfies the current requirements, not for the smallest diff or the greatest amount of preserved code. Existing code has no authority merely because it exists; within the touched scope, prefer renaming, extracting, consolidating, and deleting over adding branches, flags, and wrapper layers.
 - Keep each unit at the minimum size that fully expresses its behavior; growth of a file or function is a design signal, not a default.
 - Name files and directories at the scope their cohesive contents share — the entity, not one operation on it. A grab-bag too broad to predict its contents and a name too narrow — a homeless fragment, or a real shared unit named after one operation so its cohesive siblings cannot land beside it — are equally scope failures; consolidate the fragment into its home, or rename the mis-scoped unit up to its entity scope.
 - Write only what a current caller needs: no speculative abstractions, options, or parameters for imagined futures — generality is added when the second caller arrives.
