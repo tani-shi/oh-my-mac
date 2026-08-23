@@ -88,6 +88,7 @@ t_public_make_targets_match_readme() {
   local help_output
   help_output="$(<"$tmp/help-targets")"
   check_lacks "make help hides the internal converge target" "$help_output" "converge"
+  check_lacks "make help has no agent-hosted upgrade entrypoint" "$help_output" "upgrade"
 }
 
 run "Homebrew package documentation" t_homebrew_packages_match_brewfile

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Upgrade"
+  short_description: "Select, deliver, and merge dependency upgrades"
+  default_prompt: "Use $upgrade to deliver and merge the safe dependency upgrades available now."
+
+policy:
+  allow_implicit_invocation: false
