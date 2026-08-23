@@ -319,9 +319,6 @@ diff_config_from() { "$1/config.zsh" diff 2>&1 }
 make_update() { make -s -C "$REPO" update INSTALL_STEPS= 2>&1 }
 make_install_with_steps() { make -s -j4 -C "$REPO" install "INSTALL_STEPS=$1" 2>&1 }
 make_update_with_steps() { make -s -C "$REPO" update "INSTALL_STEPS=$1" 2>&1 }
-make_upgrade_apply_with_steps() {
-  make -s -j4 -C "$REPO" upgrade-apply "UPGRADE_STEPS=$1" 2>&1
-}
 refresh_agent_sentinel() { "$REPO/scripts/refresh-agent-sentinel.zsh" 2>&1 }
 make_refresh_install() {
   make -s -C "$REPO" install-uv-tools AGENT_SENTINEL_UPGRADE=1 2>&1
@@ -1147,8 +1144,12 @@ t_upgrade_entrypoint_is_codex_only() {
     "$(<"$skill")" "never invoke it with a prompt or use it as an agent, judge, reviewer, or workflow host"
   check_contains "upgrade merges only after its gates" \
     "$(<"$skill")" "all gates pass, squash-merge with remote-branch deletion without asking again"
-  check_contains "upgrade preflights atomic unpinned updates" \
-    "$(<"$skill")" "stop before applying anything because those unpinned groups cannot be updated selectively"
+  check_contains "upgrade classifies candidates independently" \
+    "$(<"$skill")" 'Classify every candidate independently as `upgrade`, `risk-hold`, `incompatibility-hold`, `execution-blocked-hold`, or `unchanged`'
+  check_contains "blocked Codex evidence is localized" \
+    "$(<"$skill")" "is not evidence that a candidate is unsafe"
+  check_contains "upgrade uses a validated selective plan" \
+    "$(<"$skill")" "validates every identifier against repository declarations before it executes any selected candidate"
   check_equals "Make has no agent-hosted upgrade target" \
     "$(grep -Eq '^upgrade:' "$REPO/Makefile" && print yes || print no)" "no"
   check_lacks "Make never launches Claude as the upgrade host" \
@@ -1405,7 +1406,7 @@ STUB
     "Uninstalling plugin: orphan@example"
 }
 
-t_claude_plugins_update_only_during_upgrade() {
+t_regular_convergence_does_not_update_claude_plugins() {
   write_enabled_claude_plugins
   stub claude <<'STUB'
 #!/bin/zsh
@@ -1414,7 +1415,6 @@ print -r -- "$*" >> "$STUB_STATE/claude-plugin-calls"
 exit 0
 STUB
   local install_output install_status update_output update_status
-  local upgrade_output upgrade_status expected="$STUB_STATE/expected-plugin-calls"
 
   install_output="$(make_install_with_steps "sync-claude-plugins")"
   install_status=$?
@@ -1430,65 +1430,6 @@ STUB
     "Updating plugin:"
   check_lacks "regular convergence never invokes plugin update" \
     "$(<$STUB_STATE/claude-plugin-calls)" "plugin update"
-
-  : > "$STUB_STATE/claude-plugin-calls"
-  print -r -- "plugin list --json" > "$expected"
-  while IFS= read -r plugin || [[ -n "$plugin" ]]; do
-    [[ -z "$plugin" ]] && continue
-    print -r -- "plugin update $plugin" >> "$expected"
-  done < "$REPO/config/claude/plugins.txt"
-
-  upgrade_output="$(make_upgrade_apply_with_steps \
-    "sync-claude-plugins update-claude-plugins")"
-  upgrade_status=$?
-
-  check_equals "parallel make upgrade-apply succeeds" "$upgrade_status" "0"
-  check_files_equal "upgrade reconciles before updating every declared plugin in order" \
-    "$STUB_STATE/claude-plugin-calls" "$expected"
-  check_contains "upgrade reports the enabled plugin update" "$upgrade_output" \
-    "Updating plugin: code-review@claude-plugins-official"
-}
-
-t_claude_plugin_update_failure_stops_upgrade() {
-  write_enabled_claude_plugins
-  stub claude <<'STUB'
-#!/bin/zsh
-print -r -- "$*" >> "$STUB_STATE/claude-plugin-calls"
-case "$1 $2" in
-  "plugin list") print '[]' ;;
-  "plugin update")
-    [[ "$3" == "context7@claude-plugins-official" ]] && exit 2
-    ;;
-esac
-exit 0
-STUB
-  stub fnm <<'STUB'
-#!/bin/zsh
-[[ "$1" == "env" ]] && exit 0
-exit 0
-STUB
-  stub npm <<'STUB'
-#!/bin/zsh
-print -r -- "$*" >> "$STUB_STATE/npm-calls"
-exit 0
-STUB
-  local output exit_status
-
-  output="$(make_upgrade_apply_with_steps \
-    "sync-claude-plugins update-claude-plugins install-codex")"
-  exit_status=$?
-
-  check_nonzero "a Claude plugin update failure fails upgrade-apply" "$exit_status"
-  check_contains "the failing declared plugin is attempted" \
-    "$(<$STUB_STATE/claude-plugin-calls)" \
-    "plugin update context7@claude-plugins-official"
-  check_lacks "later declared plugins are not attempted after a failure" \
-    "$(<$STUB_STATE/claude-plugin-calls)" \
-    "plugin update playwright@claude-plugins-official"
-  check_equals "later upgrade steps do not start after a plugin failure" \
-    "$([[ ! -e "$STUB_STATE/npm-calls" ]] && print yes || print no)" "yes"
-  check_contains "the failed update is reported" "$output" \
-    "Updating plugin: context7@claude-plugins-official"
 }
 
 t_node_failure_stops_update() {
@@ -1593,8 +1534,7 @@ run "failed tap trust stops update"           t_tap_trust_failure_stops_update
 run "failed uv tool stops update"             t_uv_tool_failure_stops_update
 run "failed plugin install stops update"      t_claude_plugin_install_failure_stops_update
 run "failed plugin uninstall stops update"    t_claude_plugin_uninstall_failure_stops_update
-run "plugins update only during upgrade"      t_claude_plugins_update_only_during_upgrade
-run "failed plugin update stops upgrade"      t_claude_plugin_update_failure_stops_upgrade
+run "regular convergence skips plugin update" t_regular_convergence_does_not_update_claude_plugins
 run "failed Node install stops update"        t_node_failure_stops_update
 run "failed ntn install stops update"         t_ntn_failure_stops_update
 run "failed VSCode extension stops once"      t_vscode_extension_failure_stops_update_once

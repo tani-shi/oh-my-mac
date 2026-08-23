@@ -1,7 +1,6 @@
 INSTALL_STEPS := install-claude sync-claude-plugins install-node install-ntn install-codex
-UPGRADE_STEPS := install-claude sync-claude-plugins update-claude-plugins install-ntn install-codex
 
-.PHONY: help diff-config sync-config install update converge upgrade-apply refresh-agent-sentinel trust-taps test install-config-tools install-uv-tools $(INSTALL_STEPS) $(UPGRADE_STEPS)
+.PHONY: help diff-config sync-config install update converge upgrade-apply refresh-agent-sentinel trust-taps test install-config-tools install-uv-tools install-uv-tool $(INSTALL_STEPS)
 
 .DEFAULT_GOAL := help
 
@@ -41,14 +40,7 @@ refresh-agent-sentinel: ## Update agent-sentinel HEAD and refresh generated conf
 	$(MAKE) diff-config
 
 upgrade-apply:
-	$(MAKE) trust-taps
-	HOMEBREW_NO_INTERACTIVE=1 brew bundle --file=Brewfile
-	brew cleanup
-	$(MAKE) install-uv-tools
-	$(MAKE) install-config-tools
-	@for step in $(UPGRADE_STEPS); do \
-		$(MAKE) "$$step" || exit 1; \
-	done
+	@UPGRADE_PLAN="$(UPGRADE_PLAN)" UPGRADE_REPORT="$(UPGRADE_REPORT)" ./scripts/apply-upgrades.zsh
 
 trust-taps: ## Trust non-official Homebrew taps
 	@if [ -f config/homebrew/trusted-taps.txt ]; then \
@@ -75,6 +67,7 @@ trust-taps: ## Trust non-official Homebrew taps
 test: ## Run the test suite
 	@./scripts/test-discard.zsh
 	@./scripts/test-commit-upgrade.zsh
+	@./scripts/test-upgrade-apply.zsh
 	@./scripts/test-documentation.zsh
 	@./scripts/test-config-sync.zsh
 
@@ -126,19 +119,6 @@ sync-claude-plugins:
 		echo "Uninstalling plugin: $$plugin"; \
 		claude plugin uninstall "$$plugin" -y || exit 1; \
 	done
-
-update-claude-plugins:
-	@if ! command -v claude >/dev/null 2>&1; then \
-		echo "Error: claude not found" >&2; exit 1; \
-	fi
-	@if [ ! -f config/claude/plugins.txt ]; then \
-		echo "Error: config/claude/plugins.txt missing" >&2; exit 1; \
-	fi
-	@while IFS= read -r plugin || [ -n "$$plugin" ]; do \
-		[ -z "$$plugin" ] && continue; \
-		echo "Updating plugin: $$plugin"; \
-		claude plugin update "$$plugin" || exit 1; \
-	done < config/claude/plugins.txt
 
 install-node:
 	@if ! command -v fnm >/dev/null 2>&1; then \
@@ -230,6 +210,17 @@ install-uv-tools:
 		echo "Error: uv not found or config/uv/tools.txt missing"; \
 		exit 1; \
 	fi
+
+install-uv-tool:
+	@if ! command -v uv >/dev/null 2>&1 || [ ! -f config/uv/tools.txt ]; then \
+		echo "Error: uv not found or config/uv/tools.txt missing" >&2; \
+		exit 1; \
+	fi
+	@if [ -z "$(UV_TOOL)" ] || ! grep -qxF "$(UV_TOOL)" config/uv/tools.txt; then \
+		echo "Error: UV_TOOL must exactly match a declared uv tool" >&2; \
+		exit 1; \
+	fi
+	@uv tool install --upgrade "$(UV_TOOL)" 2>&1
 
 install-config-tools: ## Prepare the Python environment used for config merging
 	@./scripts/install-config-tools.zsh
