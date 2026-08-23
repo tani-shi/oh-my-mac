@@ -1131,6 +1131,32 @@ t_project_instructions_reach_each_agent() {
     "$(<"$REPO/CLAUDE.md")" "$shared_section"
 }
 
+t_upgrade_entrypoint_is_codex_only() {
+  local skill="$REPO/.agents/skills/upgrade/SKILL.md"
+  local metadata="$REPO/.agents/skills/upgrade/agents/openai.yaml"
+
+  check_equals "the repository upgrade skill exists" \
+    "$([[ -f "$skill" ]] && print yes || print no)" "yes"
+  check_equals "the upgrade skill metadata exists" \
+    "$([[ -f "$metadata" ]] && print yes || print no)" "yes"
+  check_contains "upgrade requires explicit invocation" \
+    "$(<"$metadata")" "allow_implicit_invocation: false"
+  check_contains "upgrade invocation authorizes delivery through merge" \
+    "$(<"$skill")" "Do not request intermediate approval."
+  check_contains "Claude is only a managed upgrade target" \
+    "$(<"$skill")" "never invoke it with a prompt or use it as an agent, judge, reviewer, or workflow host"
+  check_contains "upgrade merges only after its gates" \
+    "$(<"$skill")" "all gates pass, squash-merge with remote-branch deletion without asking again"
+  check_contains "upgrade preflights atomic unpinned updates" \
+    "$(<"$skill")" "stop before applying anything because those unpinned groups cannot be updated selectively"
+  check_equals "Make has no agent-hosted upgrade target" \
+    "$(grep -Eq '^upgrade:' "$REPO/Makefile" && print yes || print no)" "no"
+  check_lacks "Make never launches Claude as the upgrade host" \
+    "$(<"$REPO/Makefile")" 'claude "/upgrade"'
+  check_equals "the Claude upgrade command is removed" \
+    "$([[ ! -e "$REPO/.claude/commands/upgrade.md" ]] && print yes || print no)" "yes"
+}
+
 t_claude_installer_fallback_uses_the_pin() {
   stub claude <<'STUB'
 #!/bin/zsh
@@ -1559,6 +1585,7 @@ run "codex config rejects invalid TOML"      t_codex_config_rejects_invalid_toml
 run "codex config rejects a table conflict"  t_codex_config_rejects_a_table_conflict
 run "instructions are shared then specific"  t_instructions_are_shared_then_specific
 run "project instructions reach each agent"  t_project_instructions_reach_each_agent
+run "upgrade entrypoint is Codex-only"        t_upgrade_entrypoint_is_codex_only
 run "Claude fallback uses the pin"            t_claude_installer_fallback_uses_the_pin
 run "Claude install verifies the pin"         t_claude_installer_rejects_a_version_mismatch
 run "update converges after Homebrew bundle"  t_update_converges_after_homebrew_installs_prerequisites

@@ -41,6 +41,7 @@ repository rather than this one.
 - `config/codex/config.toml` declares the top-level keys merged into `~/.codex/config.toml`.
 - `config/codex/version` pins the installed CLI version.
 - `config/codex/skills/*/` is synced into `~/.agents/skills/`. Invoke `refactor-review` explicitly with `$refactor-review`; implicit invocation is disabled by its `agents/openai.yaml` policy.
+- `.agents/skills/upgrade/` is the repository-scoped dependency upgrade workflow. An explicit `$upgrade` invocation authorizes its version selection, local application, commit, pull request, and merge after its gates pass without separate approvals.
 - `.codex/` at the repository root is project scope: it configures Codex sessions run inside this repository, is not synced to `~/.codex/`, and loads only once the directory is trusted. Its `developer_instructions` carries what only Codex needs while working here.
 - Auth lives in `~/.codex/auth.json` or the macOS Keychain and never in the repository:
   sign in with `codex login`, or set `OPENAI_API_KEY` for scripts and CI.
@@ -67,7 +68,7 @@ repository rather than this one.
 
 ## Tests
 
-- `make test` runs `scripts/test-discard.zsh`, `scripts/test-commit-upgrade.zsh`, `scripts/test-documentation.zsh`, and `scripts/test-config-sync.zsh`. Add `config/git/discard.zsh` cases to the first, upgrade commit workflow cases to the second, Brewfile/README package and README/public `make` target consistency cases to the third, and `config.zsh` cases to the fourth.
+- `make test` runs `scripts/test-discard.zsh`, `scripts/test-commit-upgrade.zsh`, `scripts/test-documentation.zsh`, and `scripts/test-config-sync.zsh`. Add `config/git/discard.zsh` cases to the first, upgrade commit workflow cases to the second, Brewfile/README package and README/public `make` target consistency cases to the third, and config sync plus Codex skill contract cases to the fourth.
 - Tests run against the repository copy of a script, never the synced copy under `$HOME`, so a change is verified before `make sync-config`.
 - Each case runs in a throwaway directory under `mktemp -d` with `HOME`, `GIT_CONFIG_GLOBAL`, and `GIT_CONFIG_SYSTEM` redirected, and with stubs earlier in `PATH`. Keep that isolation: a test must not reach the real Trash, the real git config, a real repository, or the real macOS preferences.
 - `make test` does not install config tools. `test-config-sync.zsh` injects the managed config Python into a marked temporary root; set `OH_MY_MAC_TEST_CONFIG_PYTHON` to inject another prepared interpreter without writing to the test runner's home directory. The installer accepts `OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT` only for a marked directory below the OS temporary directory and rejects the former arbitrary-path override.
@@ -75,12 +76,12 @@ repository rather than this one.
 
 ## Dependency Versioning
 
-`README.md`'s **Dependency Version Guarantees** section is the source of truth for the reproducibility boundary of every managed dependency class. Keep its single guarantee-and-exception table aligned with `Makefile`, `config.zsh`, and `.claude/commands/upgrade.md`. Do not describe this repository as locking every external dependency or producing byte-for-byte reproducible installations.
+`README.md`'s **Dependency Version Guarantees** section is the source of truth for the reproducibility boundary of every managed dependency class. Keep its single guarantee-and-exception table aligned with `Makefile`, `config.zsh`, and `.agents/skills/upgrade/SKILL.md`. Do not describe this repository as locking every external dependency or producing byte-for-byte reproducible installations.
 
 - `config/claude/version`, `config/fnm/version`, `config/ntn/version`, and `config/codex/version` contain exact direct versions. Keep `DISABLE_AUTOUPDATER=1` for Claude Code so its installed version remains under repository control.
 - Packages in `config/uv/config-tools.txt` use exact `==` pins. The Python interpreter constraint remains a range and is documented as such in the guarantee table.
 - Every remote plugin in `config/sheldon/plugins.toml` has a `tag`, or a `rev` when no tag exists. The user-local Sheldon lock is not a repository lock.
 - Tools in `config/uv/tools.txt` use an `@tag` or `@commit` suffix, except the user-owned `agent-sentinel` and `claude-sessions`, whose source requirements intentionally reference HEAD.
 - `Brewfile`, `config/homebrew/trusted-taps.txt`, `config/vscode/extensions.txt`, and `config/claude/plugins.txt` declare membership, not versions. When adding a non-official Homebrew tap or `tap/formula` entry, add every required tap to `config/homebrew/trusted-taps.txt`, including the formula's resolved tap when it differs from the one named in the entry.
-- The interactive upgrade policy and its editable files live in `.claude/commands/upgrade.md`. Keep that workflow and the README guarantee table consistent with the targets in `Makefile`; `make upgrade-apply` does not run `sync-config`.
+- The explicit upgrade policy and its editable files live in `.agents/skills/upgrade/SKILL.md`. Keep that workflow and the README guarantee table consistent with the internal `upgrade-apply` target; it does not run `sync-config`. Claude Code is an upgrade target, and its CLI may manage its own installation and plugins, but it is never the workflow host, judge, or reviewer.
 - Node 24.17 regressed `http.Agent` keep-alive handling (`ERR_STREAM_PREMATURE_CLOSE`) and breaks `node-fetch@2`-based tooling such as Google's `gaxios`/`googleapis` stack (nodejs/node#63989). Keep the global default below 24.17 until it is resolved.

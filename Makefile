@@ -1,7 +1,7 @@
 INSTALL_STEPS := install-claude sync-claude-plugins install-node install-ntn install-codex
 UPGRADE_STEPS := install-claude sync-claude-plugins update-claude-plugins install-ntn install-codex
 
-.PHONY: help diff-config sync-config install update converge upgrade upgrade-apply refresh-agent-sentinel trust-taps test install-config-tools install-uv-tools $(INSTALL_STEPS) $(UPGRADE_STEPS)
+.PHONY: help diff-config sync-config install update converge upgrade-apply refresh-agent-sentinel trust-taps test install-config-tools install-uv-tools $(INSTALL_STEPS) $(UPGRADE_STEPS)
 
 .DEFAULT_GOAL := help
 
@@ -34,16 +34,13 @@ converge:
 		$(MAKE) "$$step" || exit 1; \
 	done
 
-upgrade: ## Investigate upgrades in a Claude Code session, apply them, and commit
-	claude "/upgrade"
-
 refresh-agent-sentinel: ## Update agent-sentinel HEAD and refresh generated config
 	$(MAKE) install-uv-tools AGENT_SENTINEL_UPGRADE=1
 	@./scripts/refresh-agent-sentinel.zsh
 	$(MAKE) test
 	$(MAKE) diff-config
 
-upgrade-apply: ## Apply approved upgrades (invoked from /upgrade)
+upgrade-apply:
 	$(MAKE) trust-taps
 	HOMEBREW_NO_INTERACTIVE=1 brew bundle --file=Brewfile
 	brew cleanup

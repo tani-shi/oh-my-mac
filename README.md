@@ -52,7 +52,7 @@ This repository pins selected direct tool versions; it does not provide a comple
 
 The table below is the complete inventory of versioning guarantees and exceptions for dependencies managed by this repository.
 
-| Dependency | Repository declaration | `make install` / `make update` | Approved `make upgrade` | Reproducibility boundary |
+| Dependency | Repository declaration | `make install` / `make update` | Explicit `$upgrade` | Reproducibility boundary |
 | --- | --- | --- | --- | --- |
 | Homebrew formulae, casks, and taps | `Brewfile` and `config/homebrew/trusted-taps.txt` declare membership only. | `make install` runs `brew bundle --no-upgrade`, while `make update` runs `brew bundle` and advances outdated entries to the versions available at run time. | `brew bundle` likewise advances every outdated `Brewfile` entry to the version available at apply time. | Package versions, tap revisions, Homebrew itself, and transitive dependencies are not locked by this repository. |
 | Claude Code | `config/claude/version` contains an exact version. | Installs that version and verifies the installed version, including after the fallback installer. | The reviewed version replaces the pin and is then installed and verified. | The direct installed version is fixed. The downloaded installer and artifacts are not hashed or vendored here. |
@@ -66,7 +66,7 @@ The table below is the complete inventory of versioning guarantees and exception
 
 `make update` upgrades Homebrew entries and converges the remaining dependencies: a newer checkout can move explicitly pinned tools to its declared versions, while Homebrew entries advance to the versions available at run time. It does not request updates for existing Claude Code plugins, existing VS Code extensions, or unchanged uv tool requirements.
 
-`make upgrade` opens the interactive `/upgrade` workflow. After approval, it updates the version sources that workflow owns, upgrades all outdated `Brewfile` entries and all declared Claude Code plugins at apply time, installs the approved direct pins, and asks for approval before committing the version-source changes. Node.js and the Codex config-tools environment are outside that routine investigation; Sheldon reference changes take effect through the next config sync.
+`$upgrade` is the explicit Codex workflow for routine upgrades. Its invocation authorizes Codex to select safe versions, update the version sources it owns, upgrade every outdated `Brewfile` entry and declared Claude Code plugin at apply time, install the selected direct pins, test and review the result, and create and merge one pull request without further version, commit, pull request, or merge approval. Homebrew and Claude Code plugin updates are atomic groups in this workflow, so Codex preflights every candidate and stops before applying anything when one member is unsafe; pinned dependencies can be held independently. Claude Code remains an upgrade target, but no Claude prompt or agent session participates in the workflow. Node.js and the Codex config-tools environment are outside that routine investigation; Sheldon reference changes take effect through the next config sync.
 
 ## Agent Instructions
 
@@ -83,7 +83,7 @@ Claude Code and Codex both work in this repository, and both read their instruct
 
 `AGENTS.md` holds the project instructions both agents follow. Codex finds it by its own discovery rules; `CLAUDE.md` pulls it in with `@AGENTS.md` and adds only what is specific to Claude Code. Neither a Codex fallback filename nor a symlink is needed, and no sentence is written twice.
 
-`.claude/` and `.codex/` at the repository root are the per-agent project scopes, holding what only one agent needs while working here. Codex reads `.codex/config.toml` once the directory is trusted.
+`CLAUDE.md` and `.codex/` hold the per-agent project instructions. Codex also reads repository-scoped skills from `.agents/skills/`; it loads `.codex/config.toml` once the directory is trusted.
 
 The `config/` entries are a different scope again: `make sync-config` concatenates the shared `instructions.md` with each agent's own into `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`, and syncs Codex skills into `~/.agents/skills/`, so they apply in every repository rather than this one.
 
@@ -103,7 +103,7 @@ The `config/` entries are a different scope again: `make sync-config` concatenat
 
 ### Trusted Homebrew Taps (`config/homebrew/trusted-taps.txt`)
 
-Homebrew 6.x refuses to load formulae from non-official taps unless they are explicitly trusted. `make install` / `make update` / `make upgrade-apply` run `make trust-taps` before bundling to trust these idempotently, so a fresh machine installs in one shot.
+Homebrew 6.x refuses to load formulae from non-official taps unless they are explicitly trusted. `make install`, `make update`, and `$upgrade`'s internal apply stage run `make trust-taps` before bundling to trust these idempotently, so a fresh machine installs in one shot.
 
 | Tap | Used by |
 | --- | --- |
@@ -158,8 +158,10 @@ Codex skill ownership is different. The repository records the relative file pat
 | [`refactor-review`](config/codex/skills/refactor-review/SKILL.md) | You want structural simplification findings for current goals and changes. Use standard `/review` for regular bug review. | `$refactor-review`, then optionally `$refactor-review apply` in the same session | Read-only findings first; apply uses only the preceding `APPLY` candidates. |
 | [`deliver-change`](config/codex/skills/deliver-change/SKILL.md) | The supplied requirements belong in one pull request. | `$deliver-change <requirements>` | One reviewed pull request from one implementation task and branch. |
 | [`deliver-changes`](config/codex/skills/deliver-changes/SKILL.md) | The supplied requirements should become separate pull requests. | `$deliver-changes <requirements>` | One reviewed pull request per delivery unit. |
+| [`upgrade`](.agents/skills/upgrade/SKILL.md) | You want Codex to select and deliver the safe routine dependency upgrades available now. | `$upgrade` | One tested and reviewed pull request, automatically squash-merged after its gates pass. |
 
 - Invoke these skills explicitly.
+- `$upgrade` invocation authorizes version selection, local application, commit, pull request creation, and merge without separate approvals. Claude Code may be invoked only to manage its own installation and declared plugins.
 - Delivery skills stop before merge by default.
 - A delivery merges only when the current invocation directly and explicitly requests it.
 - `$deliver-changes resume` continues the same supervisor task's unfinished batch without duplicating implementation tasks, branches, or pull requests; resume alone does not authorize merge.
@@ -257,8 +259,6 @@ On an existing machine with the sync dependencies installed, run `make install-c
 | `make` / `make help` | Show available targets |
 | `make install` | Install packages + sync config + install plugins |
 | `make update` | Upgrade Homebrew packages, sync config, and converge declared dependencies |
-| `make upgrade` | Open a Claude Code session that investigates upgrades, applies them, and commits |
-| `make upgrade-apply` | Apply approved package and Claude Code plugin upgrades (invoked from `/upgrade`) |
 | `make refresh-agent-sentinel` | Update agent-sentinel HEAD and refresh generated config |
 | `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
 | `make test` | Run the test suite |
