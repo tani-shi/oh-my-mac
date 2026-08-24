@@ -16,6 +16,12 @@ Install Homebrew and initialize the current shell for the commands that follow:
 eval "$(/opt/homebrew/bin/brew shellenv)"
 ```
 
+### Tests
+
+Tests require macOS, Zsh, Git, Make, and `uv`. From a clean checkout, run `make test-clean`; it creates the pinned config-tools Python environment under the system temporary directory, injects it through `OH_MY_MAC_TEST_CONFIG_PYTHON`, and removes it after the suite finishes. The initial bootstrap requires network access unless `uv` already has the required Python and package artifacts available.
+
+`make test` skips the bootstrap and requires either the config-tools Python prepared by `make install-config-tools` or an executable supplied through `OH_MY_MAC_TEST_CONFIG_PYTHON`. The tests replace `HOME`, global and system Git configuration, and stateful macOS or CLI commands with temporary directories and stubs, so neither local runs nor CI write to real user state.
+
 ## Quick Start
 
 On a new machine, run the following commands to install the required tools and sync the configuration:
@@ -262,6 +268,7 @@ On an existing machine with the sync dependencies installed, run `make install-c
 | `make refresh-agent-sentinel` | Update agent-sentinel HEAD and refresh generated config |
 | `make trust-taps` | Trust non-official Homebrew taps listed in `config/homebrew/trusted-taps.txt` |
 | `make test` | Run the test suite |
+| `make test-clean` | Bootstrap isolated config tools in a temporary directory and run the test suite |
 | `make install-config-tools` | Prepare the pinned Python environment used to merge Codex configuration |
 | `make diff-config` | Show pending changes to managed configuration, managed sets, and OS/global state without changing `HOME` or accessing the network or uv cache |
 | `make sync-config` | Reconcile repository-managed configuration, managed sets, and external state |
