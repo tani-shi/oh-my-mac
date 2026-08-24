@@ -33,8 +33,7 @@ converge:
 		$(MAKE) "$$step" || exit 1; \
 	done
 
-refresh-agent-sentinel: ## Update agent-sentinel HEAD and refresh generated config
-	$(MAKE) install-uv-tools AGENT_SENTINEL_UPGRADE=1
+refresh-agent-sentinel: ## Advance the verified agent-sentinel commit pin
 	@./scripts/refresh-agent-sentinel.zsh
 	$(MAKE) test
 	$(MAKE) diff-config
@@ -85,7 +84,10 @@ install-claude:
 		echo "Claude Code $$version already installed"; \
 	else \
 		echo "Installing Claude Code $$version..."; \
-		claude install "$$version" 2>&1 || curl -fsSL https://claude.ai/install.sh | bash -s -- "$$version"; \
+		if ! claude install "$$version" 2>&1; then \
+			echo "Error: Claude Code installer failed for version $$version" >&2; \
+			exit 1; \
+		fi; \
 		installed=$$(claude --version 2>/dev/null | awk '{print $$1}') || true; \
 		if [ "$$installed" != "$$version" ]; then \
 			echo "Error: installed Claude Code version $${installed:-not found}, expected $$version" >&2; \
@@ -189,15 +191,22 @@ install-uv-tools:
 		installed=$$(uv tool list 2>&1) || { echo "$$installed"; exit 1; }; \
 		while IFS= read -r tool || [ -n "$$tool" ]; do \
 			[ -z "$$tool" ] && continue; \
+			case "$$tool" in \
+				*git+*) \
+					commit=$$(printf '%s\n' "$$tool" | sed -nE 's/.*\.git@([0-9a-f]{40})$$/\1/p'); \
+					if [ -z "$$commit" ]; then \
+						echo "Error: Git uv tool must use a full commit SHA: $$tool" >&2; \
+						exit 1; \
+					fi; \
+					echo "Pinned uv tool commit: $$commit"; \
+					;; \
+			esac; \
 			echo "Installing uv tool: $$tool"; \
 			case "$$tool" in \
 				agent-sentinel*) \
 					options=""; \
 					if echo "$$installed" | grep -q '^claude-sentinel ' && ! echo "$$installed" | grep -q '^agent-sentinel '; then \
 						options="--force"; \
-					fi; \
-					if [ "$(AGENT_SENTINEL_UPGRADE)" = "1" ]; then \
-						options="$$options --upgrade"; \
 					fi; \
 					uv tool install $$options "$$tool" 2>&1 || exit 1; \
 					command -v agent-sentinel >/dev/null 2>&1 || { echo "Error: agent-sentinel executable not found after install"; exit 1; }; \
@@ -219,6 +228,14 @@ install-uv-tool:
 	@if [ -z "$(UV_TOOL)" ] || ! grep -qxF "$(UV_TOOL)" config/uv/tools.txt; then \
 		echo "Error: UV_TOOL must exactly match a declared uv tool" >&2; \
 		exit 1; \
+	fi
+	@if printf '%s\n' "$(UV_TOOL)" | grep -q 'git+'; then \
+		commit=$$(printf '%s\n' "$(UV_TOOL)" | sed -nE 's/.*\.git@([0-9a-f]{40})$$/\1/p'); \
+		if [ -z "$$commit" ]; then \
+			echo "Error: Git uv tool must use a full commit SHA: $(UV_TOOL)" >&2; \
+			exit 1; \
+		fi; \
+		echo "Pinned uv tool commit: $$commit"; \
 	fi
 	@uv tool install --upgrade "$(UV_TOOL)" 2>&1
 

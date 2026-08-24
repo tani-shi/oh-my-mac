@@ -1,13 +1,23 @@
 #!/bin/zsh
 set -u
 
-SRC="${0:A:h}/apply-upgrades.zsh"
-REPO="${0:A:h}/.."
-[[ -f "$SRC" ]] || { print -u2 "missing $SRC"; exit 1 }
+SOURCE_REPO="${0:A:h}/.."
+[[ -f "$SOURCE_REPO/scripts/apply-upgrades.zsh" ]] || {
+  print -u2 "missing $SOURCE_REPO/scripts/apply-upgrades.zsh"
+  exit 1
+}
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT INT TERM
 git_bin_dir="${commands[git]:h}"
+
+REPO="$tmp/repo"
+cp -R "$SOURCE_REPO" "$REPO"
+rm -rf "$REPO/.git"
+git init -q "$REPO"
+git -C "$REPO" add .
+git -C "$REPO" -c user.name=test -c user.email=test@example.com commit -qm initial
+SRC="$REPO/scripts/apply-upgrades.zsh"
 
 export HOME="$tmp/home"
 export STUB_STATE="$tmp/state"
@@ -602,26 +612,42 @@ t_undeclared_candidate_is_rejected_before_application() {
   check_equals "validation finishes before any application" "$([[ ! -e $STUB_STATE/brew-calls ]] && print yes || print no)" "yes"
 }
 
-t_agent_sentinel_head_upgrade_is_rejected() {
+t_agent_sentinel_unpinned_upgrade_is_rejected() {
   print -r -- $'uv-tool\tagent-sentinel[claude] @ git+https://github.com/tani-shi/agent-sentinel.git\tupgrade\tnew HEAD' > "$plan"
   local output result_status
   output=$(apply_plan)
   result_status=$?
 
-  check_equals "agent-sentinel HEAD cannot enter routine upgrade" "$result_status" "1"
-  check_contains "the HEAD policy rejection is explicit" "$output" "HEAD-tracking uv tool requirements cannot be upgraded"
+  check_equals "agent-sentinel without a commit cannot enter routine upgrade" "$result_status" "1"
+  check_contains "the full commit policy rejection is explicit" "$output" "Git uv tool upgrades require a full commit SHA"
   check_equals "rejection precedes uv application" "$([[ ! -e $STUB_STATE/uv-installs ]] && print yes || print no)" "yes"
 }
 
-t_claude_sessions_head_upgrade_is_rejected() {
+t_claude_sessions_unpinned_upgrade_is_rejected() {
   print -r -- $'uv-tool\tgit+https://github.com/tani-shi/claude-sessions.git\tupgrade\tnew HEAD' > "$plan"
   local output result_status
   output=$(apply_plan)
   result_status=$?
 
-  check_equals "claude-sessions HEAD cannot enter routine upgrade" "$result_status" "1"
-  check_contains "the second HEAD policy rejection is explicit" "$output" "HEAD-tracking uv tool requirements cannot be upgraded"
+  check_equals "claude-sessions without a commit cannot enter routine upgrade" "$result_status" "1"
+  check_contains "the second full commit policy rejection is explicit" "$output" "Git uv tool upgrades require a full commit SHA"
   check_equals "the second rejection precedes uv application" "$([[ ! -e $STUB_STATE/uv-installs ]] && print yes || print no)" "yes"
+}
+
+t_full_commit_uv_upgrade_is_allowed() {
+  local identifier=$(grep 'claude-sessions' "$REPO/config/uv/tools.txt")
+  print -r -- "uv-tool"$'\t'"$identifier"$'\t'"upgrade"$'\t'"reviewed commit" > "$plan"
+  local output result_status
+  output=$(apply_plan)
+  result_status=$?
+
+  check_equals "a full commit uv tool passes validation" "$result_status" "0"
+  check_contains "the exact pinned requirement is installed" \
+    "$(<$STUB_STATE/uv-installs)" "$identifier"
+  check_contains "the full commit application is attempted" "$output" \
+    "Applying upgrade: uv-tool:$identifier"
+  check_contains "the full commit application is verified" "$(<$report)" \
+    "$identifier"$'\t'"unchanged"$'\t'"verified"
 }
 
 run "risky ChatGPT cask is held independently"        t_risky_chatgpt_is_held_independently
@@ -654,8 +680,9 @@ run "report alias stops before truncation"            t_report_alias_is_rejected
 run "safe changes remain mergeable with holds"        t_safe_changes_remain_mergeable_with_holds
 run "held-only Homebrew skips dependency checks"      t_all_held_homebrew_skips_dependency_checks
 run "undeclared candidates are rejected first"        t_undeclared_candidate_is_rejected_before_application
-run "agent-sentinel HEAD upgrade is rejected"         t_agent_sentinel_head_upgrade_is_rejected
-run "claude-sessions HEAD upgrade is rejected"        t_claude_sessions_head_upgrade_is_rejected
+run "unpinned agent-sentinel upgrade is rejected"    t_agent_sentinel_unpinned_upgrade_is_rejected
+run "unpinned claude-sessions upgrade is rejected"   t_claude_sessions_unpinned_upgrade_is_rejected
+run "full commit uv upgrade is allowed"              t_full_commit_uv_upgrade_is_allowed
 
 print "$pass passed, $fail failed"
 (( fail == 0 ))

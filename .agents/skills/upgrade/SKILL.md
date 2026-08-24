@@ -24,7 +24,7 @@ The routine workflow may edit only:
 - `config/sheldon/plugins.toml` — remote Sheldon `tag` and `rev` values
 - `config/uv/tools.txt` — pinned `@tag` and `@commit` requirements
 
-`config/fnm/version` and `config/uv/config-tools.txt` are outside this workflow. Homebrew entries and Claude Code plugins declare membership rather than versions, but the upgrade workflow applies their outdated members selectively without editing the declaration files. The user-owned `agent-sentinel` and `claude-sessions` requirements intentionally track HEAD, and routine upgrade does not advance an unchanged HEAD requirement. Refresh `agent-sentinel` through its separate workflow and leave `claude-sessions` unchanged.
+`config/fnm/version` and `config/uv/config-tools.txt` are outside this workflow. Homebrew entries and Claude Code plugins declare membership rather than versions, but the upgrade workflow applies their outdated members selectively without editing the declaration files. Every Git uv tool remains pinned to a full commit SHA. `agent-sentinel` is outside the routine selection because its separate `make refresh-agent-sentinel` workflow fetches and validates the permission layer before writing the pin; leave it unchanged here. Other uv tools, including `claude-sessions`, may advance to a reviewed full commit.
 
 ## Select versions
 
@@ -33,7 +33,7 @@ Investigate independent sources in parallel. Use authoritative registries and up
 - Take security fixes.
 - Take the latest stable feature and maintenance release unless documented breaking behavior or multiple current reports establish a critical regression in a surface this repository uses.
 - Judge Claude Code against its installer, settings, hooks, plugins, agents, skills, and keybindings. Judge Codex against its npm install, `config.toml`, `AGENTS.md`, hooks, rules, and skills. Judge ntn against its npm install, authentication, and `ntn api` surface.
-- Keep a remote Sheldon plugin on a tag when tags exist and on a revision otherwise. Keep ordinary uv tools pinned to a tag or commit.
+- Keep a remote Sheldon plugin on a tag when tags exist and on a revision otherwise. Keep Git-based uv tools pinned to full commit SHAs and leave `agent-sentinel` to its dedicated refresh workflow.
 - Classify every candidate independently as `upgrade`, `risk-hold`, `incompatibility-hold`, `execution-blocked-hold`, or `unchanged`. A hold affects only that candidate unless it is an unavoidable transitive or shared dependency of another selected upgrade.
 - Treat the `chatgpt` cask as independent from the pinned Codex CLI. A risk affecting ChatGPT or the bundled Codex GUI holds only that cask.
 - A Codex safeguard, denied command, unavailable write path, or other blocked tool call is not evidence that a candidate is unsafe. Retry through a safer read-only source or authoritative upstream evidence; if the candidate still cannot be assessed, classify only it as `execution-blocked-hold` and continue.
@@ -49,7 +49,7 @@ Before mutation, write a temporary tab-separated plan outside the worktree with 
 - `uv-tool`, with the exact declaration line from `config/uv/tools.txt`
 - `sheldon-plugin`, with the exact section name below `[plugins]`
 
-Include every investigated outdated candidate and every changed pin. Every repository pin changed from `HEAD` must have its matching `upgrade` row; a changed pin cannot be omitted or classified as a hold after mutation. Keep unchanged candidates in the plan when they were materially assessed and belong in the delivery record. The apply script rejects an `upgrade` row for a uv tool whose Git requirement still tracks HEAD, validates every identifier against repository declarations before it executes any selected candidate, and never applies hold or unchanged rows.
+Include every investigated outdated candidate and every changed pin. Every changed repository pin must have its matching `upgrade` row; a changed pin cannot be omitted or classified as a hold after mutation. Keep unchanged candidates in the plan when they were materially assessed and belong in the delivery record. The apply script rejects a Git uv tool upgrade that does not use a full commit SHA, validates every identifier against repository declarations before it executes any selected candidate, and never applies hold or unchanged rows.
 
 ## Deliver
 

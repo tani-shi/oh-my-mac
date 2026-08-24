@@ -161,13 +161,13 @@ while IFS=$'\t' read -r kind identifier decision evidence ||
       exit 1
       ;;
   esac
-  if ! validate_identifier "$kind" "$identifier"; then
-    print -u2 "Error: undeclared upgrade candidate '$kind:$identifier' on plan line $line_number"
+  if [[ "$kind" == "uv-tool" && "$decision" == "upgrade" &&
+      "$identifier" == *"git+"* && ! "$identifier" =~ '\.git@[0-9a-f]{40}$' ]]; then
+    print -u2 "Error: Git uv tool upgrades require a full commit SHA: $identifier"
     exit 1
   fi
-  if [[ "$kind" == "uv-tool" && "$decision" == "upgrade" &&
-      "$identifier" == *"git+"* && "$identifier" != *".git@"* ]]; then
-    print -u2 "Error: HEAD-tracking uv tool requirements cannot be upgraded by the routine plan: $identifier"
+  if ! validate_identifier "$kind" "$identifier"; then
+    print -u2 "Error: undeclared upgrade candidate '$kind:$identifier' on plan line $line_number"
     exit 1
   fi
   key="$kind:$identifier"

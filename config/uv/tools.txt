@@ -1,2 +1,2 @@
-agent-sentinel[claude] @ git+https://github.com/tani-shi/agent-sentinel.git
-git+https://github.com/tani-shi/claude-sessions.git
+agent-sentinel[claude] @ git+https://github.com/tani-shi/agent-sentinel.git@c64be95db4868cffaa1afc1adf27aada6bd8326c
+git+https://github.com/tani-shi/claude-sessions.git@c4d1d606e1a85dc8aca40bab3f92d520cbf8c46e
