@@ -101,14 +101,12 @@ stub npm '#!/bin/zsh
 [[ "${FNM_UPGRADE_TEST:-}" == "1" ]] || exit 9
 if [[ "$1" == "ls" ]]; then
   ntn_version=$(<$STUB_STATE/ntn-version)
-  codex_version=$(<$STUB_STATE/codex-version)
   transitive_version=$(<$STUB_STATE/npm-transitive-version)
   print -r -- "$*" >> "$STUB_STATE/npm-list-calls"
-  print -r -- "{\"dependencies\":{\"ntn\":{\"version\":\"$ntn_version\",\"dependencies\":{\"shared\":{\"version\":\"$transitive_version\"}}},\"@openai/codex\":{\"version\":\"$codex_version\",\"dependencies\":{\"shared\":{\"version\":\"$transitive_version\"}}}}}"
+  print -r -- "{\"dependencies\":{\"ntn\":{\"version\":\"$ntn_version\",\"dependencies\":{\"shared\":{\"version\":\"$transitive_version\"}}}}}"
 elif [[ "$1 $2" == "install -g" ]]; then
   print -r -- "$3" >> "$STUB_STATE/npm-installs"
   package=ntn
-  [[ "$3" == @openai/codex@* ]] && package=codex
   if [[ -f "$STUB_STATE/npm-fail-$package" ]]; then
     [[ -f "$STUB_STATE/npm-mutate-transitive-$package" ]] && print 2.0.0 > "$STUB_STATE/npm-transitive-version"
     exit 2
@@ -116,7 +114,6 @@ elif [[ "$1 $2" == "install -g" ]]; then
   if [[ ! -f "$STUB_STATE/npm-preserve-state" ]]; then
     case "$3" in
       ntn@*) print -r -- "${3#ntn@}" > "$STUB_STATE/ntn-version" ;;
-      @openai/codex@*) print -r -- "${3#@openai/codex@}" > "$STUB_STATE/codex-version" ;;
     esac
   fi
 fi
@@ -184,7 +181,6 @@ run() {
   print -r -- '[{"scope":"user","id":"code-review@claude-plugins-official","version":"1"},{"scope":"user","id":"context7@claude-plugins-official","version":"1"}]' > "$STUB_STATE/claude-plugins"
   print 0.0.0 > "$STUB_STATE/claude-version"
   print 0.0.0 > "$STUB_STATE/ntn-version"
-  print 0.0.0 > "$STUB_STATE/codex-version"
   print 1.0.0 > "$STUB_STATE/npm-transitive-version"
   : > "$STUB_STATE/uv-tools"
   plan="$tmp/plan$case_n.tsv"
@@ -198,11 +194,10 @@ apply_plan() {
 
 init_pin_fixture() {
   local fixture="$1"
-  mkdir -p "$fixture/config/claude" "$fixture/config/ntn" "$fixture/config/codex" \
+  mkdir -p "$fixture/config/claude" "$fixture/config/ntn" \
     "$fixture/config/uv" "$fixture/config/sheldon"
   print 0.0.0 > "$fixture/config/claude/version"
   print 0.0.0 > "$fixture/config/ntn/version"
-  print 0.0.0 > "$fixture/config/codex/version"
   print 'ruff@1.0.0' > "$fixture/config/uv/tools.txt"
   print -r -- $'[plugins]\n' > "$fixture/config/sheldon/plugins.toml"
   git init -q "$fixture"
@@ -287,17 +282,16 @@ t_uncertain_application_failure_stops() {
 }
 
 t_transitive_npm_mutation_stops() {
-  : > "$STUB_STATE/npm-fail-codex"
-  : > "$STUB_STATE/npm-mutate-transitive-codex"
-  print -r -- $'codex\tcodex\tupgrade\tsafe before application\nntn\tntn\tupgrade\tsafe release' > "$plan"
-  local output result_status calls
+  : > "$STUB_STATE/npm-fail-ntn"
+  : > "$STUB_STATE/npm-mutate-transitive-ntn"
+  print -r -- $'ntn\tntn\tupgrade\tsafe before application\nhomebrew-formula\tfzf\tupgrade\tsafe release' > "$plan"
+  local output result_status
   output=$(apply_plan)
   result_status=$?
-  calls=$(<$STUB_STATE/npm-installs)
 
   check_equals "a transitive npm mutation fails the plan" "$result_status" "1"
-  check_contains "the uncertain npm state is reported" "$(<$report)" $'codex\tsystemic-failure'
-  check_lacks "later npm candidates do not run" "$calls" "ntn@"
+  check_contains "the uncertain npm state is reported" "$(<$report)" $'ntn\tsystemic-failure'
+  check_equals "later candidates do not run" "$([[ ! -e $STUB_STATE/brew-calls ]] && print yes || print no)" "yes"
 }
 
 t_held_shared_dependency_stops_before_application() {
@@ -409,7 +403,7 @@ t_claude_probe_failure_stops_before_application() {
 
 t_unverified_pin_application_stops() {
   : > "$STUB_STATE/npm-preserve-state"
-  print -r -- $'codex\tcodex\tupgrade\tsafe release' > "$plan"
+  print -r -- $'ntn\tntn\tupgrade\tsafe release' > "$plan"
   local output result_status
   output=$(apply_plan)
   result_status=$?
@@ -421,31 +415,31 @@ t_unverified_pin_application_stops() {
 t_failed_fixed_pin_restores_the_declaration() {
   local fixture="$tmp/pin-fixture" output result_status
   init_pin_fixture "$fixture"
-  print 1.0.0 > "$fixture/config/codex/version"
+  print 1.0.0 > "$fixture/config/ntn/version"
   stub make '#!/bin/zsh
 exit 2'
-  print -r -- $'codex\tcodex\tupgrade\tsafe before application' > "$plan"
+  print -r -- $'ntn\tntn\tupgrade\tsafe before application' > "$plan"
 
   output=$(UPGRADE_REPO="$fixture" apply_plan)
   result_status=$?
   rm "$tmp/bin/make"
 
   check_equals "the isolated install failure remains a hold" "$result_status" "0"
-  check_equals "the selected pin is restored" "$(<$fixture/config/codex/version)" "0.0.0"
+  check_equals "the selected pin is restored" "$(<$fixture/config/ntn/version)" "0.0.0"
   check_contains "the restored hold is reported" "$(<$report)" "any selected pin was restored"
 }
 
 t_changed_pin_requires_an_upgrade_plan_row() {
   local fixture="$tmp/complete-plan-fixture" output result_status
   init_pin_fixture "$fixture"
-  print 1.0.0 > "$fixture/config/codex/version"
-  print -r -- $'codex\tcodex\trisk-hold\tunsafe release' > "$plan"
+  print 1.0.0 > "$fixture/config/ntn/version"
+  print -r -- $'ntn\tntn\trisk-hold\tunsafe release' > "$plan"
 
   output=$(UPGRADE_REPO="$fixture" apply_plan)
   result_status=$?
 
   check_equals "a changed pin cannot be held after mutation" "$result_status" "1"
-  check_contains "the missing upgrade selection is explicit" "$output" "changed pin 'codex:codex' requires an upgrade plan row"
+  check_contains "the missing upgrade selection is explicit" "$output" "changed pin 'ntn:ntn' requires an upgrade plan row"
   check_equals "plan completeness is checked before application" "$([[ ! -e $STUB_STATE/npm-installs ]] && print yes || print no)" "yes"
 }
 
@@ -569,26 +563,37 @@ t_report_alias_is_rejected_before_truncation() {
 }
 
 t_safe_changes_remain_mergeable_with_holds() {
-  print -r -- $'homebrew-cask\tchatgpt\trisk-hold\tcurrent GUI regression\ncodex\tcodex\tupgrade\tsafe release' > "$plan"
+  print -r -- $'homebrew-cask\tchatgpt\trisk-hold\tcurrent GUI regression\nntn\tntn\tupgrade\tsafe release' > "$plan"
   local output result_status
   output=$(apply_plan)
   result_status=$?
 
   check_equals "holds do not fail the apply gate" "$result_status" "0"
   check_contains "the hold remains visible" "$(<$report)" $'chatgpt\trisk-hold'
-  check_contains "the safe change is verified" "$(<$report)" $'codex\tupgraded\tverified'
+  check_contains "the safe change is verified" "$(<$report)" $'ntn\tupgraded\tverified'
 }
 
 t_all_held_homebrew_skips_dependency_checks() {
   : > "$STUB_STATE/brew-deps-fails-chatgpt"
-  print -r -- $'homebrew-cask\tchatgpt\trisk-hold	current GUI regression\ncodex\tcodex\tupgrade\tsafe release' > "$plan"
+  print -r -- $'homebrew-cask\tchatgpt\trisk-hold	current GUI regression\nntn\tntn\tupgrade\tsafe release' > "$plan"
   local output result_status
   output=$(apply_plan)
   result_status=$?
 
   check_equals "held-only Homebrew candidates do not block other kinds" "$result_status" "0"
   check_equals "held-only Homebrew dependencies are not queried" "$([[ ! -e $STUB_STATE/brew-deps-calls ]] && print yes || print no)" "yes"
-  check_contains "the independent pin is still verified" "$(<$report)" $'codex\tupgraded\tverified'
+  check_contains "the independent pin is still verified" "$(<$report)" $'ntn\tupgraded\tverified'
+}
+
+t_codex_candidate_is_rejected_before_application() {
+  print -r -- $'codex\tcodex\tupgrade\tsafe release' > "$plan"
+  local output result_status
+  output=$(apply_plan)
+  result_status=$?
+
+  check_equals "Codex cannot enter the routine upgrade plan" "$result_status" "1"
+  check_contains "the Codex exclusion is enforced" "$output" "undeclared upgrade candidate 'codex:codex'"
+  check_equals "Codex rejection precedes npm application" "$([[ ! -e $STUB_STATE/npm-installs ]] && print yes || print no)" "yes"
 }
 
 t_undeclared_candidate_is_rejected_before_application() {
@@ -653,6 +658,7 @@ run "unwritable report stops before application"      t_unwritable_report_stops_
 run "report alias stops before truncation"            t_report_alias_is_rejected_before_truncation
 run "safe changes remain mergeable with holds"        t_safe_changes_remain_mergeable_with_holds
 run "held-only Homebrew skips dependency checks"      t_all_held_homebrew_skips_dependency_checks
+run "Codex candidates are rejected"                   t_codex_candidate_is_rejected_before_application
 run "undeclared candidates are rejected first"        t_undeclared_candidate_is_rejected_before_application
 run "agent-sentinel HEAD upgrade is rejected"         t_agent_sentinel_head_upgrade_is_rejected
 run "claude-sessions HEAD upgrade is rejected"        t_claude_sessions_head_upgrade_is_rejected

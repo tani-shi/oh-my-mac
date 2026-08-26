@@ -1227,6 +1227,7 @@ t_update_converges_after_homebrew_installs_prerequisites() {
   local jq_path="$(command -v jq)" output exit_status expected_order actual_order
   mkdir -p "$staged"
   cp "$STUB_BIN/brew" "$staged/original-brew"
+  cp "$STUB_BIN/codex" "$staged/original-codex"
   cp "$STUB_BIN/uv" "$staged/uv"
   cp "$STUB_BIN/code" "$staged/code"
 
@@ -1256,7 +1257,11 @@ case "$1" in
   install)
     case "$3" in
       ntn@*) print ntn >> "$STUB_STATE/update-order" ;;
-      @openai/codex@*) print codex >> "$STUB_STATE/update-order" ;;
+      @openai/codex)
+        print codex >> "$STUB_STATE/update-order"
+        cp "$STUB_STATE/homebrew-stubs/original-codex" "$STUB_BIN/codex"
+        chmod +x "$STUB_BIN/codex"
+        ;;
     esac
     ;;
 esac
@@ -1269,8 +1274,8 @@ STUB
   cp "$STUB_BIN/fnm" "$staged/fnm"
   cp "$STUB_BIN/npm" "$staged/npm"
   cp "$STUB_BIN/sheldon" "$staged/sheldon"
-  rm -f "$STUB_BIN/fnm" "$STUB_BIN/npm" "$STUB_BIN/uv" "$STUB_BIN/code" \
-    "$STUB_BIN/sheldon"
+  rm -f "$STUB_BIN/codex" "$STUB_BIN/fnm" "$STUB_BIN/npm" "$STUB_BIN/uv" \
+    "$STUB_BIN/code" "$STUB_BIN/sheldon"
 
   stub brew <<'STUB'
 #!/bin/zsh
@@ -1315,6 +1320,7 @@ STUB
   select_config_tools_test_root "$original_test_root"
   hash -r
   cp "$staged/original-brew" "$STUB_BIN/brew"
+  cp "$staged/original-codex" "$STUB_BIN/codex"
   cp "$staged/uv" "$STUB_BIN/uv"
   cp "$staged/code" "$STUB_BIN/code"
   rm -f "$STUB_BIN/fnm" "$STUB_BIN/npm"
@@ -1477,6 +1483,60 @@ STUB
     "Installing Notion CLI (ntn) $(<"$REPO/config/ntn/version")"
 }
 
+t_existing_codex_is_not_updated() {
+  stub npm <<'STUB'
+#!/bin/zsh
+print -r -- "$*" >> "$STUB_STATE/codex-npm-calls"
+exit 99
+STUB
+  local output exit_status
+
+  output="$(make_update_with_steps "install-codex")"
+  exit_status=$?
+
+  check_equals "make update leaves an existing Codex installation untouched" "$exit_status" "0"
+  check_contains "the existing Codex installation is recognized" "$output" \
+    "Codex CLI already installed"
+  check_equals "npm is not invoked for an existing Codex installation" \
+    "$([[ ! -e $STUB_STATE/codex-npm-calls ]] && print yes || print no)" "yes"
+}
+
+t_missing_codex_is_installed_without_a_pin() {
+  local original_path="$PATH"
+  cp "$STUB_BIN/codex" "$STUB_STATE/original-codex"
+  rm -f "$STUB_BIN/codex"
+  stub fnm <<'STUB'
+#!/bin/zsh
+[[ "$1" == "env" ]] && exit 0
+exit 0
+STUB
+  stub npm <<'STUB'
+#!/bin/zsh
+print -r -- "$*" >> "$STUB_STATE/codex-npm-calls"
+if [[ "$*" == "install -g @openai/codex" ]]; then
+  cp "$STUB_STATE/original-codex" "$STUB_BIN/codex"
+  chmod +x "$STUB_BIN/codex"
+  exit 0
+fi
+exit 99
+STUB
+  local output exit_status
+
+  PATH="$STUB_BIN:/usr/bin:/bin"
+  hash -r
+  output="$(make -s -C "$REPO" install-codex 2>&1)"
+  exit_status=$?
+  PATH="$original_path"
+  hash -r
+  cp "$STUB_STATE/original-codex" "$STUB_BIN/codex"
+
+  check_equals "a missing Codex installation is installed" "$exit_status" "0"
+  check_contains "the missing Codex installation is announced" "$output" \
+    "Installing Codex CLI..."
+  check_equals "the installer requests the current unpinned release" \
+    "$(<$STUB_STATE/codex-npm-calls)" "install -g @openai/codex"
+}
+
 t_vscode_extension_failure_stops_update_once() {
   : > "$STUB_STATE/vscode-extension-install-fails"
   local output exit_status attempts
@@ -1537,6 +1597,8 @@ run "failed plugin uninstall stops update"    t_claude_plugin_uninstall_failure_
 run "regular convergence skips plugin update" t_regular_convergence_does_not_update_claude_plugins
 run "failed Node install stops update"        t_node_failure_stops_update
 run "failed ntn install stops update"         t_ntn_failure_stops_update
+run "existing Codex is not updated"           t_existing_codex_is_not_updated
+run "missing Codex is installed unpinned"     t_missing_codex_is_installed_without_a_pin
 run "failed VSCode extension stops once"      t_vscode_extension_failure_stops_update_once
 
 print

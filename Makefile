@@ -73,7 +73,6 @@ test: ## Run the test suite
 
 CLAUDE_VERSION := $(shell cat config/claude/version 2>/dev/null)
 NTN_VERSION := $(shell cat config/ntn/version 2>/dev/null)
-CODEX_VERSION := $(shell cat config/codex/version 2>/dev/null)
 
 install-claude:
 	@if [ -z "$(CLAUDE_VERSION)" ]; then \
@@ -162,25 +161,21 @@ install-ntn:
 	fi
 
 install-codex:
-	@if [ -z "$(CODEX_VERSION)" ]; then \
-		echo "Error: config/codex/version missing" >&2; \
+	@if command -v fnm >/dev/null 2>&1; then \
+		environment=$$(fnm env) || exit 1; \
+		eval "$$environment" || exit 1; \
+	fi; \
+	if command -v codex >/dev/null 2>&1; then \
+		echo "Codex CLI already installed"; \
+	elif ! command -v npm >/dev/null 2>&1; then \
+		echo "Error: npm not found" >&2; \
 		exit 1; \
 	else \
-		if command -v fnm >/dev/null 2>&1; then \
-			environment=$$(fnm env) || exit 1; \
-			eval "$$environment" || exit 1; \
-		fi; \
-		if ! command -v npm >/dev/null 2>&1; then \
-			echo "Error: npm not found" >&2; \
+		echo "Installing Codex CLI..."; \
+		npm install -g @openai/codex || exit 1; \
+		if ! command -v codex >/dev/null 2>&1; then \
+			echo "Error: Codex CLI not found after installation" >&2; \
 			exit 1; \
-		else \
-			current=$$(npm ls -g --depth=0 --json @openai/codex 2>/dev/null | jq -r '.dependencies["@openai/codex"].version // empty'); \
-			if [ "$$current" = "$(CODEX_VERSION)" ]; then \
-				echo "Codex CLI $(CODEX_VERSION) already installed"; \
-			else \
-				echo "Installing Codex CLI $(CODEX_VERSION)..."; \
-				npm install -g "@openai/codex@$(CODEX_VERSION)"; \
-			fi; \
 		fi; \
 	fi
 

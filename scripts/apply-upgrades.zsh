@@ -38,7 +38,7 @@ validate_identifier() {
     claude-plugin)
       grep -qxF "$identifier" "$repo/config/claude/plugins.txt"
       ;;
-    claude|ntn|codex)
+    claude|ntn)
       [[ -s "$repo/config/$kind/version" && "$identifier" == "$kind" ]]
       ;;
     uv-tool)
@@ -79,7 +79,7 @@ require_upgrade_plan() {
 
 validate_changed_pins() {
   local kind declaration_path previous diff_status line name plugin
-  for kind in claude ntn codex; do
+  for kind in claude ntn; do
     declaration_path="config/$kind/version"
     git -C "$repo" diff --quiet HEAD -- "$declaration_path"
     diff_status=$?
@@ -228,7 +228,7 @@ probe_state() {
       [[ -n "$version" ]] || return 1
       print -r -- "$version"
       ;;
-    ntn|codex)
+    ntn)
       if command -v fnm >/dev/null 2>&1; then
         local environment
         environment=$(fnm env) || return 1
@@ -259,7 +259,7 @@ apply_candidate() {
     claude-plugin)
       claude plugin update "$identifier"
       ;;
-    claude|ntn|codex)
+    claude|ntn)
       make -s -C "$repo" "install-$kind"
       ;;
     uv-tool)
@@ -278,11 +278,6 @@ verify_candidate() {
     ntn)
       expected=$(<"$repo/config/ntn/version")
       actual=$(print -r -- "$state" | jq -r '.dependencies.ntn.version // empty')
-      [[ "$actual" == "$expected" ]]
-      ;;
-    codex)
-      expected=$(<"$repo/config/codex/version")
-      actual=$(print -r -- "$state" | jq -r '.dependencies["@openai/codex"].version // empty')
       [[ "$actual" == "$expected" ]]
       ;;
     *)
@@ -320,7 +315,7 @@ classify_verified_result() {
 restore_failed_pin() {
   local kind="$1" identifier="$2" declaration_path previous old_line name temporary
   case "$kind" in
-    claude|ntn|codex)
+    claude|ntn)
       declaration_path="config/$kind/version"
       previous=$(git -C "$repo" show "HEAD:$declaration_path") || return 1
       print -r -- "$previous" > "$repo/$declaration_path"

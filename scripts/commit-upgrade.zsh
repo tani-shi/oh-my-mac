@@ -6,7 +6,6 @@ cd "$(git rev-parse --show-toplevel)"
 pins=(
   "claude:config/claude/version" \
   "ntn:config/ntn/version" \
-  "codex:config/codex/version" \
   "sheldon:config/sheldon/plugins.toml" \
   "uv:config/uv/tools.txt"
 )

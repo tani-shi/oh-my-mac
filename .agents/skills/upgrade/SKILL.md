@@ -12,6 +12,7 @@ Deliver the safe routine dependency upgrades available now as one merged pull re
 - An explicit `$upgrade` invocation authorizes version selection, edits to the managed version sources, package and plugin installation, commits, a pull request, and merge after the gates below pass. Do not request intermediate approval.
 - Keep the delivery to one dedicated clean worktree, one `chore/` branch from the latest default branch, and one pull request. Never absorb unrelated changes from the invoking checkout.
 - Claude Code remains a managed dependency. Invoke `claude` only to inspect or install Claude Code itself and to reconcile its declared plugins; never invoke it with a prompt or use it as an agent, judge, reviewer, or workflow host.
+- Codex CLI is outside this workflow. Do not investigate, install, or update it; ordinary convergence installs it only when the `codex` command is absent and leaves its version lifecycle to Codex thereafter.
 - Do not change dependency membership, the excluded pins below, GitHub repository settings, or unrelated files. Do not merge through a failing or unresolved gate.
 
 ## Managed upgrades
@@ -20,7 +21,6 @@ The routine workflow may edit only:
 
 - `config/claude/version` — Claude Code
 - `config/ntn/version` — Notion CLI
-- `config/codex/version` — Codex CLI
 - `config/sheldon/plugins.toml` — remote Sheldon `tag` and `rev` values
 - `config/uv/tools.txt` — pinned `@tag` and `@commit` requirements
 
@@ -32,10 +32,10 @@ Investigate independent sources in parallel. Use authoritative registries and up
 
 - Take security fixes.
 - Take the latest stable feature and maintenance release unless documented breaking behavior or multiple current reports establish a critical regression in a surface this repository uses.
-- Judge Claude Code against its installer, settings, hooks, plugins, agents, skills, and keybindings. Judge Codex against its npm install, `config.toml`, `AGENTS.md`, hooks, rules, and skills. Judge ntn against its npm install, authentication, and `ntn api` surface.
+- Judge Claude Code against its installer, settings, hooks, plugins, agents, skills, and keybindings. Judge ntn against its npm install, authentication, and `ntn api` surface.
 - Keep a remote Sheldon plugin on a tag when tags exist and on a revision otherwise. Keep ordinary uv tools pinned to a tag or commit.
 - Classify every candidate independently as `upgrade`, `risk-hold`, `incompatibility-hold`, `execution-blocked-hold`, or `unchanged`. A hold affects only that candidate unless it is an unavoidable transitive or shared dependency of another selected upgrade.
-- Treat the `chatgpt` cask as independent from the pinned Codex CLI. A risk affecting ChatGPT or the bundled Codex GUI holds only that cask.
+- Treat the `chatgpt` cask as independent from the Codex CLI. A risk affecting ChatGPT or the bundled Codex GUI holds only that cask.
 - A Codex safeguard, denied command, unavailable write path, or other blocked tool call is not evidence that a candidate is unsafe. Retry through a safer read-only source or authoritative upstream evidence; if the candidate still cannot be assessed, classify only it as `execution-blocked-hold` and continue.
 - Hold only the affected candidate when evidence makes its latest release unsafe or incompatible. Holds do not fail review, test, or merge gates when the selected safe changes pass.
 
@@ -45,7 +45,7 @@ Before mutation, write a temporary tab-separated plan outside the worktree with 
 
 - `homebrew-formula` and `homebrew-cask`, with the exact `Brewfile` identifier
 - `claude-plugin`, with the exact `config/claude/plugins.txt` identifier
-- `claude`, `ntn`, and `codex`, each repeating its kind as the identifier
+- `claude` and `ntn`, each repeating its kind as the identifier
 - `uv-tool`, with the exact declaration line from `config/uv/tools.txt`
 - `sheldon-plugin`, with the exact section name below `[plugins]`
 
