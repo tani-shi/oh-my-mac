@@ -37,6 +37,16 @@ fi
 exec "$REAL_SORT" "$@"
 STUB
 
+export REAL_MV="$(command -v mv)"
+stub mv <<'STUB'
+#!/bin/zsh
+if [[ -f "$STUB_STATE/atomic-replace-failure-target" ]] && \
+  [[ "${@[-1]}" == "$(<"$STUB_STATE/atomic-replace-failure-target")" ]]; then
+  exit 2
+fi
+exec "$REAL_MV" "$@"
+STUB
+
 select_config_tools_test_root() {
   export OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT=$1
   mkdir -p "$OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT"
@@ -242,6 +252,8 @@ STUB
 
 stub sheldon <<'STUB'
 #!/bin/zsh
+print attempt >> "$STUB_STATE/sheldon-lock-attempts"
+[[ -f "$STUB_STATE/sheldon-lock-fails" ]] && exit 2
 exit 0
 STUB
 
@@ -641,21 +653,190 @@ t_codex_hook_trust_notice_ignores_rule_changes() {
     "Codex hook trust is required."
 }
 
-t_codex_hook_trust_notice_precedes_later_failures() {
-  mkdir -p "$HOME/.codex"
+t_codex_validation_precedes_all_writes() {
+  mkdir -p "$HOME/.codex" "$HOME/.claude/scripts"
   print -r -- 'sandbox_mode = "unterminated' > "$HOME/.codex/config.toml"
+  print -r -- 'existing zshrc' > "$HOME/.zshrc"
+  print -r -- 'stale script' > "$HOME/.claude/scripts/orphan.zsh"
 
-  local failed_output exit_status retry_output
+  local failed_output exit_status retry_output git_before
+  git_before=$(git config --global --list 2>/dev/null || true)
   failed_output="$(sync_config)"
   exit_status=$?
-  check_equals "a later merge failure fails the sync" "$exit_status" "1"
-  check_contains "a written hook is reported before the later failure" "$failed_output" \
+  check_equals "a TOML validation failure fails the sync" "$exit_status" "1"
+  check_lacks "a failed validation reports no unapplied hook" "$failed_output" \
     "Codex hook trust is required."
+  check_equals "a failed validation preserves an ordinary managed file" \
+    "$(<"$HOME/.zshrc")" "existing zshrc"
+  check_equals "a failed validation preserves Claude orphans" \
+    "$(<"$HOME/.claude/scripts/orphan.zsh")" "stale script"
+  check_equals "a failed validation creates no generated hook" \
+    "$([[ ! -e "$HOME/.codex/hooks.json" ]] && print yes || print no)" "yes"
+  check_equals "a failed validation creates no external-state retry marker" \
+    "$([[ ! -e "$HOME/.config/sheldon/.oh-my-mac-lock-pending" ]] && print yes || print no)" \
+    "yes"
+  check_equals "a failed validation leaves global Git config untouched" \
+    "$(git config --global --list 2>/dev/null || true)" "$git_before"
 
   print -r -- 'sandbox_mode = "workspace-write"' > "$HOME/.codex/config.toml"
   retry_output="$(sync_config)"
-  check_lacks "the retry does not repeat the delivered trust notice" "$retry_output" \
+  check_contains "the retry reports the newly delivered hook" "$retry_output" \
     "Codex hook trust is required."
+  check_equals "the retry removes the validated Claude orphan" \
+    "$([[ ! -e "$HOME/.claude/scripts/orphan.zsh" ]] && print yes || print no)" "yes"
+}
+
+t_json_validation_precedes_all_writes() {
+  local settings="$HOME/Library/Application Support/Code/User/settings.json"
+  local orphan="$HOME/.claude/scripts/orphan.zsh" output exit_status
+  mkdir -p "${settings:h}" "${orphan:h}"
+  print -r -- '{"unterminated":' > "$settings"
+  print -r -- 'existing zshrc' > "$HOME/.zshrc"
+  print -r -- 'stale script' > "$orphan"
+
+  output="$(sync_config)"
+  exit_status=$?
+  check_nonzero "a JSON validation failure fails the sync" "$exit_status"
+  check_equals "a late JSON failure preserves an ordinary managed file" \
+    "$(<"$HOME/.zshrc")" "existing zshrc"
+  check_equals "a late JSON failure preserves Claude orphans" "$(<"$orphan")" "stale script"
+  check_equals "a late JSON failure creates no generated hook" \
+    "$([[ ! -e "$HOME/.codex/hooks.json" ]] && print yes || print no)" "yes"
+  check_lacks "a late JSON failure applies no managed target" "$output" "Synced:"
+}
+
+t_sync_requires_duti_before_writes() {
+  local without_duti="$tmp/bin-without-duti-$home_n"
+  local orphan="$HOME/.claude/scripts/orphan.zsh" output exit_status diff_output diff_status
+  local command_path git_before
+  mkdir -p "$without_duti" "${orphan:h}"
+  for command_path in "$STUB_BIN"/*(.N); do
+    [[ "${command_path:t}" == duti ]] && continue
+    ln -s "$command_path" "$without_duti/${command_path:t}"
+  done
+  ln -s "$(command -v jq)" "$without_duti/jq"
+  print -r -- 'existing zshrc' > "$HOME/.zshrc"
+  print -r -- 'stale script' > "$orphan"
+  git_before=$(git config --global --list 2>/dev/null || true)
+
+  output="$(PATH="$without_duti:/usr/bin:/bin:/usr/sbin:/sbin" sync_config)"
+  exit_status=$?
+  check_equals "a missing duti command fails the sync" "$exit_status" "1"
+  check_contains "the preflight identifies the declared dependency" "$output" \
+    "duti is required while config/duti/defaults.duti declares default applications"
+  check_equals "the failed preflight preserves an ordinary managed file" \
+    "$(<"$HOME/.zshrc")" "existing zshrc"
+  check_equals "the failed preflight preserves Claude orphans" "$(<"$orphan")" "stale script"
+  check_equals "the failed preflight creates no generated hook" \
+    "$([[ ! -e "$HOME/.codex/hooks.json" ]] && print yes || print no)" "yes"
+  check_equals "the failed preflight leaves global Git config untouched" \
+    "$(git config --global --list 2>/dev/null || true)" "$git_before"
+  check_equals "the failed preflight creates no external-state retry marker" \
+    "$([[ ! -e "$HOME/.config/sheldon/.oh-my-mac-lock-pending" ]] && print yes || print no)" \
+    "yes"
+
+  diff_output="$(PATH="$without_duti:/usr/bin:/bin:/usr/sbin:/sbin" diff_config)"
+  diff_status=$?
+  check_equals "diff succeeds without duti" "$diff_status" "0"
+  check_contains "diff reports the unavailable default-application command" "$diff_output" \
+    "Default applications: duti command not found"
+  check_equals "diff preserves the managed file" "$(<"$HOME/.zshrc")" "existing zshrc"
+  check_equals "diff preserves the Claude orphan" "$(<"$orphan")" "stale script"
+}
+
+assert_atomic_replace_preserves_destination() {
+  local destination=$1 existing=$2 output exit_status
+  mkdir -p "${destination:h}"
+  print -r -- "$existing" > "$destination"
+  print -r -- "$destination" > "$STUB_STATE/atomic-replace-failure-target"
+
+  output="$(sync_config)"
+  exit_status=$?
+
+  check_equals "an atomic replacement failure fails the sync" "$exit_status" "1"
+  check_contains "the failed destination is identified" "$output" \
+    "Error: failed to apply managed file $destination"
+  check_contains "partial application is reported" "$output" "Applied before failure:"
+  check_contains "the output explains convergent retry" "$output" \
+    "rerun 'make sync-config'; completed targets are idempotent"
+  check_equals "the destination remains byte-for-byte complete" \
+    "$(<"$destination")" "$existing"
+}
+
+t_atomic_replace_preserves_ordinary_files() {
+  assert_atomic_replace_preserves_destination "$HOME/.zshrc" "existing zshrc"
+}
+
+t_atomic_replace_preserves_existing_modes() {
+  print -r -- 'existing zshrc' > "$HOME/.zshrc"
+  chmod 600 "$HOME/.zshrc"
+  sync_config > /dev/null
+  check_equals "atomic replacement preserves the existing destination mode" \
+    "$(stat -f '%Lp' "$HOME/.zshrc")" "600"
+}
+
+t_atomic_replace_preserves_merged_json() {
+  assert_atomic_replace_preserves_destination "$HOME/.claude/settings.json" \
+    '{"custom":"existing"}'
+}
+
+t_atomic_replace_preserves_merged_toml() {
+  assert_atomic_replace_preserves_destination "$HOME/.codex/config.toml" \
+    'sandbox_mode = "danger-full-access"'
+}
+
+t_codex_skill_partial_apply_is_retryable() {
+  local skill="$HOME/.agents/skills/refactor-review/SKILL.md" output exit_status retry_output
+  print -r -- "$skill" > "$STUB_STATE/atomic-replace-failure-target"
+
+  output="$(sync_config)"
+  exit_status=$?
+  check_equals "a Codex skill write failure fails the sync" "$exit_status" "1"
+  check_contains "the ownership journal is applied before skill files" "$output" \
+    "Recorded pending Codex skill ownership"
+  check_contains "the pending manifest records the failed skill path" \
+    "$(<"$HOME/.agents/skills/.oh-my-mac-managed")" "refactor-review/SKILL.md"
+
+  rm -f "$STUB_STATE/atomic-replace-failure-target"
+  retry_output="$(sync_config)"
+  check_lacks "the retry does not mistake a partial write for unmanaged ownership" \
+    "$retry_output" "Unmanaged Codex skill"
+  check_equals "the retry installs the failed skill" \
+    "$([[ -f "$skill" ]] && print yes || print no)" "yes"
+  check_contains "the completed retry converges" "$(sync_config)" "Already up to date."
+}
+
+t_sheldon_failure_is_reported_and_retried() {
+  : > "$STUB_STATE/sheldon-lock-fails"
+  local failed_output exit_status diff_output retry_output attempts
+
+  failed_output="$(sync_config)"
+  exit_status=$?
+  check_equals "a Sheldon lock failure fails the sync" "$exit_status" "1"
+  check_contains "the failed external target is identified" "$failed_output" \
+    "Error: failed to apply Sheldon plugin lock"
+  check_contains "the partial managed application is reported" "$failed_output" \
+    "Applied before failure:"
+  check_equals "the retry marker survives the failure" \
+    "$([[ -f "$HOME/.config/sheldon/.oh-my-mac-lock-pending" ]] && print yes || print no)" \
+    "yes"
+  diff_output="$(diff_config)"
+  check_contains "diff reports the pending external update" "$diff_output" \
+    "Sheldon plugin lock update is pending from an incomplete sync."
+  check_equals "diff preserves the retry marker" \
+    "$([[ -f "$HOME/.config/sheldon/.oh-my-mac-lock-pending" ]] && print yes || print no)" \
+    "yes"
+
+  rm -f "$STUB_STATE/sheldon-lock-fails"
+  retry_output="$(sync_config)"
+  attempts=$(wc -l < "$STUB_STATE/sheldon-lock-attempts" | tr -d ' ')
+  check_contains "the retry runs the pending lock update" "$retry_output" \
+    "Running: sheldon lock --update"
+  check_equals "the failed lock is attempted again" "$attempts" "2"
+  check_equals "a successful retry removes the marker" \
+    "$([[ ! -e "$HOME/.config/sheldon/.oh-my-mac-lock-pending" ]] && print yes || print no)" \
+    "yes"
+  check_contains "the completed retry converges" "$(sync_config)" "Already up to date."
 }
 
 t_refresh_reports_only_pending_hook_changes() {
@@ -1504,7 +1685,15 @@ run "sync requires agent-sentinel"           t_sync_requires_agent_sentinel
 run "agent-sentinel config is synced"        t_agent_sentinel_config_is_synced
 run "Codex hook trust follows definitions"   t_codex_hook_trust_notice_tracks_definition_changes
 run "Codex rule changes need no hook trust"  t_codex_hook_trust_notice_ignores_rule_changes
-run "Codex hook trust precedes later failures" t_codex_hook_trust_notice_precedes_later_failures
+run "Codex validation precedes all writes"    t_codex_validation_precedes_all_writes
+run "JSON validation precedes all writes"     t_json_validation_precedes_all_writes
+run "sync requires duti before writes"        t_sync_requires_duti_before_writes
+run "ordinary files are replaced atomically" t_atomic_replace_preserves_ordinary_files
+run "atomic replacement preserves modes"      t_atomic_replace_preserves_existing_modes
+run "merged JSON is replaced atomically"      t_atomic_replace_preserves_merged_json
+run "merged TOML is replaced atomically"      t_atomic_replace_preserves_merged_toml
+run "partial Codex skill sync is retryable"    t_codex_skill_partial_apply_is_retryable
+run "failed Sheldon lock is retried"           t_sheldon_failure_is_reported_and_retried
 run "refresh reports pending hook changes"   t_refresh_reports_only_pending_hook_changes
 run "sync rejects a missing sentinel hook"   t_sync_rejects_missing_sentinel_hook
 run "sync rejects default-allow rules"       t_sync_rejects_default_allow_rule

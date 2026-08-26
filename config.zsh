@@ -127,37 +127,102 @@ tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 
 diffs=0
-synced=()
 changes=0
+staged_sources=()
+staged_destinations=()
+staged_labels=()
+staged_formats=()
+claude_orphan_files=()
+claude_orphan_dirs=()
+codex_orphans=()
+codex_affected_skills=()
+missing_vscode_extensions=()
+pending_git_keys=()
+pending_git_values=()
+pending_duti_bundles=()
+pending_duti_extensions=()
+pending_duti_roles=()
+duti_unavailable=0
+pending_defaults_domains=()
+pending_defaults_keys=()
+pending_defaults_types=()
+pending_defaults_values=()
+applied_targets=()
+sheldon_lock_pending=0
+zshrc_update_pending=0
 CODEX_SKILLS_DESIRED="$tmpdir/codex-skills-managed"
+CODEX_SKILLS_APPLY_MANIFEST="$tmpdir/codex-skills-apply-managed"
 GENERATED_CODEX_HOOKS="$tmpdir/codex/hooks.json"
 GENERATED_CODEX_AGENT_SENTINEL_RULES="$tmpdir/codex/rules/agent-sentinel.rules"
+SHELDON_LOCK_PENDING="$HOME/.config/sheldon/.oh-my-mac-lock-pending"
 
-sync_file() {
-  local src=$1 dst=$2 label=$3
-  if diff -q "$src" "$dst" &>/dev/null; then
-    return 0
-  fi
-  if [[ "$MODE" == "diff" ]]; then
-    if [[ -e "$dst" || -L "$dst" ]]; then
-      git diff --no-index "$dst" "$src" || true
-    else
-      echo "New: $label -> $dst"
-    fi
-    diffs=$((diffs + 1))
-  else
-    mkdir -p "$(dirname "$dst")"
-    cp "$src" "$dst"
-    echo "Synced: $dst"
-    synced+=("$src")
-    changes=$((changes + 1))
+require_command() {
+  local command=$1 reason=$2
+  if ! command -v "$command" &>/dev/null; then
+    print -u2 "Error: $command is required $reason"
+    return 1
   fi
 }
 
-sync_files() {
+validate_destination() {
+  local destination=$1 parent="${1:h}"
+  if [[ -d "$destination" ]]; then
+    print -u2 "Error: managed file destination is a directory: $destination"
+    return 1
+  fi
+  while [[ ! -e "$parent" && ! -L "$parent" && "$parent" != / ]]; do
+    parent="${parent:h}"
+  done
+  if [[ ! -d "$parent" ]]; then
+    print -u2 "Error: managed file parent is not a directory: $parent"
+    return 1
+  fi
+}
+
+stage_file() {
+  local source=$1 destination=$2 label=$3 format=${4:-normal}
+  local staged="$tmpdir/staged/$(( ${#staged_sources[@]} + 1 ))"
+  if [[ ! -f "$source" || ! -r "$source" ]]; then
+    print -u2 "Error: managed source is not a readable file: $source"
+    return 1
+  fi
+  validate_destination "$destination"
+  mkdir -p "${staged:h}"
+  cp "$source" "$staged"
+  staged_sources+=("$staged")
+  staged_destinations+=("$destination")
+  staged_labels+=("$label")
+  staged_formats+=("$format")
+}
+
+prepare_sync_files() {
   local entry
   for entry in "${configs[@]}"; do
-    sync_file "$SCRIPT_DIR/${entry%%:*}" "${entry##*:}" "${entry%%:*}"
+    stage_file "$SCRIPT_DIR/${entry%%:*}" "${entry##*:}" "${entry%%:*}"
+  done
+}
+
+validate_local_inputs() {
+  local input
+  for input in "$SCRIPT_DIR"/config/**/*.json(.N); do
+    if ! jq empty "$input"; then
+      print -u2 "Error: invalid JSON configuration: $input"
+      return 1
+    fi
+  done
+  for input in "$SCRIPT_DIR"/config/**/*.toml(.N); do
+    if ! PYTHONDONTWRITEBYTECODE=1 "$CONFIG_TOOLS_PYTHON" -c \
+      'import pathlib, sys, tomlkit; tomlkit.parse(pathlib.Path(sys.argv[1]).read_text())' \
+      "$input"; then
+      print -u2 "Error: invalid TOML configuration: $input"
+      return 1
+    fi
+  done
+  for input in "$SCRIPT_DIR"/config/**/*.zsh(.N) "$SCRIPT_DIR/config/zshrc"; do
+    if ! zsh -n "$input"; then
+      print -u2 "Error: invalid zsh configuration: $input"
+      return 1
+    fi
   done
 }
 
@@ -177,11 +242,11 @@ prepare_agent_sentinel_codex_config() {
     "$GENERATED_CODEX_HOOKS" "$GENERATED_CODEX_AGENT_SENTINEL_RULES" "$CODEX_CONFIG"
 }
 
-sync_instructions() {
+prepare_instructions() {
   local specific=$1 dst=$2
   local composed="$tmpdir/${specific:h:t}-instructions.md"
   { cat "$SHARED_INSTRUCTIONS"; echo; cat "$specific" } > "$composed"
-  sync_file "$composed" "$dst" "config/agents/instructions.md + ${specific#$SCRIPT_DIR/}"
+  stage_file "$composed" "$dst" "config/agents/instructions.md + ${specific#$SCRIPT_DIR/}"
 }
 
 codex_skill_was_managed() {
@@ -214,6 +279,7 @@ codex_skill_path_has_unsafe_parent() {
 prepare_codex_skills() {
   local skill_dir skill_name source rel destination managed_path orphan
   local discovered="$tmpdir/codex-skills-discovered"
+  local apply_managed="$tmpdir/codex-skills-apply-discovered"
   : > "$discovered"
   for skill_dir in "$CODEX_SKILLS_SRC"/*(/N); do
     skill_name="${skill_dir:t}"
@@ -249,120 +315,43 @@ prepare_codex_skills() {
     done
   done
   LC_ALL=C sort "$discovered" > "$CODEX_SKILLS_DESIRED"
+  cp "$CODEX_SKILLS_DESIRED" "$apply_managed"
 
   if [[ -f "$CODEX_SKILLS_MANIFEST" ]]; then
     while IFS= read -r managed_path || [[ -n "$managed_path" ]]; do
       is_codex_skill_path "$managed_path" || continue
+      print -r -- "$managed_path" >> "$apply_managed"
       grep -Fqx -- "$managed_path" "$CODEX_SKILLS_DESIRED" && continue
       orphan="$CODEX_SKILLS_DST/$managed_path"
       if codex_skill_path_has_unsafe_parent "$orphan" || [[ -d "$orphan" && ! -L "$orphan" ]]; then
         print -u2 "Unsafe managed Codex skill file: $orphan"
         return 1
       fi
+      codex_orphans+=("$orphan")
+      codex_affected_skills+=("${managed_path%%/*}")
     done < "$CODEX_SKILLS_MANIFEST"
   fi
+  LC_ALL=C sort -u "$apply_managed" > "$CODEX_SKILLS_APPLY_MANIFEST"
 }
 
-# Claude Code can keep using removed agents, scripts, and skills from ~/.claude,
-# so orphans must be deleted, not merely left unsynced.
-remove_claude_orphans() {
+prepare_claude_orphans() {
   local orphan_file orphan_dir rel
   for orphan_file in "$HOME"/.claude/agents/*.md(.N) "$HOME"/.claude/scripts/*(.N) \
     "$HOME"/.claude/skills/**/*(.N); do
     rel="${orphan_file#$HOME/.claude/}"
     if [[ ! -f "$SCRIPT_DIR/config/claude/$rel" ]]; then
-      if [[ "$MODE" == "diff" ]]; then
-        echo "Orphan: $orphan_file (no config/claude/$rel)"
-        diffs=$((diffs + 1))
-      else
-        rm -f "$orphan_file"
-        echo "Removed: $orphan_file"
-        changes=$((changes + 1))
-      fi
+      claude_orphan_files+=("$orphan_file")
     fi
   done
-  # On visits deepest-first: parent-first would report a nested directory its
-  # parent already took.
   for orphan_dir in "$HOME"/.claude/skills/**/*(/NOn); do
     rel="${orphan_dir#$HOME/.claude/}"
     if [[ ! -d "$SCRIPT_DIR/config/claude/$rel" ]]; then
-      if [[ "$MODE" == "diff" ]]; then
-        echo "Orphan: $orphan_dir/ (no config/claude/$rel)"
-        diffs=$((diffs + 1))
-      else
-        # rmdir would fail on a .DS_Store, which the file loop's (.N) glob skips.
-        rm -rf "$orphan_dir"
-        echo "Removed: $orphan_dir/"
-        changes=$((changes + 1))
-      fi
+      claude_orphan_dirs+=("$orphan_dir")
     fi
   done
 }
 
-# ~/.agents/skills is shared with independently installed skills, so only files
-# recorded by this repository are eligible for removal.
-reconcile_codex_skills() {
-  local managed_path orphan skill_name orphan_dir
-  local -A affected_skills
-  if [[ -f "$CODEX_SKILLS_MANIFEST" ]]; then
-    while IFS= read -r managed_path || [[ -n "$managed_path" ]]; do
-      if ! is_codex_skill_path "$managed_path"; then
-        echo "Ignored invalid managed Codex skill file: $managed_path"
-        continue
-      fi
-      grep -Fqx -- "$managed_path" "$CODEX_SKILLS_DESIRED" && continue
-      skill_name="${managed_path%%/*}"
-      affected_skills[$skill_name]=1
-      orphan="$CODEX_SKILLS_DST/$managed_path"
-      if [[ ! -e "$orphan" && ! -L "$orphan" ]]; then
-        continue
-      fi
-      if [[ "$MODE" == "diff" ]]; then
-        echo "Orphan: $orphan (no config/codex/skills/$managed_path)"
-        diffs=$((diffs + 1))
-      else
-        rm -f "$orphan"
-        echo "Removed: $orphan"
-        changes=$((changes + 1))
-      fi
-    done < "$CODEX_SKILLS_MANIFEST"
-  fi
-
-  if [[ "$MODE" == "sync" ]]; then
-    for skill_name in "${(@k)affected_skills}"; do
-      for orphan_dir in "$CODEX_SKILLS_DST/$skill_name"/**/*(/NOn); do
-        rmdir "$orphan_dir" 2>/dev/null || true
-      done
-      rmdir "$CODEX_SKILLS_DST/$skill_name" 2>/dev/null || true
-    done
-  fi
-
-  sync_file "$CODEX_SKILLS_DESIRED" "$CODEX_SKILLS_MANIFEST" "managed Codex skill files manifest"
-}
-
-run_post_sync_hooks() {
-  if [[ "$MODE" != "sync" ]]; then
-    return 0
-  fi
-  if [[ $changes -eq 0 ]]; then
-    echo "Already up to date."
-    return 0
-  fi
-  local src
-  for src in "${synced[@]}"; do
-    case "$src" in
-      */sheldon/plugins.toml)
-        echo "Running: sheldon lock --update"
-        sheldon lock --update
-        ;;
-      */zshrc)
-        echo "Run 'source ~/.zshrc' to apply changes."
-        ;;
-    esac
-  done
-}
-
-merge_json_config() {
+prepare_json_config() {
   local label=$1 user_file=$2 repo_file=$3 jq_expr=$4 empty_default=$5
   local merged="$tmpdir/${label// /-}.json" installed="$user_file"
   if [[ ! -f "$user_file" ]]; then
@@ -370,22 +359,10 @@ merge_json_config() {
     echo "$empty_default" > "$installed"
   fi
   jq -s "$jq_expr" "$installed" "$repo_file" > "$merged"
-  if ! diff -q "$installed" "$merged" &>/dev/null; then
-    if [[ "$MODE" == "diff" ]]; then
-      echo ""
-      echo "$label.json:"
-      git diff --no-index "$installed" "$merged" || true
-      diffs=$((diffs + 1))
-    else
-      mkdir -p "$(dirname "$user_file")"
-      cp "$merged" "$user_file"
-      echo "Merged $label into $user_file"
-      changes=$((changes + 1))
-    fi
-  fi
+  stage_file "$merged" "$user_file" "$label" merged-json
 }
 
-merge_codex_config() {
+prepare_codex_config() {
   local installed="$CODEX_CONFIG" merged="$tmpdir/codex-config.toml"
   if [[ ! -f "$installed" ]]; then
     installed="$tmpdir/codex-config-installed.toml"
@@ -397,10 +374,10 @@ merge_codex_config() {
   fi
   PYTHONDONTWRITEBYTECODE=1 "$CONFIG_TOOLS_PYTHON" \
     "$SCRIPT_DIR/scripts/merge-codex-config.py" "$installed" "$REPO_CODEX_CONFIG" > "$merged"
-  sync_file "$merged" "$CODEX_CONFIG" "config/codex/config.toml"
+  stage_file "$merged" "$CODEX_CONFIG" "config/codex/config.toml"
 }
 
-sync_iterm_profile() {
+prepare_iterm_profile() {
   if [[ ! -f "$ITERM_PROFILE_SRC" ]]; then
     return 0
   fi
@@ -422,78 +399,48 @@ sync_iterm_profile() {
     current_sans_guid=$(jq -S "$strip_machine_specific_guid" "$ITERM_PROFILE_DST")
   fi
   if [[ "$desired_sans_guid" != "$current_sans_guid" ]]; then
-    if [[ "$MODE" == "diff" ]]; then
-      echo ""
-      echo "iTerm2 Dynamic Profile:"
-      if [[ -f "$ITERM_PROFILE_DST" ]]; then
-        diff <(echo "$current_sans_guid") <(echo "$desired_sans_guid") | head -50 || true
-      else
-        echo "  current:  <not installed>"
-        echo "  expected: $ITERM_PROFILE_SRC"
-      fi
-      diffs=$((diffs + 1))
-    else
-      mkdir -p "$(dirname "$ITERM_PROFILE_DST")"
-      # iTerm2 identifies dynamic profiles by Guid; reusing the installed Guid
-      # updates the profile in place instead of adding a duplicate.
-      guid=$(jq -r '.Profiles[0].Guid // empty' "$merged_profile")
-      [[ -n "$guid" ]] || guid=$(uuidgen)
-      jq --arg guid "$guid" '.Profiles[0].Guid = $guid' "$merged_profile" \
-        > "$ITERM_PROFILE_DST.tmp" && mv "$ITERM_PROFILE_DST.tmp" "$ITERM_PROFILE_DST"
-      echo "Synced iTerm2 Dynamic Profile."
-      changes=$((changes + 1))
+    guid=$(jq -r '.Profiles[0].Guid // empty' "$merged_profile")
+    if [[ -z "$guid" ]]; then
+      require_command uuidgen "to prepare the iTerm2 Dynamic Profile"
+      guid=$(uuidgen)
     fi
+    jq --arg guid "$guid" '.Profiles[0].Guid = $guid' "$merged_profile" \
+      > "$tmpdir/prepared-iterm-profile.json"
+    stage_file "$tmpdir/prepared-iterm-profile.json" "$ITERM_PROFILE_DST" \
+      "iTerm2 Dynamic Profile" iterm
   fi
-  sync_file "$ITERM_PROFILE_SRC" "$ITERM_PROFILE_BASE" \
+  stage_file "$ITERM_PROFILE_SRC" "$ITERM_PROFILE_BASE" \
     "iTerm2 profile merge baseline"
 }
 
-install_vscode_extensions() {
+prepare_vscode_extensions() {
   local extensions_file="$SCRIPT_DIR/config/vscode/extensions.txt"
   if [[ ! -f "$extensions_file" ]]; then
     return 0
   fi
   if ! command -v code &>/dev/null; then
     if [[ "$MODE" == "diff" ]]; then
-      echo ""
-      echo "VSCode extensions: code command not found"
-      diffs=$((diffs + 1))
+      missing_vscode_extensions+=("<code command not found>")
       return 0
     fi
     print -u2 "Error: code not found while config/vscode/extensions.txt declares required extensions"
     return 1
   fi
   local installed ext
-  local -a missing
-  missing=()
-  installed=$(code --list-extensions 2>/dev/null)
+  if ! installed=$(code --list-extensions 2>/dev/null); then
+    print -u2 "Error: failed to list installed VSCode extensions during validation"
+    return 1
+  fi
   while IFS= read -r ext || [[ -n "$ext" ]]; do
     [[ -z "$ext" || "$ext" == \#* ]] && continue
     if ! echo "$installed" | grep -qix "$ext"; then
-      missing+=("$ext")
+      missing_vscode_extensions+=("$ext")
     fi
   done < "$extensions_file"
 
-  if [[ ${#missing[@]} -eq 0 ]]; then
-    return 0
-  fi
-  if [[ "$MODE" == "diff" ]]; then
-    echo ""
-    echo "VSCode extensions (missing):"
-    for ext in "${missing[@]}"; do
-      echo "  + $ext"
-    done
-    diffs=$((diffs + 1))
-  else
-    for ext in "${missing[@]}"; do
-      echo "Installing VSCode extension: $ext"
-      code --install-extension "$ext"
-      changes=$((changes + 1))
-    done
-  fi
 }
 
-apply_git_config() {
+prepare_git_config() {
   local -a git_config_keys
   git_config_keys=(
     "core.quotepath:false"
@@ -517,25 +464,24 @@ apply_git_config() {
     expected="${entry#*:}"
     current=$(git config --global "$key" 2>/dev/null || echo "")
     if [[ "$current" != "$expected" ]]; then
-      if [[ "$MODE" == "diff" ]]; then
-        echo ""
-        echo "git config --global $key:"
-        echo "  current:  ${current:-<unset>}"
-        echo "  expected: $expected"
-        diffs=$((diffs + 1))
-      else
-        git config --global "$key" "$expected"
-        echo "Set git config: $key = $expected"
-        changes=$((changes + 1))
-      fi
+      pending_git_keys+=("$key")
+      pending_git_values+=("$expected")
     fi
   done
 }
 
-apply_duti() {
+prepare_duti() {
   local duti_file="$SCRIPT_DIR/config/duti/defaults.duti"
-  if ! command -v duti &>/dev/null || [[ ! -f "$duti_file" ]]; then
+  if [[ ! -f "$duti_file" ]]; then
     return 0
+  fi
+  if ! command -v duti &>/dev/null; then
+    if [[ "$MODE" == "diff" ]]; then
+      duti_unavailable=1
+      return 0
+    fi
+    print -u2 "Error: duti is required while config/duti/defaults.duti declares default applications"
+    return 1
   fi
   local bundle ext role current
   while IFS=' ' read -r bundle ext role; do
@@ -543,25 +489,14 @@ apply_duti() {
     # duti -x prints three lines: app name, app path, bundle id
     current=$(duti -x "${ext#.}" 2>/dev/null | tail -1)
     if [[ "$current" != "$bundle" ]]; then
-      if [[ "$MODE" == "diff" ]]; then
-        echo ""
-        echo "duti ${ext}:"
-        echo "  current:  ${current:-<unset>}"
-        echo "  expected: $bundle"
-        diffs=$((diffs + 1))
-      else
-        if duti -s "$bundle" "$ext" "$role" 2>/dev/null; then
-          echo "Set default for ${ext} → $bundle"
-          changes=$((changes + 1))
-        else
-          echo "Warning: failed to set default for ${ext} (skipped)"
-        fi
-      fi
+      pending_duti_bundles+=("$bundle")
+      pending_duti_extensions+=("$ext")
+      pending_duti_roles+=("$role")
     fi
   done < "$duti_file"
 }
 
-apply_macos_defaults() {
+prepare_macos_defaults() {
   local -a macos_defaults
   macos_defaults=(
     "NSGlobalDomain:NSAutomaticWindowAnimationsEnabled:bool:false"
@@ -579,52 +514,397 @@ apply_macos_defaults() {
       norm_expected="$expected"
     fi
     if [[ "$current" != "$norm_expected" ]]; then
-      if [[ "$MODE" == "diff" ]]; then
-        echo ""
-        echo "defaults $domain $key:"
-        echo "  current:  $current"
-        echo "  expected: $expected"
-        diffs=$((diffs + 1))
-      else
-        defaults write "$domain" "$key" "-$type" "$expected"
-        echo "Set defaults: $domain $key = $expected"
-        changes=$((changes + 1))
-      fi
+      pending_defaults_domains+=("$domain")
+      pending_defaults_keys+=("$key")
+      pending_defaults_types+=("$type")
+      pending_defaults_values+=("$expected")
     fi
   done
 }
 
+staged_destination_changed() {
+  local destination=$1 index
+  for (( index = 1; index <= ${#staged_destinations[@]}; index++ )); do
+    if [[ "${staged_destinations[$index]}" == "$destination" ]] && \
+      ! diff -q "${staged_sources[$index]}" "$destination" &>/dev/null; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+validate_required_commands() {
+  require_command jq "to validate and merge JSON configuration"
+  require_command git "to inspect and update global Git configuration"
+  require_command defaults "to inspect and update macOS defaults"
+  if [[ ! -x "$CONFIG_TOOLS_PYTHON" ]]; then
+    print -u2 "Error: $CONFIG_TOOLS_PYTHON not found; run make install-config-tools"
+    return 1
+  fi
+}
+
+prepare_post_sync_hooks() {
+  if [[ -e "$SHELDON_LOCK_PENDING" ]] || \
+    staged_destination_changed "$HOME/.config/sheldon/plugins.toml"; then
+    sheldon_lock_pending=1
+  fi
+  if staged_destination_changed "$HOME/.zshrc"; then
+    zshrc_update_pending=1
+  fi
+  if [[ "$MODE" == "sync" && $sheldon_lock_pending -eq 1 ]]; then
+    require_command sheldon "to update the plugin lock after syncing plugins.toml"
+  fi
+}
+
+report_prepared_changes() {
+  local index source destination label format current expected bundle extension key value
+  for (( index = 1; index <= ${#staged_sources[@]}; index++ )); do
+    source="${staged_sources[$index]}"
+    destination="${staged_destinations[$index]}"
+    label="${staged_labels[$index]}"
+    format="${staged_formats[$index]}"
+    diff -q "$source" "$destination" &>/dev/null && continue
+    if [[ "$format" == merged-json ]]; then
+      echo ""
+      echo "$label.json:"
+      if [[ -e "$destination" || -L "$destination" ]]; then
+        git diff --no-index "$destination" "$source" || true
+      else
+        git diff --no-index /dev/null "$source" || true
+      fi
+    elif [[ "$format" == iterm ]]; then
+      echo ""
+      echo "iTerm2 Dynamic Profile:"
+      if [[ -f "$destination" ]]; then
+        current=$(jq -S 'del(.Profiles[].Guid)' "$destination")
+        expected=$(jq -S 'del(.Profiles[].Guid)' "$source")
+        diff <(echo "$current") <(echo "$expected") | head -50 || true
+      else
+        echo "  current:  <not installed>"
+        echo "  expected: $ITERM_PROFILE_SRC"
+      fi
+    elif [[ -e "$destination" || -L "$destination" ]]; then
+      git diff --no-index "$destination" "$source" || true
+    else
+      echo "New: $label -> $destination"
+    fi
+    diffs=$((diffs + 1))
+  done
+
+  for source in "${claude_orphan_files[@]}"; do
+    echo "Orphan: $source (no config/claude/${source#$HOME/.claude/})"
+    diffs=$((diffs + 1))
+  done
+  for source in "${claude_orphan_dirs[@]}"; do
+    echo "Orphan: $source/ (no config/claude/${source#$HOME/.claude/})"
+    diffs=$((diffs + 1))
+  done
+  for source in "${codex_orphans[@]}"; do
+    echo "Orphan: $source (no config/codex/skills/${source#$CODEX_SKILLS_DST/})"
+    diffs=$((diffs + 1))
+  done
+
+  if (( ${#missing_vscode_extensions[@]} > 0 )); then
+    echo ""
+    if [[ "${missing_vscode_extensions[1]}" == "<code command not found>" ]]; then
+      echo "VSCode extensions: code command not found"
+    else
+      echo "VSCode extensions (missing):"
+      for extension in "${missing_vscode_extensions[@]}"; do
+        echo "  + $extension"
+      done
+    fi
+    diffs=$((diffs + 1))
+  fi
+  for (( index = 1; index <= ${#pending_git_keys[@]}; index++ )); do
+    key="${pending_git_keys[$index]}"
+    value="${pending_git_values[$index]}"
+    current=$(git config --global "$key" 2>/dev/null || echo "")
+    echo ""
+    echo "git config --global $key:"
+    echo "  current:  ${current:-<unset>}"
+    echo "  expected: $value"
+    diffs=$((diffs + 1))
+  done
+  for (( index = 1; index <= ${#pending_duti_bundles[@]}; index++ )); do
+    bundle="${pending_duti_bundles[$index]}"
+    extension="${pending_duti_extensions[$index]}"
+    current=$(duti -x "${extension#.}" 2>/dev/null | tail -1)
+    echo ""
+    echo "duti ${extension}:"
+    echo "  current:  ${current:-<unset>}"
+    echo "  expected: $bundle"
+    diffs=$((diffs + 1))
+  done
+  if [[ $duti_unavailable -eq 1 ]]; then
+    echo ""
+    echo "Default applications: duti command not found"
+    diffs=$((diffs + 1))
+  fi
+  for (( index = 1; index <= ${#pending_defaults_domains[@]}; index++ )); do
+    echo ""
+    echo "defaults ${pending_defaults_domains[$index]} ${pending_defaults_keys[$index]}:"
+    echo "  current:  $(defaults read "${pending_defaults_domains[$index]}" "${pending_defaults_keys[$index]}" 2>/dev/null || echo '<unset>')"
+    echo "  expected: ${pending_defaults_values[$index]}"
+    diffs=$((diffs + 1))
+  done
+  if [[ -e "$SHELDON_LOCK_PENDING" ]]; then
+    echo ""
+    echo "Sheldon plugin lock update is pending from an incomplete sync."
+    diffs=$((diffs + 1))
+  fi
+}
+
+record_applied() {
+  applied_targets+=("$1")
+  changes=$((changes + 1))
+}
+
+report_apply_failure() {
+  local target=$1 applied
+  print -u2 "Error: failed to apply $target"
+  if (( ${#applied_targets[@]} > 0 )); then
+    print -u2 "Applied before failure:"
+    for applied in "${applied_targets[@]}"; do
+      print -u2 "  - $applied"
+    done
+  else
+    print -u2 "No changes were applied."
+  fi
+  print -u2 "Resolve the failure and rerun 'make sync-config'; completed targets are idempotent."
+  return 1
+}
+
+atomic_replace() {
+  local source=$1 destination=$2 replacement_dir replacement
+  if ! mkdir -p "${destination:h}"; then
+    return 1
+  fi
+  if ! replacement_dir=$(mktemp -d "${destination:h}/.oh-my-mac-sync.XXXXXX"); then
+    return 1
+  fi
+  replacement="$replacement_dir/${destination:t}"
+  if [[ -f "$destination" && ! -L "$destination" ]]; then
+    if ! cp -p "$destination" "$replacement" || ! cp "$source" "$replacement"; then
+      rm -rf "$replacement_dir"
+      return 1
+    fi
+  elif ! cp "$source" "$replacement"; then
+    rm -rf "$replacement_dir"
+    return 1
+  fi
+  if ! mv -f "$replacement" "$destination"; then
+    rm -rf "$replacement_dir"
+    return 1
+  fi
+  rmdir "$replacement_dir" 2>/dev/null || true
+}
+
+apply_prepared_files() {
+  local index source destination label format hook_changed=0
+  for (( index = 1; index <= ${#staged_sources[@]}; index++ )); do
+    source="${staged_sources[$index]}"
+    destination="${staged_destinations[$index]}"
+    label="${staged_labels[$index]}"
+    format="${staged_formats[$index]}"
+    [[ "$destination" == "$CODEX_SKILLS_MANIFEST" ]] && continue
+    diff -q "$source" "$destination" &>/dev/null && continue
+    if [[ "$destination" == "$CODEX_HOOKS" ]] && \
+      agent_sentinel_codex_hook_changed "$CODEX_HOOKS" "$source"; then
+      hook_changed=1
+    fi
+    if ! atomic_replace "$source" "$destination"; then
+      report_apply_failure "managed file $destination"
+      return 1
+    fi
+    if [[ "$format" == merged-json ]]; then
+      echo "Merged $label into $destination"
+    elif [[ "$format" == iterm ]]; then
+      echo "Synced iTerm2 Dynamic Profile."
+    else
+      echo "Synced: $destination"
+    fi
+    record_applied "managed file $destination"
+    if [[ "$destination" == "$CODEX_HOOKS" && $hook_changed -eq 1 ]]; then
+      print_codex_hook_trust_instructions applied
+    fi
+  done
+}
+
+apply_codex_skills_ownership() {
+  diff -q "$CODEX_SKILLS_APPLY_MANIFEST" "$CODEX_SKILLS_MANIFEST" &>/dev/null && return 0
+  if ! atomic_replace "$CODEX_SKILLS_APPLY_MANIFEST" "$CODEX_SKILLS_MANIFEST"; then
+    report_apply_failure "Codex skill ownership journal $CODEX_SKILLS_MANIFEST"
+    return 1
+  fi
+  echo "Recorded pending Codex skill ownership: $CODEX_SKILLS_MANIFEST"
+  record_applied "Codex skill ownership journal $CODEX_SKILLS_MANIFEST"
+}
+
+apply_codex_skills_manifest() {
+  local index source
+  for (( index = 1; index <= ${#staged_destinations[@]}; index++ )); do
+    [[ "${staged_destinations[$index]}" == "$CODEX_SKILLS_MANIFEST" ]] || continue
+    source="${staged_sources[$index]}"
+    diff -q "$source" "$CODEX_SKILLS_MANIFEST" &>/dev/null && return 0
+    if ! atomic_replace "$source" "$CODEX_SKILLS_MANIFEST"; then
+      report_apply_failure "managed file $CODEX_SKILLS_MANIFEST"
+      return 1
+    fi
+    echo "Synced: $CODEX_SKILLS_MANIFEST"
+    record_applied "managed file $CODEX_SKILLS_MANIFEST"
+    return 0
+  done
+}
+
+apply_orphan_deletions() {
+  local orphan skill_name orphan_dir
+  local -A affected_skills
+  for orphan in "${claude_orphan_files[@]}"; do
+    if ! rm -f "$orphan"; then
+      report_apply_failure "Claude orphan $orphan"
+      return 1
+    fi
+    echo "Removed: $orphan"
+    record_applied "Claude orphan $orphan"
+  done
+  for orphan in "${claude_orphan_dirs[@]}"; do
+    if ! rm -rf "$orphan"; then
+      report_apply_failure "Claude orphan $orphan/"
+      return 1
+    fi
+    echo "Removed: $orphan/"
+    record_applied "Claude orphan $orphan/"
+  done
+  for orphan in "${codex_orphans[@]}"; do
+    if [[ -e "$orphan" || -L "$orphan" ]]; then
+      if ! rm -f "$orphan"; then
+        report_apply_failure "managed Codex skill orphan $orphan"
+        return 1
+      fi
+      echo "Removed: $orphan"
+      record_applied "managed Codex skill orphan $orphan"
+    fi
+  done
+  for skill_name in "${codex_affected_skills[@]}"; do
+    affected_skills[$skill_name]=1
+  done
+  for skill_name in "${(@k)affected_skills}"; do
+    for orphan_dir in "$CODEX_SKILLS_DST/$skill_name"/**/*(/NOn); do
+      rmdir "$orphan_dir" 2>/dev/null || true
+    done
+    rmdir "$CODEX_SKILLS_DST/$skill_name" 2>/dev/null || true
+  done
+}
+
+apply_external_state() {
+  local index extension key value bundle role domain type
+  for extension in "${missing_vscode_extensions[@]}"; do
+    echo "Installing VSCode extension: $extension"
+    if ! code --install-extension "$extension"; then
+      report_apply_failure "VSCode extension $extension"
+      return 1
+    fi
+    record_applied "VSCode extension $extension"
+  done
+  for (( index = 1; index <= ${#pending_git_keys[@]}; index++ )); do
+    key="${pending_git_keys[$index]}"
+    value="${pending_git_values[$index]}"
+    if ! git config --global "$key" "$value"; then
+      report_apply_failure "global Git configuration $key"
+      return 1
+    fi
+    echo "Set git config: $key = $value"
+    record_applied "global Git configuration $key"
+  done
+  for (( index = 1; index <= ${#pending_duti_bundles[@]}; index++ )); do
+    bundle="${pending_duti_bundles[$index]}"
+    extension="${pending_duti_extensions[$index]}"
+    role="${pending_duti_roles[$index]}"
+    if ! duti -s "$bundle" "$extension" "$role" 2>/dev/null; then
+      report_apply_failure "default application for $extension"
+      return 1
+    fi
+    echo "Set default for ${extension} → $bundle"
+    record_applied "default application for $extension"
+  done
+  for (( index = 1; index <= ${#pending_defaults_domains[@]}; index++ )); do
+    domain="${pending_defaults_domains[$index]}"
+    key="${pending_defaults_keys[$index]}"
+    type="${pending_defaults_types[$index]}"
+    value="${pending_defaults_values[$index]}"
+    if ! defaults write "$domain" "$key" "-$type" "$value"; then
+      report_apply_failure "macOS default $domain $key"
+      return 1
+    fi
+    echo "Set defaults: $domain $key = $value"
+    record_applied "macOS default $domain $key"
+  done
+  if [[ $sheldon_lock_pending -eq 1 ]]; then
+    echo "Running: sheldon lock --update"
+    if ! sheldon lock --update; then
+      report_apply_failure "Sheldon plugin lock"
+      return 1
+    fi
+    if ! rm -f "$SHELDON_LOCK_PENDING"; then
+      report_apply_failure "Sheldon retry marker $SHELDON_LOCK_PENDING"
+      return 1
+    fi
+    record_applied "Sheldon plugin lock"
+  fi
+  if [[ $zshrc_update_pending -eq 1 ]]; then
+    echo "Run 'source ~/.zshrc' to apply changes."
+  fi
+}
+
+validate_required_commands
 verify_agent_sentinel
+validate_local_inputs
 prepare_agent_sentinel_codex_config
 prepare_codex_skills
-sync_files
-codex_hook_changed=0
-if agent_sentinel_codex_hook_changed "$CODEX_HOOKS" "$GENERATED_CODEX_HOOKS"; then
-  codex_hook_changed=1
-fi
-sync_file "$GENERATED_CODEX_HOOKS" "$CODEX_HOOKS" "generated agent-sentinel Codex hooks"
-if [[ "$MODE" == "sync" && $codex_hook_changed -eq 1 ]]; then
-  print_codex_hook_trust_instructions applied
-fi
-sync_file "$GENERATED_CODEX_AGENT_SENTINEL_RULES" "$CODEX_AGENT_SENTINEL_RULES" \
+prepare_sync_files
+stage_file "$GENERATED_CODEX_HOOKS" "$CODEX_HOOKS" "generated agent-sentinel Codex hooks"
+stage_file "$GENERATED_CODEX_AGENT_SENTINEL_RULES" "$CODEX_AGENT_SENTINEL_RULES" \
   "generated agent-sentinel Codex rules"
-sync_instructions "$SCRIPT_DIR/config/claude/instructions.md" "$HOME/.claude/CLAUDE.md"
-sync_instructions "$SCRIPT_DIR/config/codex/instructions.md" "$HOME/.codex/AGENTS.md"
-remove_claude_orphans
-reconcile_codex_skills
-merge_json_config "Claude Code settings" "$CLAUDE_SETTINGS" "$REPO_SETTINGS" "$JQ_SETTINGS_MERGE" '{}'
-merge_json_config "Claude Code keybindings" "$CLAUDE_KEYBINDINGS" "$REPO_KEYBINDINGS" "$JQ_KEYBINDINGS_MERGE" '{"bindings":[]}'
-merge_codex_config
-sync_iterm_profile
+prepare_instructions "$SCRIPT_DIR/config/claude/instructions.md" "$HOME/.claude/CLAUDE.md"
+prepare_instructions "$SCRIPT_DIR/config/codex/instructions.md" "$HOME/.codex/AGENTS.md"
+prepare_claude_orphans
+stage_file "$CODEX_SKILLS_DESIRED" "$CODEX_SKILLS_MANIFEST" "managed Codex skill files manifest"
+prepare_json_config "Claude Code settings" "$CLAUDE_SETTINGS" "$REPO_SETTINGS" "$JQ_SETTINGS_MERGE" '{}'
+prepare_json_config "Claude Code keybindings" "$CLAUDE_KEYBINDINGS" "$REPO_KEYBINDINGS" "$JQ_KEYBINDINGS_MERGE" '{"bindings":[]}'
+prepare_codex_config
+prepare_iterm_profile
 if [[ -f "$REPO_VSCODE_SETTINGS" ]]; then
-  merge_json_config "VSCode settings" "$VSCODE_SETTINGS" "$REPO_VSCODE_SETTINGS" '.[0] * .[1]' '{}'
+  prepare_json_config "VSCode settings" "$VSCODE_SETTINGS" "$REPO_VSCODE_SETTINGS" '.[0] * .[1]' '{}'
 fi
-install_vscode_extensions
-apply_git_config
-apply_duti
-apply_macos_defaults
-run_post_sync_hooks
+prepare_vscode_extensions
+prepare_git_config
+prepare_duti
+prepare_macos_defaults
+prepare_post_sync_hooks
 
-if [[ "$MODE" == "diff" && $diffs -eq 0 ]]; then
-  echo "No differences found."
+if [[ "$MODE" == "diff" ]]; then
+  report_prepared_changes
+  if [[ $diffs -eq 0 ]]; then
+    echo "No differences found."
+  fi
+  exit 0
+fi
+
+if [[ $sheldon_lock_pending -eq 1 && ! -e "$SHELDON_LOCK_PENDING" ]]; then
+  if ! mkdir -p "${SHELDON_LOCK_PENDING:h}" || \
+    ! atomic_replace /dev/null "$SHELDON_LOCK_PENDING"; then
+    report_apply_failure "Sheldon retry marker $SHELDON_LOCK_PENDING"
+    exit 1
+  fi
+  applied_targets+=("Sheldon retry marker $SHELDON_LOCK_PENDING")
+fi
+apply_codex_skills_ownership
+apply_prepared_files
+apply_orphan_deletions
+apply_codex_skills_manifest
+apply_external_state
+
+if [[ $changes -eq 0 ]]; then
+  echo "Already up to date."
 fi
