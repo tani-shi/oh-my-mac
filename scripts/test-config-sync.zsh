@@ -29,12 +29,40 @@ stub_file() {
 stub() { stub_file "$tmp/bin/$1" }
 
 export REAL_SORT="$(command -v sort)"
+export REAL_GIT="$(command -v git)"
+export AGENT_SENTINEL_TEST_COMMIT="$(sed -nE 's#^agent-sentinel.*\.git@([0-9a-f]{40})$#\1#p' "$REPO/config/uv/tools.txt")"
 stub sort <<'STUB'
 #!/bin/zsh
 if [[ -f "$STUB_STATE/capture-sort-locale" ]]; then
   print -r -- "${LC_ALL-}" >> "$STUB_STATE/sort-locales"
 fi
 exec "$REAL_SORT" "$@"
+STUB
+
+stub git <<'STUB'
+#!/bin/zsh
+if [[ "$1" == "ls-remote" && "$2" == "https://github.com/tani-shi/agent-sentinel.git" && "$3" == "HEAD" ]]; then
+  [[ -f "$STUB_STATE/agent-sentinel-resolve-fails" ]] && exit 2
+  commit="$AGENT_SENTINEL_TEST_COMMIT"
+  [[ -f "$STUB_STATE/agent-sentinel-remote-commit" ]] && commit=$(<$STUB_STATE/agent-sentinel-remote-commit)
+  print -r -- "$commit"$'\t'"HEAD"
+  exit 0
+fi
+if [[ "$1" == "-C" && "$3" == "fetch" && "$6" == "https://github.com/tani-shi/agent-sentinel.git" ]]; then
+  [[ -f "$STUB_STATE/agent-sentinel-fetch-fails" ]] && exit 2
+  exit 0
+fi
+if [[ "$1" == "-C" && "$3" == "rev-parse" && "$4" == 'FETCH_HEAD^{commit}' ]]; then
+  if [[ -f "$STUB_STATE/agent-sentinel-fetched-commit" ]]; then
+    cat "$STUB_STATE/agent-sentinel-fetched-commit"
+  elif [[ -f "$STUB_STATE/agent-sentinel-remote-commit" ]]; then
+    cat "$STUB_STATE/agent-sentinel-remote-commit"
+  else
+    print -r -- "$AGENT_SENTINEL_TEST_COMMIT"
+  fi
+  exit 0
+fi
+exec "$REAL_GIT" "$@"
 STUB
 
 select_config_tools_test_root() {
@@ -320,9 +348,7 @@ make_update() { make -s -C "$REPO" update INSTALL_STEPS= 2>&1 }
 make_install_with_steps() { make -s -j4 -C "$REPO" install "INSTALL_STEPS=$1" 2>&1 }
 make_update_with_steps() { make -s -C "$REPO" update "INSTALL_STEPS=$1" 2>&1 }
 refresh_agent_sentinel() { "$REPO/scripts/refresh-agent-sentinel.zsh" 2>&1 }
-make_refresh_install() {
-  make -s -C "$REPO" install-uv-tools AGENT_SENTINEL_UPGRADE=1 2>&1
-}
+refresh_agent_sentinel_from() { "$1/scripts/refresh-agent-sentinel.zsh" 2>&1 }
 
 write_enabled_claude_plugins() {
   mkdir -p "$HOME/.claude"
@@ -747,12 +773,13 @@ EOF
   : > "$STUB_STATE/agent-sentinel-unavailable"
 
   local first_output second_output installs
+  local agent_requirement=$(grep '^agent-sentinel' "$REPO/config/uv/tools.txt")
   first_output="$(make_update)"
   check_contains "the first update completes the config sync" "$first_output" \
     "Synced: $HOME/.codex/hooks.json"
   installs="$(<$STUB_STATE/uv-tool-installs)"
   check_contains "the legacy executable collision uses force once" "$installs" \
-    "--force agent-sentinel[claude] @ git+https://github.com/tani-shi/agent-sentinel.git"
+    "--force $agent_requirement"
   check_equals "the standalone legacy tool environment remains" \
     "$([[ -f "$STUB_STATE/claude-sentinel-tool" ]] && print yes || print no)" "yes"
   check_contains "Claude switches to the renamed wrapper" \
@@ -791,11 +818,63 @@ t_update_stops_before_sync_when_sentinel_install_fails() {
   check_lacks "config sync never starts after the failed install" "$output" "Synced:"
 }
 
-t_refresh_requests_agent_sentinel_upgrade() {
-  make_refresh_install > /dev/null
-  check_contains "refresh explicitly upgrades the HEAD-tracking tool" \
+t_refresh_writes_a_verified_agent_sentinel_pin() {
+  local repo_copy="$tmp/refresh-repo-$home_n" output exit_status
+  local commit=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  cp -R "$REPO" "$repo_copy"
+  print -r -- "$commit" > "$STUB_STATE/agent-sentinel-remote-commit"
+
+  output="$(refresh_agent_sentinel_from "$repo_copy")"
+  exit_status=$?
+
+  check_equals "the verified refresh succeeds" "$exit_status" "0"
+  check_contains "the fetched commit is reported" "$output" \
+    "Verified agent-sentinel commit: $commit"
+  check_contains "the new commit is installed explicitly" \
+    "$(<$STUB_STATE/uv-tool-installs)" ".git@$commit"
+  check_contains "the repository pin records the fetched commit" \
+    "$(<$repo_copy/config/uv/tools.txt)" ".git@$commit"
+}
+
+t_refresh_fetch_failure_preserves_the_pin() {
+  local repo_copy="$tmp/refresh-failure-repo-$home_n" before output exit_status
+  cp -R "$REPO" "$repo_copy"
+  before=$(<$repo_copy/config/uv/tools.txt)
+  print -r -- aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+    > "$STUB_STATE/agent-sentinel-remote-commit"
+  : > "$STUB_STATE/agent-sentinel-fetch-fails"
+
+  output="$(refresh_agent_sentinel_from "$repo_copy")"
+  exit_status=$?
+
+  check_equals "a fetch failure stops refresh" "$exit_status" "1"
+  check_contains "the failed commit is identified" "$output" \
+    "Error: failed to fetch agent-sentinel commit"
+  check_equals "a fetch failure preserves the repository pin" \
+    "$(<$repo_copy/config/uv/tools.txt)" "$before"
+  check_equals "a fetch failure never invokes uv" \
+    "$([[ ! -e "$STUB_STATE/uv-tool-installs" ]] && print yes || print no)" "yes"
+}
+
+t_refresh_install_failure_preserves_the_pin() {
+  local repo_copy="$tmp/refresh-install-failure-repo-$home_n" before output exit_status
+  cp -R "$REPO" "$repo_copy"
+  before=$(<$repo_copy/config/uv/tools.txt)
+  print -r -- aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+    > "$STUB_STATE/agent-sentinel-remote-commit"
+  : > "$STUB_STATE/agent-sentinel-install-fails"
+
+  output="$(refresh_agent_sentinel_from "$repo_copy")"
+  exit_status=$?
+
+  check_nonzero "an install failure stops refresh" "$exit_status"
+  check_contains "the verified candidate was attempted" \
     "$(<$STUB_STATE/uv-tool-installs)" \
-    "--upgrade agent-sentinel[claude] @ git+https://github.com/tani-shi/agent-sentinel.git"
+    ".git@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  check_equals "an install failure preserves the repository pin" \
+    "$(<$repo_copy/config/uv/tools.txt)" "$before"
+  check_lacks "config validation never starts after the failed install" "$output" \
+    "Validated generated Codex hooks"
 }
 
 t_codex_skills_are_synced() {
@@ -1158,7 +1237,7 @@ t_upgrade_entrypoint_is_codex_only() {
     "$([[ ! -e "$REPO/.claude/commands/upgrade.md" ]] && print yes || print no)" "yes"
 }
 
-t_claude_installer_fallback_uses_the_pin() {
+t_claude_installer_failure_stops_without_remote_fallback() {
   stub claude <<'STUB'
 #!/bin/zsh
 case "$1" in
@@ -1167,31 +1246,27 @@ case "$1" in
     ;;
   install)
     print -r -- "$*" > "$STUB_STATE/claude-install-args"
-    exit 1
+    exit 7
     ;;
 esac
 STUB
   stub curl <<'STUB'
 #!/bin/zsh
-cat <<'INSTALLER'
-#!/bin/sh
-printf '%s\n' "$#" > "$STUB_STATE/claude-installer-argc"
-printf '%s\n' "$*" > "$STUB_STATE/claude-installer-args"
-printf '%s\n' "$1" > "$STUB_STATE/claude-version"
-INSTALLER
+print -r -- "$*" > "$STUB_STATE/curl-args"
+exit 99
 STUB
 
   local version="$(<"$REPO/config/claude/version")" output exit_status
   output="$(make -s -C "$REPO" install-claude 2>&1)"
   exit_status=$?
 
-  check_equals "the fallback installation succeeds" "$exit_status" "0"
+  check_equals "the failed Claude installer stops the target" "$exit_status" "2"
   check_equals "the regular installer receives the pin" \
     "$(<"$STUB_STATE/claude-install-args")" "install $version"
-  check_equals "the fallback receives one argument" \
-    "$(<"$STUB_STATE/claude-installer-argc")" "1"
-  check_equals "the fallback receives the pin" \
-    "$(<"$STUB_STATE/claude-installer-args")" "$version"
+  check_contains "the installer failure identifies the pin" "$output" \
+    "Error: Claude Code installer failed for version $version"
+  check_equals "the remote fallback is never requested" \
+    "$([[ ! -e "$STUB_STATE/curl-args" ]] && print yes || print no)" "yes"
 }
 
 t_claude_installer_rejects_a_version_mismatch() {
@@ -1201,15 +1276,11 @@ case "$1" in
   --version)
     [[ -f "$STUB_STATE/claude-version" ]] && cat "$STUB_STATE/claude-version" || print 0.0.0
     ;;
-  install) exit 1 ;;
+  install)
+    print -r -- 9.9.9 > "$STUB_STATE/claude-version"
+    exit 0
+    ;;
 esac
-STUB
-  stub curl <<'STUB'
-#!/bin/zsh
-cat <<'INSTALLER'
-#!/bin/sh
-printf '%s\n' 9.9.9 > "$STUB_STATE/claude-version"
-INSTALLER
 STUB
 
   local version="$(<"$REPO/config/claude/version")" output exit_status
@@ -1219,6 +1290,22 @@ STUB
   check_equals "a mismatched installed version fails" "$exit_status" "2"
   check_contains "the mismatch identifies both versions" "$output" \
     "Error: installed Claude Code version 9.9.9, expected $version"
+}
+
+t_git_uv_tools_use_and_report_full_commits() {
+  local output exit_status line commit
+  output="$(make -s -C "$REPO" install-uv-tools 2>&1)"
+  exit_status=$?
+
+  check_equals "full commit uv tools install successfully" "$exit_status" "0"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" == *git+* ]] || continue
+    commit=$(print -r -- "$line" | sed -nE 's/.*\.git@([0-9a-f]{40})$/\1/p')
+    check_equals "a Git uv tool has a full commit" \
+      "$([[ -n "$commit" ]] && print yes || print no)" "yes"
+    check_contains "the installation reports the resolved commit" "$output" \
+      "Pinned uv tool commit: $commit"
+  done < "$REPO/config/uv/tools.txt"
 }
 
 t_update_converges_after_homebrew_installs_prerequisites() {
@@ -1512,7 +1599,9 @@ run "sync rejects explicit allow rules"       t_sync_rejects_explicit_allow_rule
 run "sync rejects missing sentinel rules"    t_sync_rejects_missing_sentinel_rules
 run "update migrates legacy sentinel once"   t_update_migrates_legacy_sentinel_once
 run "failed sentinel install stops update"   t_update_stops_before_sync_when_sentinel_install_fails
-run "refresh upgrades agent-sentinel"        t_refresh_requests_agent_sentinel_upgrade
+run "refresh writes a verified sentinel pin" t_refresh_writes_a_verified_agent_sentinel_pin
+run "failed sentinel fetch preserves pin"   t_refresh_fetch_failure_preserves_the_pin
+run "failed sentinel install preserves pin" t_refresh_install_failure_preserves_the_pin
 run "codex skills are synced"                t_codex_skills_are_synced
 run "codex skill manifest ignores locale"    t_codex_skill_manifest_is_locale_independent
 run "codex skill name collisions are rejected" t_codex_skill_name_collisions_are_rejected
@@ -1527,8 +1616,9 @@ run "codex config rejects a table conflict"  t_codex_config_rejects_a_table_conf
 run "instructions are shared then specific"  t_instructions_are_shared_then_specific
 run "project instructions reach each agent"  t_project_instructions_reach_each_agent
 run "upgrade entrypoint is Codex-only"        t_upgrade_entrypoint_is_codex_only
-run "Claude fallback uses the pin"            t_claude_installer_fallback_uses_the_pin
+run "failed Claude install has no fallback"  t_claude_installer_failure_stops_without_remote_fallback
 run "Claude install verifies the pin"         t_claude_installer_rejects_a_version_mismatch
+run "Git uv tools report full commits"         t_git_uv_tools_use_and_report_full_commits
 run "update converges after Homebrew bundle"  t_update_converges_after_homebrew_installs_prerequisites
 run "failed tap trust stops update"           t_tap_trust_failure_stops_update
 run "failed uv tool stops update"             t_uv_tool_failure_stops_update
