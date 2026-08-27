@@ -45,10 +45,9 @@ new_repo() {
   local repo="$tmp/repo$repo_n"
   git init -q "$repo"
   cd "$repo"
-  mkdir -p config/{claude,ntn,codex,sheldon,uv}
+  mkdir -p config/{claude,ntn,sheldon,uv}
   print 1.0.0 > config/claude/version
   print 1.0.0 > config/ntn/version
-  print 1.0.0 > config/codex/version
   print 'tag = "v1.0.0"' > config/sheldon/plugins.toml
   print 'example@v1.0.0' > config/uv/tools.txt
   print initial > README.md
