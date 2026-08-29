@@ -1,3 +1,7 @@
 approval_policy = "on-request"
+approvals_reviewer = "user"
 sandbox_mode = "workspace-write"
 model_reasoning_effort = "high"
+
+[plugins."codex-app-tools@openai-bundled".mcp_servers.codex_app.tools.send_message_to_thread]
+approval_mode = "prompt"
