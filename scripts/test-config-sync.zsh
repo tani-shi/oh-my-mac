@@ -115,18 +115,26 @@ if [[ "${1:-}" == "install" ]]; then
       print -r -- '{"hooks":{"PreToolUse":[]}}' > "$config_path"
     else
       [[ -f "$config_path" ]] || print -r -- '{}' > "$config_path"
-      sentinel='{"matcher":"*","hooks":[{"type":"command","command":"agent-sentinel --host codex"}]}'
+      sentinel_pre='{"matcher":"*","hooks":[{"type":"command","command":"agent-sentinel --host codex"}]}'
+      sentinel_post='{"matcher":"codex_appcreate_thread","hooks":[{"type":"command","command":"agent-sentinel --host codex"}]}'
+      sentinel_permission='{"matcher":"codex_appsend_message_to_thread","hooks":[{"type":"command","command":"agent-sentinel --host codex"}]}'
       if [[ -f "$STUB_STATE/agent-sentinel-changed-codex-hook" ]]; then
-        sentinel='{"matcher":"Bash","hooks":[{"type":"command","command":"agent-sentinel --host codex","timeout":30}]}'
+        sentinel_pre='{"matcher":"*","hooks":[{"type":"command","command":"agent-sentinel --host codex","timeout":30}]}'
       fi
       jq --arg command 'agent-sentinel --host codex' \
-        --argjson sentinel "$sentinel" '
+        --argjson sentinel_pre "$sentinel_pre" \
+        --argjson sentinel_post "$sentinel_post" \
+        --argjson sentinel_permission "$sentinel_permission" '
+        def managed($event; $entry):
+          .hooks[$event] = (
+            [(.hooks[$event] // [])[]
+              | select([.hooks[]?.command] | index($command) == null)]
+            + [$entry]
+          );
         .hooks = (.hooks // {}) |
-        .hooks.PreToolUse = (
-          [(.hooks.PreToolUse // [])[]
-            | select([.hooks[]?.command] | index($command) == null)]
-          + [$sentinel]
-        )
+        managed("PreToolUse"; $sentinel_pre) |
+        managed("PostToolUse"; $sentinel_post) |
+        managed("PermissionRequest"; $sentinel_permission)
       ' "$config_path" > "$config_path.new"
       mv "$config_path.new" "$config_path"
     fi
@@ -579,6 +587,12 @@ t_agent_sentinel_config_is_synced() {
 
   check_contains "Codex hooks are generated and synced" \
     "$(<$HOME/.codex/hooks.json)" 'agent-sentinel --host codex'
+  check_equals "Codex records created tasks" \
+    "$(jq -r '.hooks.PostToolUse[0].matcher' "$HOME/.codex/hooks.json")" \
+    "codex_appcreate_thread"
+  check_equals "Codex checks task ownership before message approval" \
+    "$(jq -r '.hooks.PermissionRequest[0].matcher' "$HOME/.codex/hooks.json")" \
+    "codex_appsend_message_to_thread"
   check_contains "unrelated Codex PreToolUse hooks are preserved" \
     "$(<$HOME/.codex/hooks.json)" 'custom-pre-tool-hook'
   check_contains "unrelated Codex hook events are preserved" \
@@ -702,7 +716,7 @@ assert_agent_sentinel_generation_fails() {
 t_sync_rejects_missing_sentinel_hook() {
   assert_agent_sentinel_generation_fails \
     "agent-sentinel-invalid-codex-hook" \
-    "agent-sentinel did not generate its Codex PreToolUse hook"
+    "agent-sentinel did not generate its required Codex hooks"
 }
 
 t_sync_rejects_default_allow_rule() {
@@ -1148,12 +1162,6 @@ t_instructions_are_shared_then_specific() {
   done
   check_lacks "codex does not get the Claude rules" \
     "$(<"$HOME/.codex/AGENTS.md")" "$(head -1 "$REPO/config/claude/instructions.md")"
-  check_contains "codex requires explicit cross-task authorization" \
-    "$(<"$HOME/.codex/AGENTS.md")" \
-    "only when the user explicitly requests the message or cross-task coordination"
-  check_contains "codex delegates exact confirmation to the native prompt" \
-    "$(<"$HOME/.codex/AGENTS.md")" \
-    "native approval prompt as the user's final confirmation"
 }
 
 t_project_instructions_reach_each_agent() {

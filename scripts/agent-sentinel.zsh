@@ -2,10 +2,15 @@ validate_agent_sentinel_codex_config() {
   local hooks_path=$1 rules_path=$2
 
   if ! jq -e --arg command 'agent-sentinel --host codex' '
-    [.hooks.PreToolUse[]? | .hooks[]? | select(.type == "command") | .command]
-    | index($command) != null
+    def has_hook($event; $matcher):
+      any(.hooks[$event][]?;
+        (.matcher // null) == $matcher
+        and any(.hooks[]?; .type == "command" and .command == $command));
+    has_hook("PreToolUse"; "*")
+    and has_hook("PostToolUse"; "codex_appcreate_thread")
+    and has_hook("PermissionRequest"; "codex_appsend_message_to_thread")
   ' "$hooks_path" >/dev/null; then
-    print -u2 "Error: agent-sentinel did not generate its Codex PreToolUse hook"
+    print -u2 "Error: agent-sentinel did not generate its required Codex hooks"
     return 1
   fi
 
@@ -58,11 +63,12 @@ agent_sentinel_codex_hook_definition() {
 
   jq -cS --arg command 'agent-sentinel --host codex' '
     [
-      .hooks.PreToolUse[]? as $group
+      ["PreToolUse", "PostToolUse", "PermissionRequest"][] as $event
+      | .hooks[$event][]? as $group
       | $group.hooks[]?
       | select(.type == "command" and .command == $command)
       | {
-          event: "PreToolUse",
+          event: $event,
           matcher: ($group.matcher // null),
           hook: .
         }

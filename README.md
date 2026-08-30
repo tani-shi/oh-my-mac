@@ -208,18 +208,18 @@ The point is the permission layer: an operation that can always be undone is saf
 
 [ChatGPT desktop app](https://learn.chatgpt.com/docs/app) provides the Codex GUI and is installed through the `chatgpt` cask in `Brewfile`. Its version follows the Homebrew cask policy described in [Dependency Version Guarantees](#dependency-version-guarantees), independently of the npm CLI lifecycle.
 
-`config/codex/config.toml` declares the global defaults this repository manages. The supported configuration uses `approval_policy = "on-request"` with `sandbox_mode = "workspace-write"`. Cross-task messages remain available, but `send_message_to_thread` uses `approval_mode = "prompt"` with `approvals_reviewer = "user"`, so another task cannot receive a message without human approval. The sync uses a pinned TOML parser to update only declared scalar leaves, including nested plugin tool policy, while preserving undeclared project trust entries, plugins, MCP servers, and other values written by Codex or the ChatGPT desktop app. Invalid TOML and scalar/table conflicts abort the sync without changing the installed file.
+`config/codex/config.toml` uses `on-request`, `workspace-write`, and human review as the task-message default. agent-sentinel auto-approves only recorded direct children.
 
 `agent-sentinel` is installed and checked before config sync. The sync puts a read-only copy of `~/.codex/config.toml` in its temporary directory so the generated Codex hook and execution rules can report configuration notices. With `approval_policy = "never"`, approval prompts are disabled and Codex GUI may run commands matched by `prompt` rules without approval, so ASK enforcement is not guaranteed. With `features.hooks = false`, hook DENY rules do not run. The diagnostic does not change the user's config and reports how to restore the supported settings. [OpenAI Docs](https://learn.chatgpt.com/docs/config-file/config-reference) describes `on-request` for interactive runs and `never` for non-interactive runs. The observed GUI and CLI difference is recorded in [agent-sentinel issue #22](https://github.com/tani-shi/agent-sentinel/issues/22#issuecomment-5300085004).
 
-Generation starts from `~/.codex/hooks.json` so unrelated hooks survive, then compares or copies the result into `~/.codex/`. Generated copies do not live in the repository, and `~/.codex/rules/default.rules` remains user- or application-owned. Before writing, sync requires the exact agent-sentinel hook and an explicit `prompt` or `forbidden` decision on every generated rule. `make diff-config` reports notices without changing the config, while `make sync-config` converges the repository-managed values through the normal sync. `make refresh-agent-sentinel` updates the HEAD-tracking tool, refreshes the integrated Claude settings, validates both hosts, runs the tests, and shows the pending user-config diff.
+Generation starts from `~/.codex/hooks.json`, preserves unrelated hooks, and leaves `default.rules` application-owned. Sync requires all agent-sentinel hooks and explicit `prompt` or `forbidden` rules. `make diff-config` is read-only; `make sync-config` applies changes; `make refresh-agent-sentinel` updates and validates the integration.
 
-Codex requires manual review before it runs a new or changed non-managed command hook. After a sync that changes the agent-sentinel hook definition, use the interface for the Codex surface you run:
+After a sync changes the hook definition, trust it once in the interface you use:
 
-- Codex app: open **Settings > Hooks** and trust the hook. The app does not expose `/hooks` as a slash command, so its absence from the command list is not a configuration error.
-- Codex CLI: run `/hooks` and trust the hook.
+- Codex app: **Settings > Hooks**; the app has no `/hooks` command.
+- Codex CLI: `/hooks`.
 
-Trust is recorded for the current hook-definition hash. The same definition remains trusted across tasks; changing the definition requires another review. The sync reports these steps only when it writes a new or changed agent-sentinel hook. A refresh that detects a pending definition change asks you to sync first and repeats that notice while the change remains pending. A refresh with no pending definition change, or an identical sync, reports no trust notice. See the [Codex hooks documentation](https://learn.chatgpt.com/docs/hooks) for the trust model and CLI workflow.
+Trust follows the definition hash and is reused until it changes. Sync and refresh report only pending trust changes. See the [Codex hooks documentation](https://learn.chatgpt.com/docs/hooks).
 
 ### uv Tools (`config/uv/tools.txt`)
 

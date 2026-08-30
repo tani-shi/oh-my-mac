@@ -3,13 +3,6 @@
 - When the user's objective becomes materially clearer or changes and the current task title no longer represents it, rename the task to a concise Japanese noun phrase describing the current deliverable.
 - Treat implementation details, status questions, and small refinements as the same objective.
 
-## Cross-task operations
-
-- Listing, reading, and waiting on another Codex task are read-only operations.
-- Send a message to another task only when the user explicitly requests the message or cross-task coordination. A request to review, diagnose, or report status does not authorize a message.
-- Treat the native approval prompt as the user's final confirmation of the exact target and message. Each approval covers one tool invocation only.
-- Creating, forking, handing off, interrupting, pinning, archiving, or otherwise changing another task requires an explicit user request for that operation.
-
 ## Git
 
 - Name branches after the change they contain, using a suitable prefix such as `feat/`, `fix/`, `docs/`, or `refactor/`, rather than an agent-specific prefix such as `codex/`.
