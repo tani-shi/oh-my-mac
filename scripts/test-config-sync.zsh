@@ -1016,6 +1016,19 @@ t_codex_config_merges_declared_keys() {
 notify = ["client", "turn-ended"]
 sandbox_mode = "danger-full-access"
 
+[plugins."codex-app-tools@openai-bundled"]
+enabled = true
+channel = "application-owned"
+
+[plugins."codex-app-tools@openai-bundled".mcp_servers.codex_app]
+tool_timeout_sec = 3600
+
+[plugins."codex-app-tools@openai-bundled".mcp_servers.codex_app.tools.send_message_to_thread]
+approval_mode = "approve"
+
+[plugins."codex-app-tools@openai-bundled".mcp_servers.codex_app.tools.read_thread]
+approval_mode = "approve"
+
 # Written by Codex and the ChatGPT desktop app.
 [projects."/some/repo"]
 trust_level = "trusted"
@@ -1027,6 +1040,14 @@ EOF
   check_contains "a declared key is replaced" "$merged" 'sandbox_mode = "workspace-write"'
   check_lacks "the previous declared value is removed" "$merged" 'danger-full-access'
   check_contains "an undeclared top-level key survives" "$merged" 'notify = ["client", "turn-ended"]'
+  check_contains "cross-task messages use the human reviewer" "$merged" \
+    'approvals_reviewer = "user"'
+  check_contains "cross-task messages require approval" "$merged" 'approval_mode = "prompt"'
+  check_contains "an undeclared plugin key survives" "$merged" 'channel = "application-owned"'
+  check_contains "an undeclared server key survives" "$merged" 'tool_timeout_sec = 3600'
+  check_contains "an undeclared tool policy survives" "$merged" \
+    '[plugins."codex-app-tools@openai-bundled".mcp_servers.codex_app.tools.read_thread]'
+  check_contains "the undeclared tool approval survives" "$merged" 'approval_mode = "approve"'
   check_equals "the application-owned table remains byte-for-byte" \
     "$(sed -n '/^# Written by Codex/,$p' "$HOME/.codex/config.toml")" "$app_owned_before"
   local first_merge="$tmp/first-codex-merge.toml"
@@ -1101,6 +1122,18 @@ t_codex_config_rejects_a_table_conflict() {
     "$(<"$HOME/.codex/config.toml")" "$before"
 }
 
+t_codex_config_rejects_a_nested_table_conflict() {
+  mkdir -p "$HOME/.codex"
+  print -r -- $'[plugins."codex-app-tools@openai-bundled".mcp_servers.codex_app.tools]\nsend_message_to_thread = "application-owned"' \
+    > "$HOME/.codex/config.toml"
+  local before="$(<"$HOME/.codex/config.toml")" exit_status
+  sync_config > /dev/null
+  exit_status=$?
+  check_equals "a scalar at a managed nested table fails the sync" "$exit_status" "1"
+  check_equals "a conflicting nested value remains unchanged" \
+    "$(<"$HOME/.codex/config.toml")" "$before"
+}
+
 t_instructions_are_shared_then_specific() {
   sync_config > /dev/null
   local expected="$tmp/expected-instructions.md" source
@@ -1115,6 +1148,12 @@ t_instructions_are_shared_then_specific() {
   done
   check_lacks "codex does not get the Claude rules" \
     "$(<"$HOME/.codex/AGENTS.md")" "$(head -1 "$REPO/config/claude/instructions.md")"
+  check_contains "codex requires explicit cross-task authorization" \
+    "$(<"$HOME/.codex/AGENTS.md")" \
+    "only when the user explicitly requests the message or cross-task coordination"
+  check_contains "codex delegates exact confirmation to the native prompt" \
+    "$(<"$HOME/.codex/AGENTS.md")" \
+    "native approval prompt as the user's final confirmation"
 }
 
 t_project_instructions_reach_each_agent() {
@@ -1584,6 +1623,7 @@ run "codex config accepts on-request"         t_codex_config_accepts_on_request_
 run "codex config warns for disabled hooks"   t_codex_config_warns_when_hooks_are_disabled
 run "codex config rejects invalid TOML"      t_codex_config_rejects_invalid_toml
 run "codex config rejects a table conflict"  t_codex_config_rejects_a_table_conflict
+run "codex config rejects nested conflict"   t_codex_config_rejects_a_nested_table_conflict
 run "instructions are shared then specific"  t_instructions_are_shared_then_specific
 run "project instructions reach each agent"  t_project_instructions_reach_each_agent
 run "upgrade entrypoint is Codex-only"        t_upgrade_entrypoint_is_codex_only
