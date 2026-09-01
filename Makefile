@@ -1,6 +1,6 @@
 INSTALL_STEPS := install-claude sync-claude-plugins install-node install-ntn install-codex
 
-.PHONY: help diff-config sync-config install update converge upgrade-apply refresh-agent-sentinel trust-taps test install-config-tools install-uv-tools install-uv-tool $(INSTALL_STEPS)
+.PHONY: help diff-config sync-config install update converge upgrade-apply refresh-agent-sentinel trust-taps test test-clean install-config-tools install-uv-tools install-uv-tool $(INSTALL_STEPS)
 
 .DEFAULT_GOAL := help
 
@@ -70,6 +70,9 @@ test: ## Run the test suite
 	@./scripts/test-upgrade-apply.zsh
 	@./scripts/test-documentation.zsh
 	@./scripts/test-config-sync.zsh
+
+test-clean: ## Bootstrap isolated config tools and run the test suite
+	@./scripts/test-clean.zsh
 
 CLAUDE_VERSION := $(shell cat config/claude/version 2>/dev/null)
 NTN_VERSION := $(shell cat config/ntn/version 2>/dev/null)
