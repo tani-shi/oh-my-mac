@@ -77,14 +77,13 @@ Claude Code and Codex both work in this repository, and both read their instruct
 | --- | --- | --- |
 | `AGENTS.md` | this repository | Claude Code, Codex |
 | `CLAUDE.md` | this repository | Claude Code |
-| `.codex/config.toml` (`developer_instructions`) | this repository | Codex |
 | `config/agents/instructions.md` | every repository, as user settings | Claude Code, Codex |
 | `config/claude/instructions.md` | every repository, as user settings | Claude Code |
 | `config/codex/instructions.md` | every repository, as user settings | Codex |
 
 `AGENTS.md` holds the project instructions both agents follow. Codex finds it by its own discovery rules; `CLAUDE.md` pulls it in with `@AGENTS.md` and adds only what is specific to Claude Code. Neither a Codex fallback filename nor a symlink is needed, and no sentence is written twice.
 
-`CLAUDE.md` and `.codex/` hold the per-agent project instructions. Codex also reads repository-scoped skills from `.agents/skills/`; it loads `.codex/config.toml` once the directory is trusted.
+Repository-scoped Codex skills live in `.agents/skills/`.
 
 The `config/` entries are a different scope again: `make sync-config` concatenates the shared `instructions.md` with each agent's own into `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`, and syncs Codex skills into `~/.agents/skills/`, so they apply in every repository rather than this one.
 
