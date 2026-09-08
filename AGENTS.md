@@ -22,7 +22,6 @@ Instruction files fall into two scopes that must not be mixed:
 | --- | --- | --- |
 | `AGENTS.md` | this repository | Claude Code, Codex |
 | `CLAUDE.md` | this repository | Claude Code |
-| `.codex/config.toml` (`developer_instructions`) | this repository | Codex |
 | `config/agents/instructions.md` | every repository, as user settings | Claude Code, Codex |
 | `config/claude/instructions.md` | every repository, as user settings | Claude Code |
 | `config/codex/instructions.md` | every repository, as user settings | Codex |
@@ -31,9 +30,7 @@ Codex reads this file by its own discovery rules and `CLAUDE.md` imports it with
 `@AGENTS.md`, so project instructions live here once. Neither a Codex fallback
 filename nor a symlink is involved.
 
-The `config/` entries are a different scope from the first three: they are the
-sources for the user's own `~/.claude/` and `~/.codex/`, and apply in every
-repository rather than this one.
+The `config/` entries are the sources for the user's own `~/.claude/` and `~/.codex/`, and apply in every repository.
 
 ## Codex CLI Settings
 
@@ -41,7 +38,6 @@ repository rather than this one.
 - `config/codex/config.toml` declares the scalar leaves merged into `~/.codex/config.toml`.
 - `config/codex/skills/*/` is synced into `~/.agents/skills/`. Invoke `refactor-review` explicitly with `$refactor-review`; implicit invocation is disabled by its `agents/openai.yaml` policy.
 - `.agents/skills/upgrade/` is the repository-scoped dependency upgrade workflow. An explicit `$upgrade` invocation authorizes its version selection, local application, commit, pull request, and merge after its gates pass without separate approvals.
-- `.codex/` at the repository root is project scope: it configures Codex sessions run inside this repository, is not synced to `~/.codex/`, and loads only once the directory is trusted. Its `developer_instructions` carries what only Codex needs while working here.
 - Auth lives in `~/.codex/auth.json` or the macOS Keychain and never in the repository:
   sign in with `codex login`, or set `OPENAI_API_KEY` for scripts and CI.
 
@@ -67,7 +63,7 @@ repository rather than this one.
 
 ## Tests
 
-- `make test` runs `scripts/test-discard.zsh`, `scripts/test-commit-upgrade.zsh`, `scripts/test-upgrade-apply.zsh`, `scripts/test-documentation.zsh`, and `scripts/test-config-sync.zsh`. Add `config/git/discard.zsh` cases to the first, upgrade commit workflow cases to the second, selective upgrade application cases to the third, Brewfile/README package and README/public `make` target consistency cases to the fourth, and config sync plus Codex skill contract cases to the fifth.
+- `make test` runs five suites: `scripts/test-discard.zsh` covers `config/git/discard.zsh`; `scripts/test-commit-upgrade.zsh` covers the upgrade commit workflow; `scripts/test-upgrade-apply.zsh` covers selective upgrade application; `scripts/test-documentation.zsh` covers Brewfile/README package and README/public `make` target consistency; `scripts/test-config-sync.zsh` covers config sync and Codex skill file placement, content transfer, and machine-readable settings.
 - Tests run against the repository copy of a script, never the synced copy under `$HOME`, so a change is verified before `make sync-config`.
 - Each case runs in a throwaway directory under `mktemp -d` with `HOME`, `GIT_CONFIG_GLOBAL`, and `GIT_CONFIG_SYSTEM` redirected, and with stubs earlier in `PATH`. Keep that isolation: a test must not reach the real Trash, the real git config, a real repository, or the real macOS preferences.
 - `make test` does not install config tools. `test-config-sync.zsh` injects the managed config Python into a marked temporary root; set `OH_MY_MAC_TEST_CONFIG_PYTHON` to inject another prepared interpreter without writing to the test runner's home directory. The installer accepts `OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT` only for a marked directory below the OS temporary directory and rejects the former arbitrary-path override.

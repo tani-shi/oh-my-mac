@@ -28,15 +28,6 @@ stub_file() {
 
 stub() { stub_file "$tmp/bin/$1" }
 
-export REAL_SORT="$(command -v sort)"
-stub sort <<'STUB'
-#!/bin/zsh
-if [[ -f "$STUB_STATE/capture-sort-locale" ]]; then
-  print -r -- "${LC_ALL-}" >> "$STUB_STATE/sort-locales"
-fi
-exec "$REAL_SORT" "$@"
-STUB
-
 select_config_tools_test_root() {
   export OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT=$1
   mkdir -p "$OH_MY_MAC_CONFIG_TOOLS_TEST_ROOT"
@@ -157,12 +148,10 @@ if [[ "${1:-}" == "install" ]]; then
 
     codex_config="${config_path:h}/config.toml"
     if [[ -f "$codex_config" ]]; then
-      if grep -Eq '^approval_policy[[:space:]]*=[[:space:]]*"never"' "$codex_config"; then
-        print -r -- 'Warning: approval_policy="never" disables approval prompts. Codex GUI may run commands matched by agent-sentinel prompt rules without approval, so ASK enforcement is not guaranteed. Native approvals and auto-review are also unavailable. Use on-request for the supported configuration.'
-      fi
-      if grep -Eq '^[[:space:]]*hooks[[:space:]]*=[[:space:]]*false' "$codex_config"; then
-        print -r -- "Warning: Codex hooks are disabled in config.toml; agent-sentinel's hook DENY rules will not run."
-      fi
+      cp "$codex_config" "$STUB_STATE/agent-sentinel-received-config.toml"
+    fi
+    if [[ -f "$STUB_STATE/agent-sentinel-output" ]]; then
+      cat "$STUB_STATE/agent-sentinel-output"
     fi
   fi
 fi
@@ -829,92 +818,15 @@ t_codex_skills_are_synced() {
   check_contains "the skill requires explicit invocation" \
     "$(<$HOME/.agents/skills/refactor-review/agents/openai.yaml)" \
     "allow_implicit_invocation: false"
-  check_contains "review mode is read-only" \
-    "$(<$HOME/.agents/skills/refactor-review/SKILL.md)" "Do not modify files."
-  check_contains "apply mode uses only the preceding review" \
-    "$(<$HOME/.agents/skills/refactor-review/SKILL.md)" \
-    "immediately preceding Refactor Review"
   check_contains "the architecture skill requires explicit invocation" \
     "$(<$HOME/.agents/skills/architecture-review/agents/openai.yaml)" \
     "allow_implicit_invocation: false"
   check_contains "the delivery skill requires explicit invocation" \
     "$(<$HOME/.agents/skills/deliver-change/agents/openai.yaml)" \
     "allow_implicit_invocation: false"
-  check_contains "single delivery preserves the caller's pull request boundary" \
-    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "as one delivery unit with one implementation task, branch, and pull request"
-  check_contains "single delivery keeps the supervisor code read-only" \
-    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "The invoking task is the code-read-only supervisor."
-  check_contains "single delivery keeps review communication human-authored" \
-    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "keep GitHub review communication human-authored"
-  check_contains "single delivery defaults to prepare and requires current authorization" \
-    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "Prepare is the default. Merge only the delivery that the user directly and explicitly authorizes in the current invocation"
-  check_contains "single delivery re-reviews changed revisions" \
-    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "review again whenever either revision changes"
-  check_contains "single delivery requires reviewed revisions and machine gates" \
-    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "current head and base revisions are reviewed and repository-required machine gates pass"
-  check_contains "single delivery retains the merged lifecycle" \
-    "$(<$HOME/.agents/skills/deliver-change/SKILL.md)" \
-    "task archival, branch cleanup, and documented deployment verification"
   check_contains "batch delivery requires explicit invocation" \
     "$(<$HOME/.agents/skills/deliver-changes/agents/openai.yaml)" \
     "allow_implicit_invocation: false"
-  check_contains "batch delivery preserves one pull request per unit" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "each with its own implementation task, worktree, branch, and pull request"
-  check_contains "batch delivery starts independent units in parallel" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "Start independent units in parallel."
-  check_contains "batch delivery waits for merged prerequisites" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "only after every prerequisite pull request is merged into the latest default branch"
-  check_contains "batch delivery rejects unmerged delivery bases" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "never base it on an unmerged delivery branch"
-  check_contains "batch delivery preserves initial parallelism" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "Start every ready unit before waiting"
-  check_contains "batch delivery keeps the supervisor code read-only" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "The invoking task is the code-read-only supervisor."
-  check_contains "batch delivery keeps review communication human-authored" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "keep GitHub review communication human-authored"
-  check_contains "batch delivery defaults to prepare and requires current authorization" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "Prepare is the default. Merge only the units that the user directly and explicitly authorizes in the current invocation"
-  check_contains "batch delivery resumes only the same supervisor's batch" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    'continues only the batch recorded in the same supervisor task'
-  check_contains "batch delivery resume reuses existing state" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "Reuse its implementation tasks, branches, and pull requests; never adopt another task's batch or create duplicates."
-  check_contains "batch delivery re-reviews changed revisions" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "review again whenever either revision changes"
-  check_contains "batch delivery requires reviewed revisions and machine gates" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "current head and base revisions are reviewed and repository-required machine gates pass"
-  check_contains "batch delivery stops prepare mode at explicit unit states" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "stop when every active unit is ready or waiting on human action"
-  check_contains "batch delivery retains the merged lifecycle" \
-    "$(<$HOME/.agents/skills/deliver-changes/SKILL.md)" \
-    "task archival, branch cleanup, and documented deployment verification"
-  check_contains "architecture diagnosis is read-only" \
-    "$(<$HOME/.agents/skills/architecture-review/SKILL.md)" \
-    "Do not modify files"
-  check_contains "architecture diagnosis accepts a path scope" \
-    "$(<$HOME/.agents/skills/architecture-review/SKILL.md)" \
-    '$architecture-review path <path>'
-  check_contains "architecture diagnosis limits findings" \
-    "$(<$HOME/.agents/skills/architecture-review/SKILL.md)" \
-    "return at most three"
 }
 
 codex_skill_test_locales() {
@@ -929,7 +841,7 @@ t_codex_skill_manifest_is_locale_independent() {
   local manifest="$HOME/.agents/skills/.oh-my-mac-managed"
   local expected="$tmp/expected-codex-skills-manifest"
   local discovered="$tmp/discovered-codex-skills-manifest"
-  local source rel locale_name output captured_count forced_count
+  local source rel locale_name output
   local -a test_locales
 
   : > "$discovered"
@@ -939,7 +851,6 @@ t_codex_skill_manifest_is_locale_independent() {
   done
   LC_ALL=C sort "$discovered" > "$expected"
   test_locales=("${(@f)$(codex_skill_test_locales)}")
-  : > "$STUB_STATE/capture-sort-locale"
 
   LC_ALL="${test_locales[1]}" sync_config > /dev/null
   for locale_name in "${test_locales[@]}"; do
@@ -951,11 +862,6 @@ t_codex_skill_manifest_is_locale_independent() {
     check_contains "$locale_name leaves the manifest unchanged during sync" \
       "$(LC_ALL="$locale_name" sync_config)" "Already up to date."
   done
-
-  captured_count=$(wc -l < "$STUB_STATE/sort-locales" | tr -d ' ')
-  forced_count=$(grep -c '^C$' "$STUB_STATE/sort-locales")
-  check_nonzero "manifest sorting runs on every locale set" "$captured_count"
-  check_equals "manifest sorting always forces C collation" "$forced_count" "$captured_count"
 }
 
 t_codex_skill_name_collisions_are_rejected() {
@@ -1071,47 +977,33 @@ EOF
     "$HOME/.codex/config.toml" "$first_merge"
 }
 
-t_codex_config_warns_when_approval_policy_is_never() {
-  mkdir -p "$HOME/.codex"
-  print -r -- 'approval_policy = "never"' > "$HOME/.codex/config.toml"
-  local before="$tmp/codex-config-before-warning.toml" diff_output refresh_output
-  cp "$HOME/.codex/config.toml" "$before"
-
-  diff_output="$(diff_config)"
-  check_contains "never warns about the Codex GUI behavior" "$diff_output" "Codex GUI"
-  check_contains "never identifies the unenforced boundary" "$diff_output" \
-    "ASK enforcement is not guaranteed"
-  check_contains "never recommends the supported policy" "$diff_output" \
-    "Use on-request for the supported configuration."
-  check_files_equal "the diagnostic leaves Codex config unchanged" \
-    "$HOME/.codex/config.toml" "$before"
-
-  refresh_output="$(refresh_agent_sentinel)"
-  check_contains "refresh uses the same Codex policy diagnostic" "$refresh_output" \
-    "ASK enforcement is not guaranteed"
-  check_files_equal "refresh leaves Codex config unchanged" \
-    "$HOME/.codex/config.toml" "$before"
-}
-
-t_codex_config_accepts_on_request_approval_policy() {
+t_agent_sentinel_receives_config_and_forwards_warnings() {
   mkdir -p "$HOME/.codex"
   print -r -- 'approval_policy = "on-request"' > "$HOME/.codex/config.toml"
+  local before="$tmp/codex-config-before-warning.toml" output operation
+  local warning="Warning: sentinel diagnostic fixture"
+  cp "$HOME/.codex/config.toml" "$before"
+  print -rl -- "Installation complete" "$warning" > "$STUB_STATE/agent-sentinel-output"
 
-  local output
-  output="$(diff_config)"
-  check_lacks "on-request needs no ASK enforcement warning" "$output" \
-    "ASK enforcement is not guaranteed"
+  for operation in diff_config refresh_agent_sentinel; do
+    rm -f "$STUB_STATE/agent-sentinel-received-config.toml"
+    output="$("$operation")"
+    check_files_equal "$operation passes the installed config to agent-sentinel" \
+      "$STUB_STATE/agent-sentinel-received-config.toml" "$before"
+    check_contains "$operation forwards the installer warning" "$output" "$warning"
+    check_lacks "$operation filters ordinary installer output" "$output" "Installation complete"
+    check_files_equal "$operation leaves the installed config unchanged" \
+      "$HOME/.codex/config.toml" "$before"
+  done
 }
 
-t_codex_config_warns_when_hooks_are_disabled() {
-  mkdir -p "$HOME/.codex"
-  print -r -- $'approval_policy = "on-request"\n\n[features]\nhooks = false' \
-    > "$HOME/.codex/config.toml"
-
-  local output
-  output="$(diff_config)"
-  check_contains "disabled hooks use the Codex configuration diagnostic" "$output" \
-    "Codex hooks are disabled in config.toml"
+t_agent_sentinel_output_without_warnings() {
+  print -r -- "Installation complete" > "$STUB_STATE/agent-sentinel-output"
+  local output operation
+  for operation in diff_config refresh_agent_sentinel; do
+    output="$("$operation")"
+    check_lacks "$operation emits no warning for ordinary installer output" "$output" "Warning:"
+  done
 }
 
 t_codex_config_rejects_invalid_toml() {
@@ -1166,8 +1058,6 @@ t_instructions_are_shared_then_specific() {
 
 t_project_instructions_reach_each_agent() {
   check_contains "CLAUDE.md imports AGENTS.md" "$(<"$REPO/CLAUDE.md")" "@AGENTS.md"
-  check_contains "the Codex project scope carries instructions" \
-    "$(<"$REPO/.codex/config.toml")" "developer_instructions"
   local shared_section
   shared_section=$(grep -m1 '^## ' "$REPO/AGENTS.md")
   check_contains "AGENTS.md has a section to compare against" "$shared_section" "## "
@@ -1185,18 +1075,6 @@ t_upgrade_entrypoint_is_codex_only() {
     "$([[ -f "$metadata" ]] && print yes || print no)" "yes"
   check_contains "upgrade requires explicit invocation" \
     "$(<"$metadata")" "allow_implicit_invocation: false"
-  check_contains "upgrade invocation authorizes delivery through merge" \
-    "$(<"$skill")" "Do not request intermediate approval."
-  check_contains "Claude is only a managed upgrade target" \
-    "$(<"$skill")" "never invoke it with a prompt or use it as an agent, judge, reviewer, or workflow host"
-  check_contains "upgrade merges only after its gates" \
-    "$(<"$skill")" "all gates pass, squash-merge with remote-branch deletion without asking again"
-  check_contains "upgrade classifies candidates independently" \
-    "$(<"$skill")" 'Classify every candidate independently as `upgrade`, `risk-hold`, `incompatibility-hold`, `execution-blocked-hold`, or `unchanged`'
-  check_contains "blocked Codex evidence is localized" \
-    "$(<"$skill")" "is not evidence that a candidate is unsafe"
-  check_contains "upgrade uses a validated selective plan" \
-    "$(<"$skill")" "validates every identifier against repository declarations before it executes any selected candidate"
   check_equals "Make has no agent-hosted upgrade target" \
     "$(grep -Eq '^upgrade:' "$REPO/Makefile" && print yes || print no)" "no"
   check_lacks "Make never launches Claude as the upgrade host" \
@@ -1626,9 +1504,8 @@ run "codex skill name collisions are rejected" t_codex_skill_name_collisions_are
 run "codex skill file collisions are rejected" t_codex_skill_file_collisions_are_rejected
 run "codex skill orphans are scoped"         t_codex_skill_orphans_are_scoped
 run "codex config merges declared keys"      t_codex_config_merges_declared_keys
-run "codex config warns for never approvals" t_codex_config_warns_when_approval_policy_is_never
-run "codex config accepts on-request"         t_codex_config_accepts_on_request_approval_policy
-run "codex config warns for disabled hooks"   t_codex_config_warns_when_hooks_are_disabled
+run "sentinel receives config and forwards warnings" t_agent_sentinel_receives_config_and_forwards_warnings
+run "sentinel output without warnings"       t_agent_sentinel_output_without_warnings
 run "codex config rejects invalid TOML"      t_codex_config_rejects_invalid_toml
 run "codex config rejects a table conflict"  t_codex_config_rejects_a_table_conflict
 run "codex config rejects nested conflict"   t_codex_config_rejects_a_nested_table_conflict

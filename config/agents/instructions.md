@@ -13,7 +13,6 @@ Comments, commit messages, and docs reach a reader who was not part of the conve
 
 - Write from the code as it stands, not from the discussion that changed it. After a long exchange, read the surrounding lines first and match how they read.
 - State what holds. Agent instructions carry durable outcomes, ownership boundaries, non-obvious constraints, and authorized scope; the agent chooses a workflow that satisfies them. Correct failures at their owning layer, with prompt guidance reserved for durable knowledge that layer cannot enforce.
-- One point per comment. Words like "so", "therefore", and "which means" carry a derivation that belongs in the commit log.
 - Use words that already appear in this codebase or in plain technical English. A term invented during a discussion stays there.
 - Keep each Markdown prose paragraph on one unwrapped source line; reserve new lines for paragraph boundaries and Markdown structure.
 
@@ -41,28 +40,38 @@ Comments, commit messages, and docs reach a reader who was not part of the conve
 
 - Use `uv` instead of `pip` / `pip3` / `python` / `python3`.
 
+## Requirements
+
+- Resolve uncertainty about the goal, scope, or expected behavior before implementation that depends on the answer. Ask when the decision would materially change the result; investigate facts available in existing sources and choose routine implementation details independently. Proceed when the request is already clear.
+- Use the agreed goal and acceptance criteria as the basis for implementation and verification.
+
 ## Comments
 
-- Each kind of explanation has its home: **code** carries *how*, **tests** carry *what*, **commit logs** carry *why*, and **comments** carry only *why-not* imposed by constraints the codebase does not own. Plain *why* belongs in the commit log, and *what* belongs in a test.
-- Code is the primary medium of explanation: design, naming, types, and small well-bounded units carry the meaning. Default to zero comments. If code, a test, a benchmark, or a tracked issue can carry the information, use that medium and omit the comment.
-- A comment that explains code or defends internal complexity is a refactoring signal. Rename, extract, restructure, or correct the specification until the comment is unnecessary, then delete it.
-- A remaining comment states an observable external constraint and its evidence, never a conclusion that the current design is correct. Keep it at the affected boundary only when proximity is necessary to prevent a plausible harmful change; typical cases are external specifications, upstream bugs, toolchain requirements, and compatibility constraints, with links where available.
-- Public API doc comments (docstrings, JSDoc) follow the project's existing convention; they document contracts for toolchains, not implementation.
+Comments direct the reader's limited attention to important details. Excess commentary makes important warnings easier to skip. Ordinary code communicates through names, types, and structure; keep comments minimal.
+
+- Record facts a reader could miss from the code that could lead to an incorrect understanding or change.
+- Place one short point at the location that needs the reader's attention.
+- Link to evidence for constraints such as external specifications and compatibility requirements when useful.
+- Keep extended explanations in documentation or commit history, with a brief local pointer when needed.
+- Public API doc comments (docstrings, JSDoc) document contracts according to the project's existing convention.
 
 ## Refactoring
 
-- Optimize for the smallest final structure that satisfies the current requirements, not for the smallest diff or the greatest amount of preserved code. Existing code has no authority merely because it exists; within the touched scope, prefer renaming, extracting, consolidating, and deleting over adding branches, flags, and wrapper layers.
-- Keep each unit at the minimum size that fully expresses its behavior; growth of a file or function is a design signal, not a default.
-- Name files and directories at the scope their cohesive contents share — the entity, not one operation on it. A grab-bag too broad to predict its contents and a name too narrow — a homeless fragment, or a real shared unit named after one operation so its cohesive siblings cannot land beside it — are equally scope failures; consolidate the fragment into its home, or rename the mis-scoped unit up to its entity scope.
-- Write only what a current caller needs: no speculative abstractions, options, or parameters for imagined futures — generality is added when the second caller arrives.
-- Delete dead weight on contact: unused code, commented-out code, and ownerless TODOs are removed, not preserved. A TODO/FIXME that records a lasting reason for the deferred work, traceable to where it is tracked, is not ownerless dead weight.
-- Outside the touched scope, report refactoring opportunities instead of applying them.
+- Choose a simple, understandable structure that satisfies the current requirements.
+- Introduce abstractions, options, and shared code when concrete current needs justify them.
+- Limit structural improvements and removal of unused code to what the current goal requires. Report material issues outside that scope.
 
 ## Debugging
 
 - Identify the root cause before proposing any fix; a change that only removes the symptom is not a fix.
 - Test one hypothesis at a time with the smallest change that discriminates it — never stack a fix on top of an unverified one.
 - Fix at the shared function and check its other callers; repairing only the path the report names leaves the siblings broken.
+
+## Verification
+
+- Derive expected results from agreed acceptance criteria, confirmed examples, or external specifications. Resolve discrepancies between the implementation and expected results by returning to those sources.
+- Verify the current change and decide separately which regression tests are worth retaining. Select cases by the impact of failure, likelihood of recurrence, existing coverage, and maintenance cost.
+- Report the behavior verified and the limits of that evidence.
 
 ## Documentation
 

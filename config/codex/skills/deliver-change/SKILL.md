@@ -19,7 +19,7 @@ Deliver one caller-defined unit without splitting it.
 2. Create one user-visible implementation task in a dedicated worktree from the latest default branch. Give it this concise handoff:
 
 ```text
-Implement this delivery unit in one branch and PR: <resolved requirements and sources>.
+Implement this delivery unit in one branch and PR: <resolved requirements, agreed acceptance criteria, and sources>.
 Follow the repository instructions and start from the latest default branch.
 Do not merge or communicate on GitHub reviews.
 Return the PR, current revision, summary, verification, and any human decision needed.

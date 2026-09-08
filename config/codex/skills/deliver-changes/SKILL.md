@@ -17,11 +17,11 @@ Coordinate a caller-defined multi-pull-request delivery without combining its un
 
 ## Coordinate
 
-1. For a new batch, resolve the requirements, delivery units, and dependency order before starting work. Ask only when uncertainty would change a pull request boundary. For resume, refresh the existing batch from verified external state; a prerequisite already merged outside the workflow unlocks dependents after its merge is verified.
+1. For a new batch, resolve the requirements, delivery units, and dependency order before starting work. Ask when uncertainty would materially change the result, scope, acceptance criteria, or a pull request boundary. For resume, refresh the existing batch from verified external state; a prerequisite already merged outside the workflow unlocks dependents after its merge is verified.
 2. Start every ready unit before waiting, then supervise all active units fairly. Give each implementation task this concise handoff:
 
 ```text
-Implement this delivery unit only: <resolved objective and sources>.
+Implement this delivery unit only: <resolved objective, agreed acceptance criteria, and sources>.
 Keep it in one branch and PR based on the latest default branch.
 Do not merge or communicate on GitHub reviews.
 Return the PR, current revision, summary, verification, and any human decision needed.
