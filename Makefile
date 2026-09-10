@@ -24,6 +24,7 @@ update: ## Update Homebrew packages and apply declared tools and configuration
 	brew cleanup
 
 install-common:
+	brew bundle --no-upgrade --file=config/homebrew/Brewfile.install-only
 	$(MAKE) install-uv-tools
 	$(MAKE) install-config-tools
 	$(MAKE) sync-config

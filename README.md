@@ -94,6 +94,8 @@ On an existing Mac, back up `~/.claude/agents/`, `~/.claude/scripts/`, and `~/.c
 | `make install` | Install packages + sync config + install plugins |
 | `make update` | Update Homebrew packages + apply declared tools and config |
 
+VS Code and the Codex desktop app (`chatgpt`) are declared in [Brewfile.install-only](config/homebrew/Brewfile.install-only). Both commands install them only if missing; update them through the apps. VS Code is configured for manual update checks.
+
 For pinned version updates, run `$upgrade` in Codex. Review and merge the PR, pull the changes, then run `make update`.
 
 ## Post-install Setup

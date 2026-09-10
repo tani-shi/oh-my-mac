@@ -37,8 +37,6 @@ brew "ruff"
 brew "hashicorp/tap/terraform"
 brew "awscli"
 cask "gcloud-cli"
-cask "visual-studio-code"
-cask "chatgpt"             # desktop app with the Codex GUI
 
 # Git / GitHub
 brew "gh"
