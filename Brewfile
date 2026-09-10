@@ -17,7 +17,7 @@ brew "delta"      # better git diff
 brew "zoxide"     # smarter cd
 
 # Terminal
-cask "iterm2"     # terminal emulator; tab color/focus integration in config/claude/scripts
+cask "iterm2"
 brew "tmux"       # used with iTerm2 Control Mode for remote SSH
 
 # Utilities

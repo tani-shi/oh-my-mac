@@ -52,11 +52,16 @@ done
 JQ_SETTINGS_MERGE='
   .[0] as $user | .[1] as $repo |
   $user |
-  .hooks = ((.hooks // {}) * ($repo.hooks // {})) |
+  .hooks = ((.hooks // {} | with_entries(
+    if .key == "UserPromptSubmit" or .key == "TaskCompleted" then
+      .value |= map(
+        .hooks |= map(select(.command != "zsh ~/.claude/scripts/claude-hook.zsh userpromptsubmit"
+          and .command != "zsh ~/.claude/scripts/claude-hook.zsh taskcompleted"))
+        | select(.hooks | length > 0))
+      | select(.value | length > 0)
+    else . end
+  )) * ($repo.hooks // {})) |
   .env = ((.env // {}) * ($repo.env // {})) |
-  (if $repo | has("extraKnownMarketplaces")
-    then .extraKnownMarketplaces = ((.extraKnownMarketplaces // {}) * $repo.extraKnownMarketplaces)
-    else . end) |
   .permissions = ($repo.permissions // .permissions) |
   reduce ["includeCoAuthoredBy", "teammateMode", "tui"][] as $k
     (.; if $repo | has($k) then .[$k] = $repo[$k] else . end) |

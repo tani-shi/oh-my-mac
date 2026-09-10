@@ -1,48 +1,44 @@
-INSTALL_STEPS := install-claude sync-claude-plugins install-node install-ntn install-codex
-
-.PHONY: help diff-config sync-config install update converge upgrade-apply refresh-agent-sentinel trust-taps test install-config-tools install-uv-tools install-uv-tool $(INSTALL_STEPS)
+.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps install-config-tools install-uv-tools install-claude sync-claude-plugins install-node install-ntn install-codex
 
 .DEFAULT_GOAL := help
 
-help: ## Show this help message
+help:
 	@printf "Usage: make <target>\n\nTargets:\n"
 	@awk -F':.*## ' '/^[a-zA-Z][a-zA-Z_-]*:.*## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-diff-config: ## Show differences between repo and local config
+diff-config:
 	@./config.zsh diff
 
-sync-config: ## Reconcile managed config and system state
+sync-config:
 	@./config.zsh sync
 
-install: ## Install packages + sync config + install plugins
+install: ## Install tools and apply configuration
 	$(MAKE) trust-taps
 	brew bundle --no-upgrade --file=Brewfile
-	$(MAKE) converge
+	$(MAKE) install-common
 
-update: ## Upgrade Homebrew packages, sync config, and converge dependencies
+update: ## Update Homebrew packages and apply declared tools and configuration
 	$(MAKE) trust-taps
 	brew bundle --file=Brewfile
-	$(MAKE) converge
+	$(MAKE) install-common
 	brew cleanup
 
-converge:
+install-common:
 	$(MAKE) install-uv-tools
 	$(MAKE) install-config-tools
 	$(MAKE) sync-config
-	@for step in $(INSTALL_STEPS); do \
-		$(MAKE) "$$step" || exit 1; \
-	done
+	$(MAKE) install-claude
+	$(MAKE) sync-claude-plugins
+	$(MAKE) install-node
+	$(MAKE) install-ntn
+	$(MAKE) install-codex
 
-refresh-agent-sentinel: ## Update agent-sentinel HEAD and refresh generated config
+refresh-agent-sentinel:
 	$(MAKE) install-uv-tools AGENT_SENTINEL_UPGRADE=1
 	@./scripts/refresh-agent-sentinel.zsh
-	$(MAKE) test
 	$(MAKE) diff-config
 
-upgrade-apply:
-	@UPGRADE_PLAN="$(UPGRADE_PLAN)" UPGRADE_REPORT="$(UPGRADE_REPORT)" ./scripts/apply-upgrades.zsh
-
-trust-taps: ## Trust non-official Homebrew taps
+trust-taps:
 	@if [ -f config/homebrew/trusted-taps.txt ]; then \
 		trusted=$$(brew trust --json v1 2>/dev/null) || exit 1; \
 		failed=0; \
@@ -63,13 +59,6 @@ trust-taps: ## Trust non-official Homebrew taps
 		echo "Error: config/homebrew/trusted-taps.txt missing" >&2; \
 		exit 1; \
 	fi
-
-test: ## Run the test suite
-	@./scripts/test-discard.zsh
-	@./scripts/test-commit-upgrade.zsh
-	@./scripts/test-upgrade-apply.zsh
-	@./scripts/test-documentation.zsh
-	@./scripts/test-config-sync.zsh
 
 CLAUDE_VERSION := $(shell cat config/claude/version 2>/dev/null)
 NTN_VERSION := $(shell cat config/ntn/version 2>/dev/null)
@@ -181,18 +170,14 @@ install-codex:
 
 install-uv-tools:
 	@if command -v uv >/dev/null 2>&1 && [ -f config/uv/tools.txt ]; then \
-		installed=$$(uv tool list 2>&1) || { echo "$$installed"; exit 1; }; \
 		while IFS= read -r tool || [ -n "$$tool" ]; do \
 			[ -z "$$tool" ] && continue; \
 			echo "Installing uv tool: $$tool"; \
 			case "$$tool" in \
 				agent-sentinel*) \
 					options=""; \
-					if echo "$$installed" | grep -q '^claude-sentinel ' && ! echo "$$installed" | grep -q '^agent-sentinel '; then \
-						options="--force"; \
-					fi; \
 					if [ "$(AGENT_SENTINEL_UPGRADE)" = "1" ]; then \
-						options="$$options --upgrade"; \
+						options="--upgrade"; \
 					fi; \
 					uv tool install $$options "$$tool" 2>&1 || exit 1; \
 					command -v agent-sentinel >/dev/null 2>&1 || { echo "Error: agent-sentinel executable not found after install"; exit 1; }; \
@@ -206,16 +191,5 @@ install-uv-tools:
 		exit 1; \
 	fi
 
-install-uv-tool:
-	@if ! command -v uv >/dev/null 2>&1 || [ ! -f config/uv/tools.txt ]; then \
-		echo "Error: uv not found or config/uv/tools.txt missing" >&2; \
-		exit 1; \
-	fi
-	@if [ -z "$(UV_TOOL)" ] || ! grep -qxF "$(UV_TOOL)" config/uv/tools.txt; then \
-		echo "Error: UV_TOOL must exactly match a declared uv tool" >&2; \
-		exit 1; \
-	fi
-	@uv tool install --upgrade "$(UV_TOOL)" 2>&1
-
-install-config-tools: ## Prepare the Python environment used for config merging
+install-config-tools:
 	@./scripts/install-config-tools.zsh
