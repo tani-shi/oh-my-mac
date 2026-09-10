@@ -15,6 +15,8 @@ Comments, commit messages, and docs reach a reader who was not part of the conve
 - State what holds. Agent instructions carry durable outcomes, ownership boundaries, non-obvious constraints, and authorized scope; the agent chooses a workflow that satisfies them. Correct failures at their owning layer, with prompt guidance reserved for durable knowledge that layer cannot enforce.
 - Use words that already appear in this codebase or in plain technical English. A term invented during a discussion stays there.
 - Keep each Markdown prose paragraph on one unwrapped source line; reserve new lines for paragraph boundaries and Markdown structure.
+- In Japanese documents and messages, do not mechanically insert spaces between Japanese text and Latin letters or digits. Preserve spaces required by syntax or official names.
+- Do not present inferences, proposals, or stylistic preferences as verified facts or settled decisions. State verified facts directly and make inferences and proposals recognizable as such. There is no need to qualify every statement with "I think" or "may."
 
 ## Git
 
@@ -75,7 +77,8 @@ Comments direct the reader's limited attention to important details. Excess comm
 
 ## Documentation
 
-- Update README.md in the same changeset as a change to what a project does, how it's used, or how it's configured.
+- Update README.md when a change makes its existing description inaccurate or leaves out information needed to use the project.
+- Keep README.md focused on information human readers need to use the project. Use headings, tables, or diagrams where they reduce the reading needed; omit prose that repeats what names or structure already make clear.
 - Update a project's agent instructions when the change alters how an agent must work in it — a new constraint, a moved workflow, a rule that no longer holds. A change the instructions do not speak to leaves them untouched.
 
 ## Project agent instructions
