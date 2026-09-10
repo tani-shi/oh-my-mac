@@ -38,8 +38,12 @@ On an existing Mac, back up `~/.claude/agents/`, `~/.claude/scripts/`, and `~/.c
 | Terminal | iterm2, tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, uv, ruff, terraform, awscli, gcloud-cli, visual-studio-code, chatgpt |
+| Development | fnm, uv, ruff, terraform, awscli, gcloud-cli |
 | Git / GitHub | gh, git-lfs |
+
+### GUI Apps ([Brewfile.install-only](config/homebrew/Brewfile.install-only))
+
+Apps in this list use their own updaters. Both `make install` and `make update` use Homebrew only to install missing apps; update installed apps through their own update controls.
 
 ### CLI Tools
 

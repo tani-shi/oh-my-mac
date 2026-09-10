@@ -29,6 +29,7 @@ This repository configures a macOS workstation. `make install` and `make update`
 ## Dependency versioning
 
 - Claude Code, Node, and ntn have exact versions in their `config/` directories. Keep `DISABLE_AUTOUPDATER=1` for Claude Code. Codex CLI is installed only when absent; its subsequent version lifecycle is outside repository management.
+- `config/homebrew/Brewfile.install-only` declares VS Code and the Codex desktop app (`chatgpt`). Install them with `brew bundle --no-upgrade` before configuration sync; their updates belong to the apps. Keep them out of the main `Brewfile` update path.
 - Config-tools packages use exact `==` pins in `config/uv/config-tools.txt`; their Python interpreter uses a range.
 - Remote Sheldon plugins use tags, or revisions when no tag exists. The user-local Sheldon lock is not a repository lock.
 - uv tools use tags or commits except the intentionally HEAD-tracking `agent-sentinel` and `claude-sessions`.
