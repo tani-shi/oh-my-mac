@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "zsh ~/.claude/scripts/claude-hook.zsh notification"
+            "command": "osascript -e 'display notification \"Claude is waiting for your input\" with title \"Claude Code\" sound name \"Funk\"'"
           }
         ]
       }
@@ -15,27 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "zsh ~/.claude/scripts/claude-hook.zsh stop"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "zsh ~/.claude/scripts/claude-hook.zsh userpromptsubmit"
-          }
-        ]
-      }
-    ],
-    "TaskCompleted": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "zsh ~/.claude/scripts/claude-hook.zsh taskcompleted"
+            "command": "osascript -e 'display notification \"Task completed\" with title \"Claude Code\" sound name \"Glass\"'"
           }
         ]
       }
@@ -46,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "zsh ~/.claude/scripts/agent-sentinel-wrapper.zsh"
+            "command": "agent-sentinel --host claude"
           }
         ]
       }

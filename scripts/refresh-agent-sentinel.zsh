@@ -26,7 +26,7 @@ cp "$CLAUDE_SETTINGS" "$generated_claude"
 agent-sentinel install --target claude --path "$generated_claude" >/dev/null
 generate_agent_sentinel_codex_config "$generated_codex" "$generated_rules" "$CODEX_CONFIG"
 
-jq -e --arg command 'zsh ~/.claude/scripts/agent-sentinel-wrapper.zsh' \
+jq -e --arg command 'agent-sentinel --host claude' \
   '[.hooks.PreToolUse[].hooks[].command] | index($command) != null' \
   "$generated_claude" >/dev/null
 codex_hook_changed=0
