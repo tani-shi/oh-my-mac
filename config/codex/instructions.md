@@ -1,3 +1,5 @@
+# Codex instructions
+
 ## Task titles
 
 - When the user's objective becomes materially clearer or changes and the current task title no longer represents it, rename the task to a concise Japanese noun phrase describing the current deliverable.
