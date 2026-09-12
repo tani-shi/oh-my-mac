@@ -24,7 +24,7 @@ This repository configures a macOS workstation. `make install` and `make update`
 ## Skills
 
 - `config/codex/skills/` syncs to `~/.agents/skills/`. Preserve each skill's explicit invocation policy in `agents/openai.yaml`.
-- `.agents/skills/upgrade/` owns the repository's version-update workflow. Its explicit invocation authorizes declaration edits, commit, push, and PR creation. It ends at the PR; the user reviews and merges, then applies the merged checkout with `make update`.
+- Use the explicitly invoked `.agents/skills/upgrade/` workflow for version updates; its skill defines authorization and completion boundaries.
 
 ## Dependency versioning
 

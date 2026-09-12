@@ -17,18 +17,19 @@ Coordinate a caller-defined multi-pull-request delivery without combining its un
 
 ## Coordinate
 
-1. For a new batch, resolve the requirements, delivery units, and dependency order before starting work. Ask when uncertainty would materially change the result, scope, acceptance criteria, or a pull request boundary. For resume, refresh the existing batch from verified external state; a prerequisite already merged outside the workflow unlocks dependents after its merge is verified.
-2. Start every ready unit before waiting, then supervise all active units fairly. Give each implementation task this concise handoff:
+1. For a new batch, establish the goal, scope, expected behavior, acceptance criteria, delivery units, and dependency order from the request, conversation, and referenced sources. If a material requirement is unresolved, stay in the supervisor task for read-only investigation, summarize the proposed requirements and open decisions, and wait for the user's answers. Invoking the skill does not settle missing requirements. Do not create implementation tasks or worktrees until the batch requirements are settled; proceed without reconfirmation when they are already clear. For resume, refresh the existing batch from verified external state and resolve any changed requirements before starting or continuing affected units; a prerequisite already merged outside the workflow unlocks dependents after its merge is verified.
+2. Once the requirements are settled, start every unit whose dependencies are satisfied before waiting, then supervise all active units fairly. Give each implementation task this concise handoff:
 
 ```text
 Implement this delivery unit only: <resolved objective, agreed acceptance criteria, and sources>.
 Keep it in one branch and PR based on the latest default branch.
 Do not merge or communicate on GitHub reviews.
+Follow the shared verification instructions and record verification evidence and unverified behavior in the PR description. Identify any checks that need human verification.
 Return the PR, current revision, summary, verification, and any human decision needed.
 Remain available for private revision requests.
 ```
 
-3. A pull request is ready only when its current head and base revisions are reviewed and repository-required machine gates pass. Send actionable findings privately, review again whenever either revision changes, and stop at any human gate.
+3. A pull request is ready only when its current head and base revisions are reviewed, repository-required machine gates pass, and its description records verification evidence and unverified behavior. Machine checks do not complete required human verification. Send actionable findings privately, review again whenever either revision changes, and stop at any human gate.
 4. In prepare mode, stop when every active unit is ready or waiting on human action, preserving unmerged tasks and branches. After each authorized merge, refresh the default branch, return affected open pull requests to review, and start newly unblocked units from that refreshed base. Follow repository policy for the merged unit's task archival, branch cleanup, and documented deployment verification.
 
 Track enough batch identity and dependency state in the supervisor task to resume safely. When progress stops, report each unit's current evidence and next action without expanding the requested scope.
