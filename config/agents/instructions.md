@@ -9,14 +9,12 @@
 
 ## Wording
 
-Comments, commit messages, and docs reach a reader who was not part of the conversation that produced them.
-
-- Write from the code as it stands, not from the discussion that changed it. After a long exchange, read the surrounding lines first and match how they read.
-- State what holds. Agent instructions carry durable outcomes, ownership boundaries, non-obvious constraints, and authorized scope; the agent chooses a workflow that satisfies them. Correct failures at their owning layer, with prompt guidance reserved for durable knowledge that layer cannot enforce.
-- Use words that already appear in this codebase or in plain technical English. A term invented during a discussion stays there.
+- Write comments, commit messages, and docs from the current code for readers outside the conversation. Read the surrounding text and match its style.
+- Keep agent instructions focused on durable outcomes, ownership boundaries, non-obvious constraints, and authorized scope; the agent chooses a workflow that satisfies them. Fix failures at their owning layer; reserve instructions for durable knowledge that layer cannot enforce.
+- Use existing codebase vocabulary or plain technical English.
 - Keep each Markdown prose paragraph on one unwrapped source line; reserve new lines for paragraph boundaries and Markdown structure.
 - In Japanese documents and messages, do not mechanically insert spaces between Japanese text and Latin letters or digits. Preserve spaces required by syntax or official names.
-- Do not present inferences, proposals, or stylistic preferences as verified facts or settled decisions. State verified facts directly and make inferences and proposals recognizable as such. There is no need to qualify every statement with "I think" or "may."
+- State verified facts directly; distinguish inferences, proposals, and preferences from facts and decisions.
 
 ## Git
 
@@ -44,18 +42,15 @@ Comments, commit messages, and docs reach a reader who was not part of the conve
 
 ## Requirements
 
-- Resolve uncertainty about the goal, scope, or expected behavior before implementation that depends on the answer. Ask when the decision would materially change the result; investigate facts available in existing sources and choose routine implementation details independently. Proceed when the request is already clear.
-- Use the agreed goal and acceptance criteria as the basis for implementation and verification.
+- Implement the agreed goal and acceptance criteria. Resolve material uncertainty about scope or behavior before dependent implementation. Investigate available facts and choose routine implementation details independently; ask for missing decisions, and proceed when the request is clear.
 
 ## Comments
 
-Comments direct the reader's limited attention to important details. Excess commentary makes important warnings easier to skip. Ordinary code communicates through names, types, and structure; keep comments minimal.
+Comments direct limited reader attention to important details; keep them minimal so warnings remain noticeable. Names, types, and structure explain ordinary code.
 
-- Record facts a reader could miss from the code that could lead to an incorrect understanding or change.
-- Place one short point at the location that needs the reader's attention.
-- Link to evidence for constraints such as external specifications and compatibility requirements when useful.
-- Keep extended explanations in documentation or commit history, with a brief local pointer when needed.
-- Public API doc comments (docstrings, JSDoc) document contracts according to the project's existing convention.
+- Record facts readers could miss from the code that could lead to misunderstanding or an incorrect change. Place one short point where attention is needed.
+- Link supporting evidence when useful. Keep extended explanations in documentation or commit history, with a brief local pointer when needed.
+- Document public API contracts according to the project's existing convention.
 
 ## Refactoring
 
@@ -71,20 +66,14 @@ Comments direct the reader's limited attention to important details. Excess comm
 
 ## Verification
 
-- Derive expected results from agreed acceptance criteria, confirmed examples, or external specifications. Resolve discrepancies between the implementation and expected results by returning to those sources.
-- Verify the current change and decide separately which regression tests are worth retaining. Select cases by the impact of failure, likelihood of recurrence, existing coverage, and maintenance cost.
-- Report the behavior verified and the limits of that evidence.
+- Derive expected results from agreed requirements, confirmed examples, or external specifications, not solely from the current implementation or its output. Resolve discrepancies against those sources.
+- Verify observable results by executing the code and relevant dependencies. Limit stubs and mocks to boundaries impractical to exercise; they do not verify real integration. Source structure, internal calls, and passing tests alone do not establish correctness.
+- Separate current-change verification from retained regression tests. Verify important behavior even when expensive; retain tests that detect requirement violations cheaply and reliably at justified maintenance cost. Consider failure impact, recurrence risk, and existing coverage, not test counts or coverage targets. Temporary checks need not be retained.
+- Apply these criteria when reviewing tests. Within the change's scope, remove or simplify implementation-derived expectations without independent justification, source-text checks unrelated to requirements, redundant cases, and excessive stubs or mocks. Preserve checks of public output whose text or format is a requirement.
+- Report verification steps, expected and observed results, and unverified behavior; include them in PR descriptions for human audit. Never claim an unperformed check is complete.
 
 ## Documentation
 
 - Update README.md when a change makes its existing description inaccurate or leaves out information needed to use the project.
 - Keep README.md focused on information human readers need to use the project. Use headings, tables, or diagrams where they reduce the reading needed; omit prose that repeats what names or structure already make clear.
 - Update a project's agent instructions when the change alters how an agent must work in it — a new constraint, a moved workflow, a rule that no longer holds. A change the instructions do not speak to leaves them untouched.
-
-## Project agent instructions
-
-- Reach for this layout when the task itself is to initialize or standardize a repository's agent instructions:
-  - `AGENTS.md` — the rules every agent follows. Codex discovers it by name.
-  - `CLAUDE.md` — Claude Code loads this file; do not count on it discovering `AGENTS.md` on its own. Wherever Claude Code is used this file exists and carries the line `@AGENTS.md` ahead of anything it adds. Rules only Claude Code follows go below that line; with none, the import is the whole point of the file.
-  - `.codex/config.toml` — rules only Codex follows, as `developer_instructions`. Write it once such a rule exists.
-- A repository that already has its own convention keeps it until the user asks to migrate; unrelated work leaves its instruction files alone.
