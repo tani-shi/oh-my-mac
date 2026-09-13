@@ -35,7 +35,7 @@ On an existing Mac, back up `~/.claude/agents/`, `~/.claude/scripts/`, and `~/.c
 | --- | --- |
 | Shell | starship, sheldon, fzf, ripgrep, shellcheck, shfmt |
 | Modern CLI replacements | bat, eza, fd, delta, zoxide |
-| Terminal | iterm2, tmux |
+| Terminal | tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
 | Development | fnm, uv, ruff, terraform, awscli, gcloud-cli |
