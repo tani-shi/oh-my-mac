@@ -1,2 +1,3 @@
 cask "visual-studio-code"
 cask "chatgpt"             # desktop app with the Codex GUI
+cask "iterm2"
