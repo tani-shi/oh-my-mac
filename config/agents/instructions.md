@@ -68,8 +68,7 @@ Comments direct limited reader attention to important details; keep them minimal
 
 - Derive expected results from agreed requirements, confirmed examples, or external specifications, not solely from the current implementation or its output. Resolve discrepancies against those sources.
 - Verify observable results by executing the code and relevant dependencies. Limit stubs and mocks to boundaries impractical to exercise; they do not verify real integration. Source structure, internal calls, and passing tests alone do not establish correctness.
-- Separate current-change verification from retained regression tests. Verify important behavior even when expensive; retain tests that detect requirement violations cheaply and reliably at justified maintenance cost. Consider failure impact, recurrence risk, and existing coverage, not test counts or coverage targets. Temporary checks need not be retained.
-- Apply these criteria when reviewing tests. Within the change's scope, remove or simplify implementation-derived expectations without independent justification, source-text checks unrelated to requirements, redundant cases, and excessive stubs or mocks. Preserve checks of public output whose text or format is a requirement.
+- Apply these criteria when reviewing tests. Within the change's scope, remove or simplify implementation-derived expectations without independent justification, source-text checks unrelated to requirements, redundant cases, and excessive stubs or mocks.
 - Report verification steps, expected and observed results, and unverified behavior; include them in PR descriptions for human audit. Never claim an unperformed check is complete.
 
 ## Documentation
