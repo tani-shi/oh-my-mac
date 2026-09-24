@@ -31,8 +31,6 @@ Use these languages regardless of the prompt's language:
 ## Git
 
 - Switch branches with `git switch` and unstage with `git restore --staged`.
-- Use `git discard` for destructive Git cleanup; it snapshots changes to `refs/discard/*` first.
-- Recover discarded work with `git discard --undo`.
 - Commit only when the user requests it in the current turn.
 - Bundle related changes into a single commit.
 - Use Conventional Commits.
@@ -45,7 +43,6 @@ Use these languages regardless of the prompt's language:
 
 - Use `rm` for generated or temporary files that can be recreated.
 - Use `git rm -r` for tracked files.
-- Use `git discard --untracked` for untracked repository files.
 - Use `trash` for user data without another recovery path.
 
 ## Python

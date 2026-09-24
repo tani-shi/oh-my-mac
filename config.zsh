@@ -29,8 +29,7 @@ configs=(
   "config/starship.toml:$HOME/.config/starship.toml"
   "config/sheldon/plugins.toml:$HOME/.config/sheldon/plugins.toml"
   "config/zshrc:$HOME/.zshrc"
-  "config/git/ignore:$HOME/.config/git/ignore"
-  "config/git/discard.zsh:$HOME/.config/git/discard.zsh")
+  "config/git/ignore:$HOME/.config/git/ignore")
 
 for f in "$SCRIPT_DIR"/config/claude/agents/*.md(N) "$SCRIPT_DIR"/config/claude/scripts/*(.N) "$SCRIPT_DIR"/config/claude/skills/**/*(.N); do
   rel="${f#$SCRIPT_DIR/config/claude/}"
@@ -514,7 +513,6 @@ apply_git_config() {
     "filter.lfs.process:git-lfs filter-process"
     "filter.lfs.required:true"
     "alias.st:status --short"
-    "alias.discard:!zsh ~/.config/git/discard.zsh"
   )
   local entry key expected current
   for entry in "${git_config_keys[@]}"; do
