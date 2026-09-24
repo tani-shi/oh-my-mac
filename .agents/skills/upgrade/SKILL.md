@@ -18,11 +18,11 @@ An explicit `$upgrade` invocation authorizes version research, edits to the sour
 | `config/sheldon/plugins.toml` | Existing remote plugin `tag` and `rev` values |
 | `config/uv/tools.txt` | Existing pinned `@tag` and `@commit` requirements |
 
-Keep dependency membership unchanged. Node, Codex CLI, the config-tools environment, HEAD-tracking uv requirements, Homebrew packages, and Claude Code plugins are outside this workflow. Claude Code is a dependency to assess, not an agent, judge, or workflow host.
+Update only existing pins in the table. Keep dependency membership unchanged.
 
 ## Version selection
 
-Use authoritative registries and upstream releases to find the latest stable versions. Check release notes, security notices, and reported regressions against the behavior used here, including Claude's settings, hooks, plugins and keybindings, and ntn's authentication and API commands. Prefer security fixes and stable updates; leave a pin unchanged when compatibility is uncertain or a relevant regression is documented, and report the reason.
+Use authoritative registries and upstream releases to find the latest stable versions. Check release notes, security notices, and reported regressions for compatibility with this configuration. Prefer security fixes and stable updates; leave a pin unchanged when compatibility is uncertain or a relevant regression is documented, and report the reason.
 
 Keep Sheldon plugins on tags when available and revisions otherwise. Keep pinned uv tools on tags or commits.
 
