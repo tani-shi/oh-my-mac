@@ -20,7 +20,7 @@ install: ## Install tools and apply configuration
 update: ## Update Homebrew packages and apply declared tools and configuration
 	$(MAKE) trust-taps
 	brew bundle --file=Brewfile
-	$(MAKE) install-common
+	$(MAKE) install-common AGENT_SENTINEL_UPGRADE=1
 	brew cleanup
 
 install-common:

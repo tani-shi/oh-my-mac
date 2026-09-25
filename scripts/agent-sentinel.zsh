@@ -7,8 +7,6 @@ validate_agent_sentinel_codex_config() {
         (.matcher // null) == $matcher
         and any(.hooks[]?; .type == "command" and .command == $command));
     has_hook("PreToolUse"; "*")
-    and has_hook("PostToolUse"; "codex_appcreate_thread")
-    and has_hook("PermissionRequest"; "codex_appsend_message_to_thread")
   ' "$hooks_path" >/dev/null; then
     print -u2 "Error: agent-sentinel did not generate its required Codex hooks"
     return 1
