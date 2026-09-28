@@ -274,6 +274,7 @@ remove_claude_orphans() {
   for orphan_file in "$HOME"/.claude/agents/*.md(.N) "$HOME"/.claude/scripts/*(.N) \
     "$HOME"/.claude/skills/**/*(.N); do
     rel="${orphan_file#$HOME/.claude/}"
+    [[ "$rel" == skills/synced/* ]] && continue
     if [[ ! -f "$SCRIPT_DIR/config/claude/$rel" ]]; then
       if [[ "$MODE" == "diff" ]]; then
         echo "Orphan: $orphan_file (no config/claude/$rel)"
@@ -289,6 +290,7 @@ remove_claude_orphans() {
   # parent already took.
   for orphan_dir in "$HOME"/.claude/skills/**/*(/NOn); do
     rel="${orphan_dir#$HOME/.claude/}"
+    [[ "$rel" == skills/synced || "$rel" == skills/synced/* ]] && continue
     if [[ ! -d "$SCRIPT_DIR/config/claude/$rel" ]]; then
       if [[ "$MODE" == "diff" ]]; then
         echo "Orphan: $orphan_dir/ (no config/claude/$rel)"

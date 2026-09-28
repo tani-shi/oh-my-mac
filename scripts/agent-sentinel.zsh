@@ -7,6 +7,7 @@ validate_agent_sentinel_codex_config() {
         (.matcher // null) == $matcher
         and any(.hooks[]?; .type == "command" and .command == $command));
     has_hook("PreToolUse"; "*")
+    and has_hook("PermissionRequest"; "^Bash$")
   ' "$hooks_path" >/dev/null; then
     print -u2 "Error: agent-sentinel did not generate its required Codex hooks"
     return 1
@@ -87,10 +88,10 @@ print_codex_hook_trust_instructions() {
   local state=$1
 
   if [[ "$state" == "pending" ]]; then
-    echo "The generated Codex hook definition changed."
-    echo "Run 'make sync-config', then review and trust the agent-sentinel hook:"
+    echo "The generated Codex hook definitions changed."
+    echo "Run 'make sync-config', then review and trust the agent-sentinel hooks:"
   else
-    echo "Codex hook trust is required. Review and trust the agent-sentinel hook:"
+    echo "Codex hook trust is required. Review and trust the agent-sentinel hooks:"
   fi
   echo "  GUI: Open Settings > Hooks."
   echo "  CLI: Run /hooks."
