@@ -25,7 +25,7 @@ cd ~/dev/oh-my-mac
 make install
 ```
 
-On an existing Mac, back up `~/.claude/agents/`, `~/.claude/scripts/`, and `~/.claude/skills/` first. Install and update delete entries absent from this repository.
+On an existing Mac, back up `~/.claude/agents/`, `~/.claude/scripts/`, and `~/.claude/skills/` first. Install and update delete entries absent from this repository, except externally synced skills under `~/.claude/skills/synced/`.
 
 ## What's Included
 
