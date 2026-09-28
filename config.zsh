@@ -9,21 +9,6 @@ MODE="$1"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/scripts/agent-sentinel.zsh"
 source "$SCRIPT_DIR/scripts/config-tools.zsh"
-CODEX_SKILLS_SRC="$SCRIPT_DIR/config/codex/skills"
-CODEX_SKILLS_DST="$HOME/.agents/skills"
-CODEX_SKILLS_MANIFEST="$CODEX_SKILLS_DST/.oh-my-mac-managed"
-
-is_codex_skill_name() {
-  local name=$1
-  [[ -n "$name" && "$name" != *[^a-z0-9-]* && "$name" != -* && "$name" != *- && "$name" != *--* ]]
-}
-
-is_codex_skill_path() {
-  local path=$1 skill_name="${1%%/*}"
-  [[ "$path" == */* && "$path" != /* && "$path" != */ && "$path" != *//* && "$path" != *$'\n'* ]] || return 1
-  [[ "/$path/" != *"/../"* && "/$path/" != *"/./"* ]] || return 1
-  is_codex_skill_name "$skill_name"
-}
 
 configs=(
   "config/starship.toml:$HOME/.config/starship.toml"
@@ -31,40 +16,20 @@ configs=(
   "config/zshrc:$HOME/.zshrc"
   "config/git/ignore:$HOME/.config/git/ignore")
 
-for f in "$SCRIPT_DIR"/config/claude/agents/*.md(N) "$SCRIPT_DIR"/config/claude/scripts/*(.N) "$SCRIPT_DIR"/config/claude/skills/**/*(.N); do
+for f in "$SCRIPT_DIR"/config/claude/agents/*.md(N) "$SCRIPT_DIR"/config/claude/scripts/*(.N); do
   rel="${f#$SCRIPT_DIR/config/claude/}"
   configs+=("config/claude/$rel:$HOME/.claude/$rel")
 done
 
-for skill_dir in "$CODEX_SKILLS_SRC"/*(/N); do
-  skill_name="${skill_dir:t}"
-  if ! is_codex_skill_name "$skill_name"; then
-    print -u2 "Invalid Codex skill directory: $skill_dir"
-    exit 1
-  fi
-  for f in "$skill_dir"/**/*(.N); do
-    rel="${f#$CODEX_SKILLS_SRC/}"
-    configs+=("config/codex/skills/$rel:$CODEX_SKILLS_DST/$rel")
-  done
-done
-
+# Keys the user file keeps from earlier syncs survive the merge, so keys dropped
+# from the repository must be deleted explicitly.
 JQ_SETTINGS_MERGE='
   .[0] as $user | .[1] as $repo |
-  $user |
-  .hooks = ((.hooks // {} | with_entries(
-    if .key == "UserPromptSubmit" or .key == "TaskCompleted" then
-      .value |= map(
-        .hooks |= map(select(.command != "zsh ~/.claude/scripts/claude-hook.zsh userpromptsubmit"
-          and .command != "zsh ~/.claude/scripts/claude-hook.zsh taskcompleted"))
-        | select(.hooks | length > 0))
-      | select(.value | length > 0)
-    else . end
-  )) * ($repo.hooks // {})) |
+  $user + ($repo | del(.hooks, .env, .permissions)) |
+  .hooks = ((.hooks // {}) * ($repo.hooks // {})) |
   .env = ((.env // {}) * ($repo.env // {})) |
   .permissions = ($repo.permissions // .permissions) |
-  reduce ["includeCoAuthoredBy", "teammateMode", "tui"][] as $k
-    (.; if $repo | has($k) then .[$k] = $repo[$k] else . end) |
-  del(.preferences)
+  del(.preferences, .includeCoAuthoredBy, .skipAutoPermissionPrompt, .env.CLAUDE_CODE_EFFORT_LEVEL)
 '
 
 # null is a meaningful value here, not an absence: Claude Code reads it as an explicit
@@ -133,7 +98,6 @@ trap 'rm -rf "$tmpdir"' EXIT
 diffs=0
 synced=()
 changes=0
-CODEX_SKILLS_DESIRED="$tmpdir/codex-skills-managed"
 GENERATED_CODEX_HOOKS="$tmpdir/codex/hooks.json"
 GENERATED_CODEX_AGENT_SENTINEL_RULES="$tmpdir/codex/rules/agent-sentinel.rules"
 
@@ -188,93 +152,12 @@ sync_instructions() {
   sync_file "$composed" "$dst" "config/agents/instructions.md + ${specific#$SCRIPT_DIR/}"
 }
 
-codex_skill_was_managed() {
-  local expected=$1 managed_path
-  [[ -f "$CODEX_SKILLS_MANIFEST" ]] || return 1
-  while IFS= read -r managed_path || [[ -n "$managed_path" ]]; do
-    if is_codex_skill_path "$managed_path" && [[ "${managed_path%%/*}" == "$expected" ]]; then
-      return 0
-    fi
-  done < "$CODEX_SKILLS_MANIFEST"
-  return 1
-}
-
-codex_skill_file_was_managed() {
-  local expected=$1
-  [[ -f "$CODEX_SKILLS_MANIFEST" ]] && grep -Fqx -- "$expected" "$CODEX_SKILLS_MANIFEST"
-}
-
-codex_skill_path_has_unsafe_parent() {
-  local parent="${1:h}"
-  while [[ "$parent" != "$CODEX_SKILLS_DST" ]]; do
-    if [[ "$parent" == / || -L "$parent" || (-e "$parent" && ! -d "$parent") ]]; then
-      return 0
-    fi
-    parent="${parent:h}"
-  done
-  return 1
-}
-
-prepare_codex_skills() {
-  local skill_dir skill_name source rel destination managed_path orphan
-  local discovered="$tmpdir/codex-skills-discovered"
-  : > "$discovered"
-  for skill_dir in "$CODEX_SKILLS_SRC"/*(/N); do
-    skill_name="${skill_dir:t}"
-    destination="$CODEX_SKILLS_DST/$skill_name"
-    if [[ -L "$destination" || (-e "$destination" && ! -d "$destination") ]]; then
-      print -u2 "Unsafe Codex skill destination: $destination"
-      return 1
-    fi
-    if [[ -d "$destination" ]] && ! codex_skill_was_managed "$skill_name"; then
-      print -u2 "Unmanaged Codex skill already exists: $destination"
-      return 1
-    fi
-    for source in "$skill_dir"/**/*(.N); do
-      rel="${source#$CODEX_SKILLS_SRC/}"
-      if ! is_codex_skill_path "$rel"; then
-        print -u2 "Invalid Codex skill file: $source"
-        return 1
-      fi
-      if codex_skill_path_has_unsafe_parent "$CODEX_SKILLS_DST/$rel"; then
-        print -u2 "Unsafe Codex skill destination: $CODEX_SKILLS_DST/$rel"
-        return 1
-      fi
-      destination="$CODEX_SKILLS_DST/$rel"
-      if [[ -L "$destination" || -d "$destination" ]]; then
-        print -u2 "Unsafe Codex skill file destination: $destination"
-        return 1
-      fi
-      if [[ -e "$destination" ]] && ! codex_skill_file_was_managed "$rel"; then
-        print -u2 "Unmanaged Codex skill file already exists: $destination"
-        return 1
-      fi
-      print -r -- "$rel" >> "$discovered"
-    done
-  done
-  LC_ALL=C sort "$discovered" > "$CODEX_SKILLS_DESIRED"
-
-  if [[ -f "$CODEX_SKILLS_MANIFEST" ]]; then
-    while IFS= read -r managed_path || [[ -n "$managed_path" ]]; do
-      is_codex_skill_path "$managed_path" || continue
-      grep -Fqx -- "$managed_path" "$CODEX_SKILLS_DESIRED" && continue
-      orphan="$CODEX_SKILLS_DST/$managed_path"
-      if codex_skill_path_has_unsafe_parent "$orphan" || [[ -d "$orphan" && ! -L "$orphan" ]]; then
-        print -u2 "Unsafe managed Codex skill file: $orphan"
-        return 1
-      fi
-    done < "$CODEX_SKILLS_MANIFEST"
-  fi
-}
-
-# Claude Code can keep using removed agents, scripts, and skills from ~/.claude,
+# Claude Code can keep using removed agents and scripts from ~/.claude,
 # so orphans must be deleted, not merely left unsynced.
 remove_claude_orphans() {
-  local orphan_file orphan_dir rel
-  for orphan_file in "$HOME"/.claude/agents/*.md(.N) "$HOME"/.claude/scripts/*(.N) \
-    "$HOME"/.claude/skills/**/*(.N); do
+  local orphan_file rel
+  for orphan_file in "$HOME"/.claude/agents/*.md(.N) "$HOME"/.claude/scripts/*(.N); do
     rel="${orphan_file#$HOME/.claude/}"
-    [[ "$rel" == skills/synced/* ]] && continue
     if [[ ! -f "$SCRIPT_DIR/config/claude/$rel" ]]; then
       if [[ "$MODE" == "diff" ]]; then
         echo "Orphan: $orphan_file (no config/claude/$rel)"
@@ -286,64 +169,6 @@ remove_claude_orphans() {
       fi
     fi
   done
-  # On visits deepest-first: parent-first would report a nested directory its
-  # parent already took.
-  for orphan_dir in "$HOME"/.claude/skills/**/*(/NOn); do
-    rel="${orphan_dir#$HOME/.claude/}"
-    [[ "$rel" == skills/synced || "$rel" == skills/synced/* ]] && continue
-    if [[ ! -d "$SCRIPT_DIR/config/claude/$rel" ]]; then
-      if [[ "$MODE" == "diff" ]]; then
-        echo "Orphan: $orphan_dir/ (no config/claude/$rel)"
-        diffs=$((diffs + 1))
-      else
-        # rmdir would fail on a .DS_Store, which the file loop's (.N) glob skips.
-        rm -rf "$orphan_dir"
-        echo "Removed: $orphan_dir/"
-        changes=$((changes + 1))
-      fi
-    fi
-  done
-}
-
-# ~/.agents/skills is shared with independently installed skills, so only files
-# recorded by this repository are eligible for removal.
-reconcile_codex_skills() {
-  local managed_path orphan skill_name orphan_dir
-  local -A affected_skills
-  if [[ -f "$CODEX_SKILLS_MANIFEST" ]]; then
-    while IFS= read -r managed_path || [[ -n "$managed_path" ]]; do
-      if ! is_codex_skill_path "$managed_path"; then
-        echo "Ignored invalid managed Codex skill file: $managed_path"
-        continue
-      fi
-      grep -Fqx -- "$managed_path" "$CODEX_SKILLS_DESIRED" && continue
-      skill_name="${managed_path%%/*}"
-      affected_skills[$skill_name]=1
-      orphan="$CODEX_SKILLS_DST/$managed_path"
-      if [[ ! -e "$orphan" && ! -L "$orphan" ]]; then
-        continue
-      fi
-      if [[ "$MODE" == "diff" ]]; then
-        echo "Orphan: $orphan (no config/codex/skills/$managed_path)"
-        diffs=$((diffs + 1))
-      else
-        rm -f "$orphan"
-        echo "Removed: $orphan"
-        changes=$((changes + 1))
-      fi
-    done < "$CODEX_SKILLS_MANIFEST"
-  fi
-
-  if [[ "$MODE" == "sync" ]]; then
-    for skill_name in "${(@k)affected_skills}"; do
-      for orphan_dir in "$CODEX_SKILLS_DST/$skill_name"/**/*(/NOn); do
-        rmdir "$orphan_dir" 2>/dev/null || true
-      done
-      rmdir "$CODEX_SKILLS_DST/$skill_name" 2>/dev/null || true
-    done
-  fi
-
-  sync_file "$CODEX_SKILLS_DESIRED" "$CODEX_SKILLS_MANIFEST" "managed Codex skill files manifest"
 }
 
 run_post_sync_hooks() {
@@ -601,7 +426,6 @@ apply_macos_defaults() {
 
 verify_agent_sentinel
 prepare_agent_sentinel_codex_config
-prepare_codex_skills
 sync_files
 codex_hook_changed=0
 if agent_sentinel_codex_hook_changed "$CODEX_HOOKS" "$GENERATED_CODEX_HOOKS"; then
@@ -616,7 +440,6 @@ sync_file "$GENERATED_CODEX_AGENT_SENTINEL_RULES" "$CODEX_AGENT_SENTINEL_RULES" 
 sync_instructions "$SCRIPT_DIR/config/claude/instructions.md" "$HOME/.claude/CLAUDE.md"
 sync_instructions "$SCRIPT_DIR/config/codex/instructions.md" "$HOME/.codex/AGENTS.md"
 remove_claude_orphans
-reconcile_codex_skills
 merge_json_config "Claude Code settings" "$CLAUDE_SETTINGS" "$REPO_SETTINGS" "$JQ_SETTINGS_MERGE" '{}'
 merge_json_config "Claude Code keybindings" "$CLAUDE_KEYBINDINGS" "$REPO_KEYBINDINGS" "$JQ_KEYBINDINGS_MERGE" '{"bindings":[]}'
 merge_codex_config

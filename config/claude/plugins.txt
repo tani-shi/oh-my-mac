@@ -1,3 +1,0 @@
-code-review@claude-plugins-official
-context7@claude-plugins-official
-playwright@claude-plugins-official

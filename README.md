@@ -25,7 +25,9 @@ cd ~/dev/oh-my-mac
 make install
 ```
 
-On an existing Mac, back up `~/.claude/agents/`, `~/.claude/scripts/`, and `~/.claude/skills/` first. Install and update delete entries absent from this repository, except externally synced skills under `~/.claude/skills/synced/`.
+On an existing Mac, back up `~/.claude/agents/` and `~/.claude/scripts/` first. Install and update delete entries absent from this repository.
+
+Claude Code skills and plugins are managed on the claude.ai account and synced to terminal sessions.
 
 ## What's Included
 
@@ -83,19 +85,11 @@ Apps in this list use their own updaters. Both `make install` and `make update` 
 | ms-dotnettools.csharp | C# language support |
 | ms-dotnettools.csdevkit | C# Dev Kit |
 
-### Claude Code Plugins ([config/claude/plugins.txt](config/claude/plugins.txt))
-
-| Plugin | Registry |
-| --- | --- |
-| code-review | claude-plugins-official |
-| context7 | claude-plugins-official |
-| playwright | claude-plugins-official |
-
 ## Usage
 
 | Command | Description |
 | --- | --- |
-| `make install` | Install packages + sync config + install plugins |
+| `make install` | Install packages + sync config |
 | `make update` | Update Homebrew packages + apply declared tools and config |
 
 For pinned version updates, run `$upgrade` in Codex. Review and merge the PR, pull the changes, then run `make update`.

@@ -1,4 +1,4 @@
-.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps install-config-tools install-uv-tools install-claude sync-claude-plugins install-node install-ntn install-codex
+.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps install-config-tools install-uv-tools install-claude install-node install-ntn install-codex
 
 .DEFAULT_GOAL := help
 
@@ -29,7 +29,6 @@ install-common:
 	$(MAKE) install-config-tools
 	$(MAKE) sync-config
 	$(MAKE) install-claude
-	$(MAKE) sync-claude-plugins
 	$(MAKE) install-node
 	$(MAKE) install-ntn
 	$(MAKE) install-codex
@@ -81,33 +80,6 @@ install-claude:
 			exit 1; \
 		fi; \
 	fi
-
-sync-claude-plugins:
-	@if ! command -v claude >/dev/null 2>&1; then \
-		echo "Error: claude not found" >&2; exit 1; \
-	fi
-	@if [ ! -f config/claude/plugins.txt ]; then \
-		echo "Error: config/claude/plugins.txt missing" >&2; exit 1; \
-	fi
-	@settings="$$HOME/.claude/settings.json"; \
-	while IFS= read -r plugin || [ -n "$$plugin" ]; do \
-		[ -z "$$plugin" ] && continue; \
-		if [ -f "$$settings" ] && jq -e --arg p "$$plugin" '.enabledPlugins[$$p]' "$$settings" >/dev/null 2>&1; then \
-			continue; \
-		fi; \
-		echo "Installing plugin: $$plugin"; \
-		claude plugin install "$$plugin" || exit 1; \
-	done < config/claude/plugins.txt; \
-	installed_json=$$(claude plugin list --json) || exit 1; \
-	installed=$$(printf '%s\n' "$$installed_json" | jq -r '.[] | select(.scope == "user") | .id') || exit 1; \
-	printf '%s\n' "$$installed" | while IFS= read -r plugin; do \
-		[ -z "$$plugin" ] && continue; \
-		if grep -qxF "$$plugin" config/claude/plugins.txt; then \
-			continue; \
-		fi; \
-		echo "Uninstalling plugin: $$plugin"; \
-		claude plugin uninstall "$$plugin" -y || exit 1; \
-	done
 
 install-node:
 	@if ! command -v fnm >/dev/null 2>&1; then \

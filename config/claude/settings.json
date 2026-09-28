@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "hooks": {
     "Notification": [
       {
@@ -32,9 +33,9 @@
       }
     ]
   },
-  "includeCoAuthoredBy": false,
+  "attribution": false,
+  "language": "Japanese",
   "env": {
-    "CLAUDE_CODE_EFFORT_LEVEL": "medium",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "DISABLE_AUTOUPDATER": "1",
     "ENABLE_PROMPT_CACHING_1H": "1"

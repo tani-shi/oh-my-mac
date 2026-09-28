@@ -11,6 +11,5 @@
   - `config/claude/keybindings.json` → merged into `~/.claude/keybindings.json`
   - `config/claude/scripts/*` → synced to `~/.claude/scripts/`
   - `config/claude/agents/*.md` → synced to `~/.claude/agents/` (reusable subagents / Agent Teams teammates)
-  - `config/claude/skills/*/SKILL.md` → synced to `~/.claude/skills/` (personal skills, auto-loaded as `<name>@skills-dir`)
-  - `config/claude/plugins.txt` → the full set of user-scope plugins; `make sync-claude-plugins` installs what is listed and uninstalls what is not
+- Skills and plugins are managed on the claude.ai account and synced by Claude Code, not by this repository.
 - Repository dependency upgrades run through the Codex-only `$upgrade` skill. Claude Code remains a managed upgrade target but does not host that workflow.
