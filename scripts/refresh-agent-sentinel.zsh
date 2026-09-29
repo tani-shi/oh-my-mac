@@ -34,9 +34,9 @@ if agent_sentinel_codex_hook_changed "$CODEX_HOOKS" "$generated_codex"; then
   codex_hook_changed=1
 fi
 
-policy=$(codex execpolicy check --pretty --rules "$generated_rules" -- ssh host)
-if ! print -r -- "$policy" | jq -e '.decision == "prompt"' >/dev/null; then
-  print -u2 "Error: agent-sentinel rules do not prompt for ssh host"
+policy=$(codex execpolicy check --pretty --rules "$generated_rules" -- sudo id)
+if ! print -r -- "$policy" | jq -e '.decision == "forbidden"' >/dev/null; then
+  print -u2 "Error: agent-sentinel rules do not forbid sudo id"
   exit 1
 fi
 
