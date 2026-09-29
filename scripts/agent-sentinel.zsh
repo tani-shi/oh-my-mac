@@ -22,7 +22,7 @@ validate_agent_sentinel_codex_config() {
     /^[[:space:]]*prefix_rule[[:space:]]*\(/ { rules++ }
     /^[[:space:]]*decision[[:space:]]*=/ {
       decisions++
-      if ($0 !~ /^[[:space:]]*decision[[:space:]]*=[[:space:]]*"(prompt|forbidden)"[[:space:]]*,?[[:space:]]*(#.*)?$/) {
+      if ($0 !~ /^[[:space:]]*decision[[:space:]]*=[[:space:]]*"forbidden"[[:space:]]*,?[[:space:]]*(#.*)?$/) {
         unsafe++
       }
     }
@@ -30,7 +30,7 @@ validate_agent_sentinel_codex_config() {
       exit rules == 0 || decisions != rules || unsafe != 0
     }
   ' "$rules_path"; then
-    print -u2 "Error: every agent-sentinel Codex rule must explicitly use prompt or forbidden"
+    print -u2 "Error: every agent-sentinel Codex rule must explicitly use forbidden"
     return 1
   fi
 }
