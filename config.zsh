@@ -32,22 +32,6 @@ JQ_SETTINGS_MERGE='
   del(.preferences, .includeCoAuthoredBy, .skipAutoPermissionPrompt, .env.CLAUDE_CODE_EFFORT_LEVEL)
 '
 
-# null is a meaningful value here, not an absence: Claude Code reads it as an explicit
-# unbind of a default key, so the merge preserves it instead of dropping the entry.
-JQ_KEYBINDINGS_MERGE='
-  .[0] as $user | .[1] as $repo |
-  $user | .bindings = [
-    .bindings[] | . as $ub |
-    ($repo.bindings | map(select(.context == $ub.context)) | first // null) as $rb |
-    if $rb then .bindings = (.bindings * $rb.bindings)
-    else . end
-  ] + [
-    $repo.bindings[] | select(
-      .context as $c | $user.bindings | map(.context) | index($c) | not
-    )
-  ]
-'
-
 JQ_ITERM_PROFILE_MERGE='
   def merge($base; $local; $repo):
     reduce (((($base | keys) + ($local | keys) + ($repo | keys)) | unique)[]) as $key
@@ -465,7 +449,7 @@ sync_instructions "$SCRIPT_DIR/config/claude/instructions.md" "$HOME/.claude/CLA
 sync_instructions "$SCRIPT_DIR/config/codex/instructions.md" "$HOME/.codex/AGENTS.md"
 remove_claude_orphans
 merge_json_config "Claude Code settings" "$CLAUDE_SETTINGS" "$REPO_SETTINGS" "$JQ_SETTINGS_MERGE" '{}'
-merge_json_config "Claude Code keybindings" "$CLAUDE_KEYBINDINGS" "$REPO_KEYBINDINGS" "$JQ_KEYBINDINGS_MERGE" '{"bindings":[]}'
+sync_file "$REPO_KEYBINDINGS" "$CLAUDE_KEYBINDINGS" "config/claude/keybindings.json"
 merge_codex_config
 sync_iterm_profile
 if [[ -f "$REPO_VSCODE_SETTINGS" ]]; then
