@@ -135,13 +135,7 @@ In **Settings → General → tmux**:
 - **Attaching**: Tabs in the attaching window
 - **Automatically bury the tmux client session after connecting**: ON
 
-In **Settings → Appearance → General**:
-
-- **Auto-hide menu bar in non-native fullscreen**: ON
-- **Exclude from Dock and ⌘-Tab Application Switcher**: ON
-- **…but only if all windows are hotkey windows**: ON
-
-![Appearance settings](docs/iterm2-appearance-manual-settings.png)
+Allow notifications for iTerm2 in **System Settings → Notifications** so Claude Code notifications appear.
 
 ### macOS
 
