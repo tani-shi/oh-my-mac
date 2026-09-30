@@ -69,6 +69,7 @@ Apps in this list use their own updaters. Both `make install` and `make update` 
 | `config/codex/config.toml` | `~/.codex/config.toml` |
 | `config/vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
 | `config/iterm2/profile.json` | `~/Library/Application Support/iTerm2/DynamicProfiles/profile.json` |
+| `config/edge/policies.mobileconfig` | Microsoft Edge policies (user configuration profile, approved in System Settings) |
 
 ### uv Tools ([config/uv/tools.txt](config/uv/tools.txt))
 
@@ -117,6 +118,17 @@ codex login
 ```
 
 Trust the installed hooks in **Settings → Hooks** (Codex app) or `/hooks` (CLI).
+
+### Microsoft Edge (Claude in Chrome)
+
+Edge is the dedicated browser for Claude in Chrome, separate from everyday Chrome sessions.
+
+1. `make install` opens the Edge policy profile. Approve it in **System Settings → General → Device Management**. `make sync-config` reopens it whenever the policies change.
+2. Install the [Claude extension](https://chromewebstore.google.com/detail/fcoeoabgfenejglbffodgkkbkcdhcgfn) in Edge (allow extensions from other stores) and sign in.
+3. Remove the extension from Chrome so Edge is the only connected browser.
+4. In Claude Code, run `/chrome` and select **Enabled by default**.
+
+Keep Edge running while using browser tools. Claude Code does not launch it.
 
 ### iTerm2
 
