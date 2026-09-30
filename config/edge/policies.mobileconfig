@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadDisplayName</key>
+  <string>Microsoft Edge Policies</string>
+  <key>PayloadIdentifier</key>
+  <string>local.oh-my-mac.edge</string>
+  <key>PayloadScope</key>
+  <string>User</string>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadUUID</key>
+  <string>47B0C8A3-A6BD-4D82-93D5-69A3EB4B6D31</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>PayloadDisplayName</key>
+      <string>Microsoft Edge</string>
+      <key>PayloadIdentifier</key>
+      <string>local.oh-my-mac.edge.policies</string>
+      <key>PayloadType</key>
+      <string>com.microsoft.Edge</string>
+      <key>PayloadUUID</key>
+      <string>52F1465B-C139-4DEE-A19E-68134ACEEEEA</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>HideFirstRunExperience</key>
+      <true/>
+      <key>DefaultBrowserSettingEnabled</key>
+      <false/>
+      <key>DiagnosticData</key>
+      <integer>0</integer>
+      <key>PersonalizationReportingEnabled</key>
+      <false/>
+      <key>BrowserSignin</key>
+      <integer>0</integer>
+      <key>TranslateEnabled</key>
+      <false/>
+      <key>HubsSidebarEnabled</key>
+      <false/>
+      <key>Microsoft365CopilotChatIconEnabled</key>
+      <false/>
+      <key>EdgeShoppingAssistantEnabled</key>
+      <false/>
+      <key>ShowMicrosoftRewards</key>
+      <false/>
+      <key>FavoritesBarEnabled</key>
+      <false/>
+      <key>NewTabPageContentEnabled</key>
+      <false/>
+      <key>NewTabPageQuickLinksEnabled</key>
+      <false/>
+      <key>NewTabPageHideDefaultTopSites</key>
+      <true/>
+      <key>NewTabPageAllowedBackgroundTypes</key>
+      <integer>3</integer>
+      <key>NewTabPageAppLauncherEnabled</key>
+      <false/>
+      <key>NewTabPageBingChatEnabled</key>
+      <false/>
+      <key>CopilotNewTabPageEnabled</key>
+      <false/>
+    </dict>
+  </array>
+</dict>
+</plist>

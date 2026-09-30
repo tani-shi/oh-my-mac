@@ -391,6 +391,30 @@ apply_duti() {
   done < "$duti_file"
 }
 
+apply_edge_policies() {
+  local profile="$SCRIPT_DIR/config/edge/policies.mobileconfig"
+  local identifier current expected
+  identifier=$(plutil -extract PayloadIdentifier raw -o - "$profile")
+  expected=$(plutil -convert json -o - "$profile" |
+    jq -S '.PayloadContent[0] | with_entries(select(.key | startswith("Payload") | not))')
+  current=$(profiles show -output stdout-xml | plutil -convert json -o - - |
+    jq -S --arg id "$identifier" \
+      '[.[][] | select(.ProfileIdentifier == $id) | .ProfileItems[0].PayloadContent][0]')
+  [[ "$current" == "$expected" ]] && return 0
+  if [[ "$MODE" == "diff" ]]; then
+    echo ""
+    echo "Edge policies ($identifier):"
+    diff <(echo "$current") <(echo "$expected") || true
+    diffs=$((diffs + 1))
+  else
+    # macOS requires approving profile installs in System Settings.
+    open "$profile"
+    open "x-apple.systempreferences:com.apple.Profiles-Settings.extension"
+    echo "Approve Edge policies in System Settings > General > Device Management"
+    changes=$((changes + 1))
+  fi
+}
+
 apply_macos_defaults() {
   local -a macos_defaults
   macos_defaults=(
@@ -450,6 +474,7 @@ fi
 install_vscode_extensions
 apply_git_config
 apply_duti
+apply_edge_policies
 apply_macos_defaults
 run_post_sync_hooks
 
