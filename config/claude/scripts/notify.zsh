@@ -1,27 +1,29 @@
 #!/bin/zsh
-# Claude Code hook: post a macOS notification describing the event.
+# Claude Code hook: emit an OSC 9 desktop notification through Claude Code.
 # Usage: notify.zsh <stop|notification>  (hook JSON on stdin)
 #
-# osascript exits right after posting. terminal-notifier stays resident per
-# notification and exhausted launchservicesd's client queues (see c7859c4).
+# Hooks have no controlling terminal, so the sequence is returned in
+# terminalSequence for Claude Code to write. iTerm2 posts it and reveals the
+# emitting tab on click; its "Suppress Alerts in Active Session" profile
+# setting drops it while that tab is in front. preferredNotifChannel is
+# notifications_disabled, so these are the only notifications.
 
 event="${1:?event required: stop|notification}"
 input="$(cat)"
 
 case "$event" in
   stop)
-    # The launching terminal is already in front, so the reply is visible.
-    front=$(lsappinfo info -only bundleid "$(lsappinfo front)" 2>/dev/null)
-    front="${${front#*=\"}%\"}"
-    [[ -n "$__CFBundleIdentifier" && "$front" == "$__CFBundleIdentifier" ]] && exit 0
     body=$(jq -r '.last_assistant_message // ""' <<<"$input" 2>/dev/null)
     [[ -n "$body" ]] || body="Task completed"
-    sound="Glass"
     ;;
   notification)
+    # idle_prompt only repeats a Stop notification about 60 seconds later.
+    case "$(jq -r '.notification_type // ""' <<<"$input" 2>/dev/null)" in
+      permission_prompt|elicitation_dialog|elicitation_url_dialog|agent_needs_input) ;;
+      *) exit 0 ;;
+    esac
     body=$(jq -r '.message // ""' <<<"$input" 2>/dev/null)
     [[ -n "$body" ]] || body="Claude is waiting for your input"
-    sound="Funk"
     ;;
   *)
     print -u2 "Unknown event: $event"
@@ -30,13 +32,9 @@ case "$event" in
 esac
 
 cwd=$(jq -r '.cwd // ""' <<<"$input" 2>/dev/null)
-title="${${cwd:-$PWD}:t}"
-body="${(j: :)${=body}}"
+body="${${cwd:-$PWD}:t}: ${(j: :)${=body}}"
+# Control characters would end or corrupt the OSC sequence.
+body="${body//[[:cntrl:]]/}"
 (( ${#body} > 160 )) && body="${body:0:160}…"
 
-osascript \
-  -e 'on run argv' \
-  -e 'display notification (item 1 of argv) with title (item 2 of argv) sound name (item 3 of argv)' \
-  -e 'end run' \
-  "$body" "$title" "$sound" 2>/dev/null
-exit 0
+jq -nc --arg seq $'\e]9;'"$body"$'\a' '{terminalSequence: $seq}'

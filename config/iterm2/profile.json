@@ -6,15 +6,10 @@
 
       "Normal Font": "JetBrainsMonoNFM-Regular 12",
 
-      "Window Type": 1,
+      "Window Type": 0,
       "Screen": -2,
 
-      "Has Hotkey": true,
-      "HotKey Key Code": 49,
-      "HotKey Characters": "\u00a0",
-      "HotKey Characters Ignoring Modifiers": " ",
-      "HotKey Modifier Flags": 524288,
-      "HotKey Window Animates": false,
+      "Has Hotkey": false,
 
       "Allow Title Setting": true,
       "Title Components": 1,
@@ -24,6 +19,11 @@
       "Scrollback Lines": 100000,
       "Mouse Reporting": true,
       "Silence Bell": true,
+      "BM Growl": true,
+      "Send Terminal Generated Alerts": true,
+      "Send Bell Alert": false,
+      "Send Session Ended Alert": false,
+      "Suppress Alerts in Active Session": true,
       "Prompt Before Closing 2": false,
 
       "Keyboard Map": {

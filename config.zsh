@@ -32,6 +32,9 @@ JQ_SETTINGS_MERGE='
   del(.preferences, .includeCoAuthoredBy, .skipAutoPermissionPrompt, .env.CLAUDE_CODE_EFFORT_LEVEL)
 '
 
+# iTerm2 rewrites a Rewritable dynamic profile with only the keys that differ
+# from its stored profile, so a key missing from the installed file is
+# unchanged, not deleted.
 JQ_ITERM_PROFILE_MERGE='
   def merge($base; $local; $repo):
     reduce (((($base | keys) + ($local | keys) + ($repo | keys)) | unique)[]) as $key
@@ -48,10 +51,10 @@ JQ_ITERM_PROFILE_MERGE='
           $local[$key];
           $repo[$key]
         )
-        elif ($local_has == $base_has)
-          and (($local_has | not) or $local[$key] == $base[$key])
-        then if $repo_has then .[$key] = $repo[$key] else . end
-        else if $local_has then .[$key] = $local[$key] else . end
+        elif $local_has and (($base_has | not) or $local[$key] != $base[$key])
+        then .[$key] = $local[$key]
+        elif $repo_has then .[$key] = $repo[$key]
+        else .
         end
       );
 
@@ -234,7 +237,11 @@ sync_iterm_profile() {
   desired_sans_guid=$(jq -S "$strip_machine_specific_guid" "$merged_profile")
   current_sans_guid=""
   if [[ -f "$ITERM_PROFILE_DST" ]]; then
-    current_sans_guid=$(jq -S "$strip_machine_specific_guid" "$ITERM_PROFILE_DST")
+    # Merging the installed file onto the baseline restores the keys iTerm2
+    # omitted, so its rewrites alone do not count as a difference.
+    current_sans_guid=$(jq -s "$JQ_ITERM_PROFILE_MERGE" \
+      "$base_profile" "$ITERM_PROFILE_DST" "$base_profile" \
+      | jq -S "$strip_machine_specific_guid")
   fi
   if [[ "$desired_sans_guid" != "$current_sans_guid" ]]; then
     if [[ "$MODE" == "diff" ]]; then
@@ -403,6 +410,11 @@ apply_macos_defaults() {
   local -a macos_defaults
   macos_defaults=(
     "NSGlobalDomain:NSAutomaticWindowAnimationsEnabled:bool:false"
+    "com.googlecode.iterm2:SimpleNotifications:bool:true"
+    "com.googlecode.iterm2:Hotkey:bool:true"
+    "com.googlecode.iterm2:HotkeyCode:int:49"
+    "com.googlecode.iterm2:HotkeyChar:int:32"
+    "com.googlecode.iterm2:HotkeyModifiers:int:524288"
   )
   local entry domain rest key type expected current norm_expected
   for entry in "${macos_defaults[@]}"; do
