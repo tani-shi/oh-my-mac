@@ -41,6 +41,10 @@
     "DISABLE_AUTOUPDATER": "1",
     "ENABLE_PROMPT_CACHING_1H": "1"
   },
+  "statusLine": {
+    "type": "command",
+    "command": "zsh ~/.claude/scripts/statusline.zsh"
+  },
   "teammateMode": "tmux",
   "tui": "fullscreen",
   "permissions": {
