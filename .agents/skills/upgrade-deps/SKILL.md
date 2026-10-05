@@ -1,15 +1,16 @@
 ---
-name: upgrade
-description: Research pinned dependency updates and create a pull request for this repository. Use only when explicitly invoked as $upgrade.
+name: upgrade-deps
+description: Research pinned dependency updates and create a pull request for this repository. Use only when explicitly invoked as $upgrade-deps in Codex or /upgrade-deps in Claude Code.
+disable-model-invocation: true
 ---
 
-# Upgrade
+# Upgrade Deps
 
 Create one reviewed pull request updating the repository's pinned dependencies. The user reviews and merges it, then applies the merged checkout with `make update`.
 
 ## Scope
 
-An explicit `$upgrade` invocation authorizes version research, edits to the sources below, a commit, push, and pull request creation. The workflow changes repository declarations only; package installation, configuration sync, and merge are outside its scope.
+An explicit invocation authorizes version research, edits to the sources below, a commit, push, and pull request creation. The workflow changes repository declarations only; package installation, configuration sync, and merge are outside its scope.
 
 | Source | Allowed changes |
 | --- | --- |

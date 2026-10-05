@@ -1,7 +1,0 @@
-interface:
-  display_name: "Upgrade"
-  short_description: "Research pinned updates and create a pull request"
-  default_prompt: "Use $upgrade to research pinned dependency updates and create a pull request for human review."
-
-policy:
-  allow_implicit_invocation: false
