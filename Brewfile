@@ -31,6 +31,7 @@ cask "font-jetbrains-mono-nerd-font"
 
 # Development
 brew "fnm"
+brew "direnv"
 brew "uv"
 brew "ruff"
 brew "hashicorp/tap/terraform"
