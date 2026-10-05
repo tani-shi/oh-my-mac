@@ -27,7 +27,7 @@ make install
 
 On an existing Mac, back up `~/.claude/agents/` and `~/.claude/scripts/` first. Install and update delete entries absent from this repository.
 
-Claude Code skills and plugins are managed on the claude.ai account and synced to terminal sessions.
+User-level Claude Code skills and plugins are managed on the claude.ai account and synced to terminal sessions.
 
 ## What's Included
 
@@ -93,7 +93,7 @@ Apps in this list use their own updaters. Both `make install` and `make update` 
 | `make install` | Install packages + sync config |
 | `make update` | Update Homebrew packages + apply declared tools and config |
 
-For pinned version updates, run `$upgrade` in Codex. Review and merge the PR, pull the changes, then run `make update`.
+For pinned version updates, run `$upgrade-deps` in Codex or `/upgrade-deps` in Claude Code. Review and merge the PR, pull the changes, then run `make update`.
 
 ## Post-install Setup
 

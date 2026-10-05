@@ -8,6 +8,7 @@ This repository configures a macOS workstation.
 - `config/agents/instructions.md` contains user-global CLI instructions. `config/claude/instructions.md` and `config/codex/instructions.md` add CLI-specific instructions.
 - These instructions apply in every repository. This repository's rules belong in `AGENTS.md`.
 - Use `make diff-config` to inspect configuration changes and `make sync-config` to apply them separately from installation.
+- Repository skills live in `.agents/skills/`. `.claude/skills` is a symlink to it so Claude Code loads the same skills.
 - Authentication belongs in the tools' local auth storage or environment, never in this repository.
 
 ## Dependency versioning
