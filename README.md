@@ -40,7 +40,7 @@ Claude Code skills and plugins are managed on the claude.ai account and synced t
 | Terminal | tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, uv, ruff, terraform, awscli, gcloud-cli |
+| Development | fnm, direnv, uv, ruff, terraform, awscli, gcloud-cli |
 | Git / GitHub | gh, git-lfs |
 
 ### GUI Apps ([Brewfile.install-only](config/homebrew/Brewfile.install-only))

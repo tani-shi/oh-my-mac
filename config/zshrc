@@ -54,6 +54,8 @@ alias top="btop"
 
 eval "$(zoxide init zsh)"
 
+eval "$(direnv hook zsh)"
+
 export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
 
 # iTerm2 tab title: show current directory basename
