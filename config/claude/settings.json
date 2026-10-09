@@ -34,6 +34,7 @@
     ]
   },
   "attribution": false,
+  "enableArtifact": false,
   "preferredNotifChannel": "notifications_disabled",
   "language": "Japanese",
   "env": {
