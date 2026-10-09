@@ -2,7 +2,7 @@
   "chat.disableAIFeatures": true,
   "security.workspace.trust.enabled": false,
   "extensions.ignoreRecommendations": true,
-  "extensions.autoUpdate": false,
+  "extensions.autoUpdate": "off",
   "extensions.autoCheckUpdates": false,
   "update.mode": "manual",
   "telemetry.telemetryLevel": "off",
