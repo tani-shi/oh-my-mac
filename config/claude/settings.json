@@ -47,6 +47,9 @@
   },
   "teammateMode": "tmux",
   "tui": "fullscreen",
+  "skillOverrides": {
+    "auto-mode-setup": "off"
+  },
   "permissions": {
     "allow": [
       "Glob",
