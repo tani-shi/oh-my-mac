@@ -410,6 +410,10 @@ apply_macos_defaults() {
   local -a macos_defaults
   macos_defaults=(
     "NSGlobalDomain:NSAutomaticWindowAnimationsEnabled:bool:false"
+    "NSGlobalDomain:NSQuitAlwaysKeepsWindows:bool:true"
+    # Both false selects "Use System Window Restoration Setting".
+    "com.googlecode.iterm2:OpenNoWindowsAtStartup:bool:false"
+    "com.googlecode.iterm2:OpenArrangementAtStartup:bool:false"
     "com.googlecode.iterm2:SimpleNotifications:bool:true"
     "com.googlecode.iterm2:Hotkey:bool:true"
     "com.googlecode.iterm2:HotkeyCode:int:49"
