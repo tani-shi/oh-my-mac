@@ -1,4 +1,4 @@
-.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps install-config-tools install-uv-tools install-claude install-node install-ntn install-codex
+.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps install-config-tools install-uv-tools install-claude install-node install-ntn install-codex check-trust fix-cert-pem
 
 .DEFAULT_GOAL := help
 
@@ -32,6 +32,12 @@ install-common:
 	$(MAKE) install-node
 	$(MAKE) install-ntn
 	$(MAKE) install-codex
+
+check-trust: ## Check whether CLI tools still trust the compromised eMudhra CA
+	@./scripts/emudhra.zsh check
+
+fix-cert-pem: ## Remove the compromised eMudhra roots from the macOS CLI trust store (sudo)
+	@./scripts/emudhra.zsh fix
 
 refresh-agent-sentinel:
 	$(MAKE) install-uv-tools AGENT_SENTINEL_UPGRADE=1
