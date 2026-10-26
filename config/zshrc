@@ -11,6 +11,8 @@ eval "$(sheldon source)"
 
 eval "$(fnm env --use-on-cd --shell zsh)"
 
+export TENV_AUTO_INSTALL=true
+
 export PATH="$HOME/.local/bin:$PATH"
 
 pip() {

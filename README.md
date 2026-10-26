@@ -40,7 +40,7 @@ User-level Claude Code skills and plugins are managed on the claude.ai account a
 | Terminal | tmux |
 | Utilities | jq, sqlite, tree, btop, duti |
 | Font | font-jetbrains-mono-nerd-font |
-| Development | fnm, direnv, uv, ruff, terraform, awscli, gcloud-cli |
+| Development | fnm, direnv, uv, ruff, tenv, awscli, gcloud-cli |
 | Git / GitHub | gh, git-lfs |
 
 ### GUI Apps ([Brewfile.install-only](config/homebrew/Brewfile.install-only))
@@ -53,6 +53,7 @@ Apps in this list use their own updaters. Both `make install` and `make update` 
 | --- | --- |
 | Claude Code | [config/claude/version](config/claude/version) |
 | Node.js (fnm) | [config/fnm/version](config/fnm/version) |
+| Terraform (tenv) | `.terraform-version`, or `required_version` capped by [config/tenv/terraform-version](config/tenv/terraform-version) |
 | Notion CLI | [config/ntn/version](config/ntn/version) |
 | Codex CLI | Installed if missing |
 

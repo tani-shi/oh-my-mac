@@ -17,4 +17,5 @@ This repository configures a macOS workstation.
 - Pin config-tools packages with `==` in `config/uv/config-tools.txt`.
 - Remote Sheldon plugins use tags, or revisions when no tag exists.
 - uv tools use tags or commits except the intentionally HEAD-tracking `agent-sentinel` and `claude-sessions`.
+- tenv uses a project's `.terraform-version` as is. Otherwise it resolves `required_version` capped by `config/tenv/terraform-version`; raise that file when a project needs a newer Terraform.
 - Declare every required non-official Homebrew tap in `config/homebrew/trusted-taps.txt`, even when its resolved name differs from the requested tap.

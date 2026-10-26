@@ -1,4 +1,4 @@
-.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps install-config-tools install-uv-tools install-claude install-node install-ntn install-codex check-trust fix-cert-pem
+.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps install-config-tools install-uv-tools install-claude install-node install-terraform install-ntn install-codex check-trust fix-cert-pem
 
 .DEFAULT_GOAL := help
 
@@ -30,6 +30,7 @@ install-common:
 	$(MAKE) sync-config
 	$(MAKE) install-claude
 	$(MAKE) install-node
+	$(MAKE) install-terraform
 	$(MAKE) install-ntn
 	$(MAKE) install-codex
 
@@ -104,6 +105,20 @@ install-node:
 		fnm install "$$version" || exit 1; \
 		fnm default "$$version" || exit 1; \
 	fi
+
+# The ceiling constraint also caps required_version resolution; only .terraform-version bypasses it.
+install-terraform:
+	@if ! command -v tenv >/dev/null 2>&1; then \
+		echo "Error: tenv not found" >&2; exit 1; \
+	fi
+	@if [ ! -f config/tenv/terraform-version ]; then \
+		echo "Error: config/tenv/terraform-version missing" >&2; exit 1; \
+	fi
+	@version=$$(cat config/tenv/terraform-version); \
+	tenv -q tf reset || exit 1; \
+	tenv -q tf constraint "<= $$version" || exit 1; \
+	tenv -q tf install "$$version" || exit 1; \
+	echo "Terraform $$version installed as the tenv default"
 
 install-ntn:
 	@if [ -z "$(NTN_VERSION)" ]; then \

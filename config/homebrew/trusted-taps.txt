@@ -3,4 +3,3 @@
 # explicitly trusted (HOMEBREW_REQUIRE_TAP_TRUST). `make trust-taps` trusts these
 # idempotently before bundling so a fresh machine can `make install` in one shot.
 # One tap per line. Lines starting with # are ignored.
-hashicorp/tap
