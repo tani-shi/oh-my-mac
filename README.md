@@ -47,6 +47,10 @@ User-level Claude Code skills and plugins are managed on the claude.ai account a
 
 Apps in this list use their own updaters. Both `make install` and `make update` use Homebrew only to install missing apps; update installed apps through their own update controls.
 
+### Removed Packages ([Brewfile.removed](config/homebrew/Brewfile.removed))
+
+`make install` and `make update` uninstall the packages listed here before running `brew bundle`.
+
 ### CLI Tools
 
 | Tool | Version |
