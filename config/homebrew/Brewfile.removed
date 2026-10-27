@@ -1,0 +1,4 @@
+# Packages dropped from the Brewfiles. `make install` / `make update` uninstall them before
+# `brew bundle` so replacements can link. Formulae and casks are removed before taps.
+tap "hashicorp/tap"
+brew "hashicorp/tap/terraform"

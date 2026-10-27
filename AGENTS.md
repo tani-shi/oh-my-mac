@@ -14,6 +14,7 @@ This repository configures a macOS workstation.
 ## Dependency versioning
 
 - Put self-updating apps in `config/homebrew/Brewfile.install-only`.
+- When dropping a package from either Brewfile, add it to `config/homebrew/Brewfile.removed` so existing machines uninstall it. Delete the entry if the package is added back.
 - Pin config-tools packages with `==` in `config/uv/config-tools.txt`.
 - Remote Sheldon plugins use tags, or revisions when no tag exists.
 - uv tools use tags or commits except the intentionally HEAD-tracking `agent-sentinel` and `claude-sessions`.

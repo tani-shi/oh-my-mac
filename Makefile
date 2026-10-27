@@ -1,4 +1,4 @@
-.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps install-config-tools install-uv-tools install-claude install-node install-terraform install-ntn install-codex check-trust fix-cert-pem
+.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps uninstall-removed install-config-tools install-uv-tools install-claude install-node install-terraform install-ntn install-codex check-trust fix-cert-pem
 
 .DEFAULT_GOAL := help
 
@@ -14,14 +14,34 @@ sync-config:
 
 install: ## Install tools and apply configuration
 	$(MAKE) trust-taps
+	$(MAKE) uninstall-removed
 	brew bundle --no-upgrade --file=Brewfile
 	$(MAKE) install-common
 
 update: ## Update Homebrew packages and apply declared tools and configuration
 	$(MAKE) trust-taps
+	$(MAKE) uninstall-removed
 	brew bundle --file=Brewfile
 	$(MAKE) install-common AGENT_SENTINEL_UPGRADE=1
 	brew cleanup
+
+uninstall-removed:
+	@removed=config/homebrew/Brewfile.removed; \
+	for kind in formula cask tap; do \
+		names=$$(brew bundle list --file="$$removed" --$$kind) || exit 1; \
+		for name in $$names; do \
+			if [ "$$kind" = tap ]; then \
+				brew tap | grep -qix "$$name" || continue; \
+				echo "Removing tap $$name (listed in $$removed)"; \
+				brew untap "$$name" || echo "Warning: could not remove tap $$name" >&2; \
+			else \
+				name=$${name##*/}; \
+				brew list --$$kind "$$name" >/dev/null 2>&1 || continue; \
+				echo "Removing $$kind $$name (listed in $$removed)"; \
+				brew uninstall --$$kind "$$name" || echo "Warning: could not remove $$kind $$name" >&2; \
+			fi; \
+		done; \
+	done
 
 install-common:
 	brew bundle --no-upgrade --file=config/homebrew/Brewfile.install-only
