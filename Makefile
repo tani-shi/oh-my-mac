@@ -136,9 +136,10 @@ install-terraform:
 	fi
 	@version=$$(cat config/tenv/terraform-version); \
 	tenv -q tf reset || exit 1; \
+	mkdir -p "$${TENV_ROOT:-$$HOME/.tenv}/Terraform" || exit 1; \
 	tenv -q tf constraint "<= $$version" || exit 1; \
 	tenv -q tf install "$$version" || exit 1; \
-	echo "Terraform $$version installed as the tenv default"
+	echo "Terraform $$version installed; tenv resolves versions up to $$version"
 
 install-ntn:
 	@if [ -z "$(NTN_VERSION)" ]; then \
