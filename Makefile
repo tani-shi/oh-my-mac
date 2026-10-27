@@ -135,9 +135,9 @@ install-terraform:
 		echo "Error: config/tenv/terraform-version missing" >&2; exit 1; \
 	fi
 	@version=$$(cat config/tenv/terraform-version); \
+	tenv -q tf install "$$version" || exit 1; \
 	tenv -q tf reset || exit 1; \
 	tenv -q tf constraint "<= $$version" || exit 1; \
-	tenv -q tf install "$$version" || exit 1; \
 	echo "Terraform $$version installed as the tenv default"
 
 install-ntn:
