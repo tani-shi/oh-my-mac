@@ -45,7 +45,7 @@ User-level Claude Code skills and plugins are managed on the claude.ai account a
 
 ### GUI Apps ([Brewfile.install-only](config/homebrew/Brewfile.install-only))
 
-Apps in this list use their own updaters. Both `make install` and `make update` use Homebrew only to install missing apps; update installed apps through their own update controls.
+Apps in this list use their own updaters. Both `make install` and `make update` use Homebrew only to install missing apps; update installed apps through their own update controls. `make update` lists apps that are behind the latest release.
 
 ### Removed Packages ([Brewfile.removed](config/homebrew/Brewfile.removed))
 

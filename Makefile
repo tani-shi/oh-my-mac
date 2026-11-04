@@ -1,6 +1,9 @@
-.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps uninstall-removed install-config-tools install-uv-tools install-claude install-node install-terraform install-ntn install-codex check-trust fix-cert-pem
+.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps uninstall-removed install-config-tools install-uv-tools install-claude install-node install-terraform install-ntn install-codex check-trust fix-cert-pem report-app-updates upgrade-brewfile-deps
 
 .DEFAULT_GOAL := help
+
+export HOMEBREW_NO_ENV_HINTS := 1
+export HOMEBREW_NO_UPDATE_REPORT_NEW := 1
 
 help:
 	@printf "Usage: make <target>\n\nTargets:\n"
@@ -13,17 +16,33 @@ sync-config:
 	@./config.zsh sync
 
 install: ## Install tools and apply configuration
-	$(MAKE) trust-taps
-	$(MAKE) uninstall-removed
-	brew bundle --no-upgrade --file=Brewfile
-	$(MAKE) install-common
+	@$(MAKE) trust-taps
+	@$(MAKE) uninstall-removed
+	@brew bundle --quiet --no-upgrade --file=Brewfile
+	@$(MAKE) install-common
 
 update: ## Update Homebrew packages and apply declared tools and configuration
-	$(MAKE) trust-taps
-	$(MAKE) uninstall-removed
-	brew bundle --file=Brewfile
-	$(MAKE) install-common AGENT_SENTINEL_UPGRADE=1
-	brew cleanup
+	@$(MAKE) trust-taps
+	@$(MAKE) uninstall-removed
+	@brew bundle --quiet --file=Brewfile
+	@$(MAKE) upgrade-brewfile-deps
+	@uv python upgrade
+	@gcloud components update --quiet --no-user-output-enabled >/dev/null
+	@$(MAKE) install-common AGENT_SENTINEL_UPGRADE=1
+	@brew cleanup
+	@$(MAKE) report-app-updates
+
+# brew bundle leaves outdated dependencies of up-to-date Brewfile formulae untouched.
+upgrade-brewfile-deps:
+	@deps=$$(brew bundle list --file=Brewfile --formula | xargs brew deps --union) || exit 1; \
+	outdated=$$(brew outdated --formula -q) || exit 1; \
+	targets=$$(printf '%s\n' $$outdated | grep -Fx "$$deps") || true; \
+	if [ -n "$$targets" ]; then \
+		brew upgrade --formula $$targets; \
+	fi
+
+report-app-updates:
+	@./scripts/report-app-updates.zsh
 
 uninstall-removed:
 	@removed=config/homebrew/Brewfile.removed; \
@@ -44,15 +63,15 @@ uninstall-removed:
 	done
 
 install-common:
-	brew bundle --no-upgrade --file=config/homebrew/Brewfile.install-only
-	$(MAKE) install-uv-tools
-	$(MAKE) install-config-tools
-	$(MAKE) sync-config
-	$(MAKE) install-claude
-	$(MAKE) install-node
-	$(MAKE) install-terraform
-	$(MAKE) install-ntn
-	$(MAKE) install-codex
+	@brew bundle --quiet --no-upgrade --file=config/homebrew/Brewfile.install-only
+	@$(MAKE) install-uv-tools
+	@$(MAKE) install-config-tools
+	@$(MAKE) sync-config
+	@$(MAKE) install-claude
+	@$(MAKE) install-node
+	@$(MAKE) install-terraform
+	@$(MAKE) install-ntn
+	@$(MAKE) install-codex
 
 check-trust: ## Check whether CLI tools still trust the compromised eMudhra CA
 	@./scripts/emudhra.zsh check
@@ -96,9 +115,7 @@ install-claude:
 	fi
 	@version="$(CLAUDE_VERSION)"; \
 	current=$$(claude --version 2>/dev/null | awk '{print $$1}') || true; \
-	if [ "$$current" = "$$version" ]; then \
-		echo "Claude Code $$version already installed"; \
-	else \
+	if [ "$$current" != "$$version" ]; then \
 		echo "Installing Claude Code $$version..."; \
 		claude install "$$version" 2>&1 || curl -fsSL https://claude.ai/install.sh | bash -s -- "$$version"; \
 		installed=$$(claude --version 2>/dev/null | awk '{print $$1}') || true; \
@@ -118,9 +135,7 @@ install-node:
 	@version=$$(cat config/fnm/version); \
 	environment=$$(fnm env) || exit 1; \
 	eval "$$environment" || exit 1; \
-	if fnm list 2>/dev/null | grep -q "v$$version default"; then \
-		echo "Node v$$version already installed and set as default"; \
-	else \
+	if ! fnm list 2>/dev/null | grep -q "v$$version default"; then \
 		echo "Installing Node v$$version (fnm)..."; \
 		fnm install "$$version" || exit 1; \
 		fnm default "$$version" || exit 1; \
@@ -138,8 +153,10 @@ install-terraform:
 	tenv -q tf reset || exit 1; \
 	mkdir -p "$${TENV_ROOT:-$$HOME/.tenv}/Terraform" || exit 1; \
 	tenv -q tf constraint "<= $$version" || exit 1; \
-	tenv -q tf install "$$version" || exit 1; \
-	echo "Terraform $$version installed; tenv resolves versions up to $$version"
+	if ! tenv tf list 2>/dev/null | grep -q "^ *$$version "; then \
+		tenv -q tf install "$$version" || exit 1; \
+		echo "Terraform $$version installed; tenv resolves versions up to $$version"; \
+	fi
 
 install-ntn:
 	@if [ -z "$(NTN_VERSION)" ]; then \
@@ -155,9 +172,7 @@ install-ntn:
 			exit 1; \
 		else \
 			current=$$(ntn --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1) || true; \
-			if [ "$$current" = "$(NTN_VERSION)" ]; then \
-				echo "Notion CLI (ntn) $(NTN_VERSION) already installed"; \
-			else \
+			if [ "$$current" != "$(NTN_VERSION)" ]; then \
 				echo "Installing Notion CLI (ntn) $(NTN_VERSION)..."; \
 				npm install -g "ntn@$(NTN_VERSION)"; \
 			fi; \
@@ -169,12 +184,11 @@ install-codex:
 		environment=$$(fnm env) || exit 1; \
 		eval "$$environment" || exit 1; \
 	fi; \
-	if command -v codex >/dev/null 2>&1; then \
-		echo "Codex CLI already installed"; \
-	elif ! command -v npm >/dev/null 2>&1; then \
-		echo "Error: npm not found" >&2; \
-		exit 1; \
-	else \
+	if ! command -v codex >/dev/null 2>&1; then \
+		if ! command -v npm >/dev/null 2>&1; then \
+			echo "Error: npm not found" >&2; \
+			exit 1; \
+		fi; \
 		echo "Installing Codex CLI..."; \
 		npm install -g @openai/codex || exit 1; \
 		if ! command -v codex >/dev/null 2>&1; then \
@@ -187,18 +201,21 @@ install-uv-tools:
 	@if command -v uv >/dev/null 2>&1 && [ -f config/uv/tools.txt ]; then \
 		while IFS= read -r tool || [ -n "$$tool" ]; do \
 			[ -z "$$tool" ] && continue; \
-			echo "Installing uv tool: $$tool"; \
 			case "$$tool" in \
 				agent-sentinel*) \
 					options=""; \
 					if [ "$(AGENT_SENTINEL_UPGRADE)" = "1" ]; then \
 						options="--upgrade"; \
 					fi; \
-					uv tool install $$options "$$tool" 2>&1 || exit 1; \
+					output=$$(uv tool install $$options "$$tool" 2>&1) || { printf "%s\n" "$$output" >&2; exit 1; }; \
+					printf "%s\n" "$$output" | grep -E "^ [-+~] " || true; \
 					command -v agent-sentinel >/dev/null 2>&1 || { echo "Error: agent-sentinel executable not found after install"; exit 1; }; \
 					agent-sentinel --help >/dev/null 2>&1 || { echo "Error: agent-sentinel executable check failed"; exit 1; }; \
 					;; \
-				*) uv tool install "$$tool" 2>&1 || exit 1 ;; \
+				*) \
+					output=$$(uv tool install "$$tool" 2>&1) || { printf "%s\n" "$$output" >&2; exit 1; }; \
+					printf "%s\n" "$$output" | grep -E "^ [-+~] " || true; \
+					;; \
 			esac; \
 		done < config/uv/tools.txt; \
 	else \
