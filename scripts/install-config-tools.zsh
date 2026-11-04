@@ -24,7 +24,6 @@ config_python_is_ready() {
 }
 
 if config_python_is_ready "$CONFIG_TOOLS_PYTHON"; then
-  echo "Config tools already installed"
   exit 0
 fi
 if ! command -v uv &>/dev/null; then

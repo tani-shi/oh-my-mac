@@ -13,10 +13,17 @@ This repository configures a macOS workstation.
 
 ## Dependency versioning
 
-- Put self-updating apps in `config/homebrew/Brewfile.install-only`.
+### Homebrew
+
+- `make update` must be safe to run at any time, without quitting running apps.
+  - GUI apps go in `config/homebrew/Brewfile.install-only` and update themselves on restart.
+  - CLI casks go in `Brewfile`. When a CLI has its own updater, such as `gcloud components update`, run it from `make update`.
 - When dropping a package from either Brewfile, add it to `config/homebrew/Brewfile.removed` so existing machines uninstall it. Delete the entry if the package is added back.
+- Declare every required non-official Homebrew tap in `config/homebrew/trusted-taps.txt`, even when its resolved name differs from the requested tap.
+
+### Other tools
+
 - Pin config-tools packages with `==` in `config/uv/config-tools.txt`.
 - Remote Sheldon plugins use tags, or revisions when no tag exists.
 - uv tools use tags or commits except the intentionally HEAD-tracking `agent-sentinel` and `claude-sessions`.
 - tenv uses a project's `.terraform-version` as is. Otherwise it resolves `required_version` capped by `config/tenv/terraform-version`; raise that file when a project needs a newer Terraform.
-- Declare every required non-official Homebrew tap in `config/homebrew/trusted-taps.txt`, even when its resolved name differs from the requested tap.

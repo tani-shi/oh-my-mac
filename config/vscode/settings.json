@@ -4,7 +4,7 @@
   "extensions.ignoreRecommendations": true,
   "extensions.autoUpdate": "off",
   "extensions.autoCheckUpdates": false,
-  "update.mode": "manual",
+  "update.mode": "default",
   "telemetry.telemetryLevel": "off",
   "workbench.startupEditor": "none",
   "git.enabled": false,
