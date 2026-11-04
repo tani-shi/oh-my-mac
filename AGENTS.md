@@ -17,7 +17,7 @@ This repository configures a macOS workstation.
 
 - `make update` must be safe to run at any time, without quitting running apps.
   - GUI apps go in `config/homebrew/Brewfile.install-only` and update themselves on restart.
-  - CLI casks go in `Brewfile`. When a CLI has its own updater, such as `gcloud components update`, run it from `make update` instead of using `greedy: true`.
+  - CLI casks go in `Brewfile`. When a CLI has its own updater, such as `gcloud components update`, run it from `make update`.
 - When dropping a package from either Brewfile, add it to `config/homebrew/Brewfile.removed` so existing machines uninstall it. Delete the entry if the package is added back.
 - Declare every required non-official Homebrew tap in `config/homebrew/trusted-taps.txt`, even when its resolved name differs from the requested tap.
 
