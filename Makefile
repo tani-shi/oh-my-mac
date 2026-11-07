@@ -32,9 +32,11 @@ update: ## Update Homebrew packages and apply declared tools and configuration
 	@brew cleanup
 	@$(MAKE) report-app-updates
 
-# brew bundle leaves outdated dependencies of up-to-date Brewfile formulae untouched.
+# brew bundle leaves outdated dependencies of up-to-date Brewfile formulae and casks untouched.
 upgrade-brewfile-deps:
-	@deps=$$(brew bundle list --file=Brewfile --formula | xargs brew deps --union) || exit 1; \
+	@formula_deps=$$(brew bundle list --file=Brewfile --formula | xargs brew deps --union) || exit 1; \
+	cask_deps=$$(brew bundle list --file=Brewfile --cask | xargs brew deps --union --cask) || exit 1; \
+	deps=$$(printf '%s\n' $$formula_deps $$cask_deps); \
 	outdated=$$(brew outdated --formula -q) || exit 1; \
 	targets=$$(printf '%s\n' $$outdated | grep -Fx "$$deps") || true; \
 	if [ -n "$$targets" ]; then \
