@@ -16,8 +16,26 @@ configs=(
   "config/zshrc:$HOME/.zshrc"
   "config/git/ignore:$HOME/.config/git/ignore")
 
+# Scripts listed here are installed only on machines whose Keychain has the
+# service; `make set-<service>` stores it.
+typeset -A CLAUDE_SCRIPT_KEYCHAIN_SERVICES=(
+  scripts/x-search.py xai-api-key
+)
+
+claude_file_enabled() {
+  local rel=$1 service rc=0
+  [[ -f "$SCRIPT_DIR/config/claude/$rel" ]] || return 1
+  service="${CLAUDE_SCRIPT_KEYCHAIN_SERVICES[$rel]-}"
+  [[ -n "$service" ]] || return 0
+  security find-generic-password -a "$(id -un)" -s "$service" &>/dev/null || rc=$?
+  # Only errSecItemNotFound (44) disables the script; other errors, such as a
+  # locked Keychain, keep it installed.
+  (( rc != 44 ))
+}
+
 for f in "$SCRIPT_DIR"/config/claude/agents/*.md(N) "$SCRIPT_DIR"/config/claude/scripts/*(.N); do
   rel="${f#$SCRIPT_DIR/config/claude/}"
+  claude_file_enabled "$rel" || continue
   configs+=("config/claude/$rel:$HOME/.claude/$rel")
 done
 
@@ -145,9 +163,9 @@ remove_claude_orphans() {
   local orphan_file rel
   for orphan_file in "$HOME"/.claude/agents/*.md(.N) "$HOME"/.claude/scripts/*(.N); do
     rel="${orphan_file#$HOME/.claude/}"
-    if [[ ! -f "$SCRIPT_DIR/config/claude/$rel" ]]; then
+    if ! claude_file_enabled "$rel"; then
       if [[ "$MODE" == "diff" ]]; then
-        echo "Orphan: $orphan_file (no config/claude/$rel)"
+        echo "Orphan: $orphan_file (no config/claude/$rel or its Keychain item)"
         diffs=$((diffs + 1))
       else
         rm -f "$orphan_file"
