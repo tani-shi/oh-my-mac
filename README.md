@@ -124,14 +124,6 @@ codex login
 
 Trust the installed hooks in **Settings → Hooks** (Codex app) or `/hooks` (CLI).
 
-### X search (optional)
-
-`~/.claude/scripts/x-search.py` searches X through the xAI API. `make sync-config` installs it only when Keychain has the API key.
-
-```bash
-make set-xai-api-key
-```
-
 ### Microsoft Edge (Claude in Chrome)
 
 Edge is the dedicated browser for Claude in Chrome, separate from everyday Chrome sessions.
