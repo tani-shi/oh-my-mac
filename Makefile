@@ -1,4 +1,4 @@
-.PHONY: help diff-config sync-config install update install-common refresh-agent-sentinel trust-taps uninstall-removed install-config-tools install-uv-tools install-claude install-node install-terraform install-ntn install-codex check-trust fix-cert-pem report-app-updates upgrade-brewfile-deps
+.PHONY: help diff-config sync-config set-xai-api-key install update install-common refresh-agent-sentinel trust-taps uninstall-removed install-config-tools install-uv-tools install-claude install-node install-terraform install-ntn install-codex check-trust fix-cert-pem report-app-updates upgrade-brewfile-deps
 
 .DEFAULT_GOAL := help
 
@@ -72,6 +72,10 @@ install-common:
 	@$(MAKE) install-terraform
 	@$(MAKE) install-ntn
 	@$(MAKE) install-codex
+
+set-xai-api-key: ## Store the xAI API key in Keychain to enable ~/.claude/scripts/x-search.py
+	@security add-generic-password -U -a "$$(id -un)" -s xai-api-key -l "xAI API key (oh-my-mac)" -w
+	@echo "Stored. Run 'make diff-config' and 'make sync-config' to install x-search.py."
 
 check-trust: ## Check whether CLI tools still trust the compromised eMudhra CA
 	@./scripts/emudhra.zsh check
