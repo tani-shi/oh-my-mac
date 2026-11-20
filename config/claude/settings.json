@@ -33,7 +33,11 @@
       }
     ]
   },
-  "attribution": false,
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
   "enableArtifact": false,
   "preferredNotifChannel": "notifications_disabled",
   "language": "Japanese",
